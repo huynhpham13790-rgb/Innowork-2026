@@ -76,6 +76,14 @@ const int   FLUSH_BATCH      = 25;              // đẩy bù mỗi lượt bấ
                                                 // rồi trả quyền cho loop() -> không nghẽn
 const long  RECONNECT_MS     = 5000;            // nhịp thử nối lại, KHÔNG chặn loop
 
+// Sau khi nối lại, ĐỪNG tin đường truyền ngay. Lý do đã trả giá bằng một lần
+// test hỏng: khi broker vừa sống lại, ESP32 nối lại sau 5s nhưng phía subscriber
+// (Node-RED) mất tới 15s mới nối lại. ESP bắn nguyên buffer vào broker chưa có
+// ai nghe -> MQTT QoS 0 không lưu cho subscriber offline -> mất sạch, mà log
+// phía ESP vẫn báo "đẩy bù OK". Nên trong khoảng này vẫn ghi tiếp vào spool,
+// hết khoảng mới đẩy bù một lượt. Đổi lại: dữ liệu lên chậm hơn vài chục giây.
+const long  LINK_GRACE_MS    = 20000;
+
 // -----------------------------------------------------------------------------
 WiFiClient        netPlain;
 WiFiClientSecure  netTls;
@@ -88,6 +96,7 @@ bool    gUseTls = false;
 char topicData[160], topicConn[160], topicCfg[160], topicCmd[160], topicAck[160];
 
 unsigned long lastPublish = 0, lastHeartbeat = 0, lastReconnect = 0;
+unsigned long linkTrustedAt = 0;   // trước mốc này thì vẫn đệm, chưa đẩy bù
 unsigned long spoolDropped = 0;   // số gói bị bỏ vì flash đầy (báo cho biết là có mất)
 bool   fsReady = false;
 float cellBias[NUM_CELLS];
@@ -182,6 +191,7 @@ size_t spoolSize() {
 // theo đúng thứ tự, nên rớt mạng giữa chừng cũng không mất và không đảo thứ tự.
 // Trả về true khi spool đã sạch.
 bool spoolFlush() {
+  if (millis() < linkTrustedAt) return false;      // còn trong khoảng chờ subscriber
   if (!fsReady || spoolSize() == 0) return true;
 
   File in = LittleFS.open(SPOOL_PATH, FILE_READ);
@@ -366,7 +376,8 @@ void publishData() {
   // Còn mạng thì gửi thẳng; mất mạng (hoặc gửi hỏng) thì ghi xuống flash để
   // đẩy bù sau. `ts` đã nằm sẵn trong payload nên gói đệm giữ đúng thời điểm
   // lấy mẫu, không phải thời điểm đẩy lên.
-  bool ok = mqtt.connected() && mqtt.publish(topicData, out.c_str());
+  bool linkReady = mqtt.connected() && millis() >= linkTrustedAt;
+  bool ok = linkReady && mqtt.publish(topicData, out.c_str());
   if (ok) {
     Serial.printf("[DATA] OK   %s\n", out.c_str());
   } else {
@@ -410,6 +421,8 @@ bool mqttTryConnect() {
       delay(1000);            // cho cloud kịp ghi nhận config trước khi bắn data
       publishHeartbeat();
       lastHeartbeat = millis();
+      linkTrustedAt = millis() + LINK_GRACE_MS;
+      Serial.printf("[BUFF] cho %lds cho subscriber nói lai roi moi day bu\n", LINK_GRACE_MS / 1000);
       size_t pending = spoolSize();
       if (pending) Serial.printf("[BUFF] co %u byte cho day bu\n", (unsigned)pending);
       return true;

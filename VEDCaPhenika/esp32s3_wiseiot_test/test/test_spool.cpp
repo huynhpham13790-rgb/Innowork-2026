@@ -92,6 +92,11 @@ struct MqttMock {
 
 const char* topicData = "/wisepaas/scada/TEST/data";
 
+// Đồng hồ giả, để test được khoảng chờ subscriber mà không phải sleep thật.
+unsigned long fakeNow = 1000000;
+unsigned long millis() { return fakeNow; }
+unsigned long linkTrustedAt = 0;   // mốc "đường truyền đã đáng tin"
+
 struct SerialMock {
     void printf(const char*, ...) {}
     void println(const char*) {}
@@ -114,6 +119,7 @@ void resetAll(const std::string& dir) {
     ::remove((dir + SPOOL_TMP_PATH).c_str());
     mqtt.sent.clear(); mqtt.up = true; mqtt.failAfter = -1;
     fsReady = true; spoolDropped = 0;
+    fakeNow = 1000000; linkTrustedAt = 0;   // mac dinh: duong truyen da dang tin
 }
 String pkt(int i) {
     return String("{\"d\":{\"BatteryPack01\":{\"Cell01_Temp\":30.0}},\"ts\":\"P" +
@@ -181,6 +187,21 @@ int main(int argc, char** argv) {
     check(keptNewest, "goi MOI NHAT duoc giu lai");
     bool droppedOldest = mqtt.sent.front().find("\"P1\"") == std::string::npos;
     check(droppedOldest, "goi cu nhat (P1) da bi bo - dung chinh sach giu du lieu moi");
+
+    std::cout << "\n=== TEST 6: khoang cho subscriber - KHONG day bu qua som ===\n";
+    // Hoi quy cho loi that gap tren phan cung 06/09: broker song lai, ESP noi lai
+    // truoc subscriber 10s, ban het buffer vao cho khong ai nghe -> mat sach.
+    resetAll(dir);
+    mqtt.up = false;
+    for (int i = 1; i <= 10; i++) spoolAppend(pkt(i));
+    mqtt.up = true;
+    linkTrustedAt = fakeNow + 20000;                 // vua noi lai, chua tin
+    check(!spoolFlush(), "trong khoang cho -> BAO CHUA SACH, khong day bu");
+    check(mqtt.sent.empty(), "KHONG goi mot goi nao ra duong truyen chua tin");
+    check(spoolSize() > 0, "du lieu van nam nguyen trong spool");
+    fakeNow += 20001;                                 // het khoang cho
+    check(spoolFlush(), "het khoang cho -> day bu sach");
+    check(mqtt.sent.size() == 10, "day bu du 10 goi, khong mat goi nao");
 
     std::cout << "\n=== TEST 5: spool rong thi flush khong lam gi ===\n";
     resetAll(dir);

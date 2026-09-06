@@ -13,10 +13,11 @@ RTM này mới phủ **chặng ESP32 → cloud**. Các phần Edge AI (autoencod
 | REQ | Yêu cầu | Code | Test | Bằng chứng | Trạng thái |
 |---|---|---|---|---|---|
 | REQ-01 | ESP32 gửi dữ liệu đúng giao thức WISE-PaaS, không phải sửa khi đổi cloud | `.ino` → `buildTopics()`, `publishData()`, `publishConfig()` | AC-01.3, AC-01.5 | BC §1, §3 | ✅ |
-| REQ-02 | Cloud nhận, lưu và vẽ được dữ liệu | `planb_cloud/` toàn bộ | AC-01.1→1.4 | BC §1 | ✅ trừ AC-01.4 (Grafana panel) |
+| REQ-02 | Cloud nhận, lưu và vẽ được dữ liệu | `planb_cloud/` toàn bộ | AC-01.1→1.4 | BC §1, BC2 §1 | ✅ |
 | REQ-03 | Timestamp do thiết bị quyết định, cloud tôn trọng | `isoTimestampUtc()`, `convert.js`, `precision=ns` | AC-02.1 | BC §2 | ✅ |
 | REQ-04 | NTP hỏng không được làm hỏng dữ liệu một cách im lặng | `timeIsValid()`, chặn mốc `1700000000000` trong `convert.js` | AC-02.2, AC-02.3 | BC §2, §4 | ✅ phía cloud · 🔶 phía board |
-| REQ-05 | Mất mạng không mất dữ liệu; nối lại đẩy bù đúng thứ tự, đúng thời điểm gốc | `spoolAppend/Flush/Compact()`, `loop()` không chặn | AC-03.1→3.5 (`test/run_test.sh`) | BC §3 | ✅ ở mức logic · ⬜ AC-03.6 cần board |
+| REQ-05 | Mất mạng không mất dữ liệu; nối lại đẩy bù đúng thứ tự, đúng thời điểm gốc | `spoolAppend/Flush/Compact()`, `loop()` không chặn | AC-03.1→3.6 | BC §3, BC2 §2 | ✅ **đã chạy trên board thật** |
+| REQ-12 | Không đẩy bù khi subscriber chưa sẵn sàng | `LINK_GRACE_MS`, `linkTrustedAt` | AC-03.7, TEST 6 | BC2 §2 | ✅ |
 | REQ-06 | Đệm không được làm nghẽn vòng lấy mẫu | `FLUSH_BATCH`, `ensureWifi()`, `mqttTryConnect()` không chặn | AC-03.4 | BC §3 | ✅ |
 | REQ-07 | Flash đầy không làm treo thiết bị | `spoolCompact()`, `SPOOL_MAX_BYTES` | AC-03.5 | BC §3 | ✅ |
 | REQ-08 | Máy chủ công cộng không bị chiếm quyền | `docker-compose.yml` port binding, `mosquitto.conf` | AC-04.1→4.3 | BC §4 | ✅ ở local · ⬜ AC-04.6 trên VPS thật |
@@ -24,7 +25,7 @@ RTM này mới phủ **chặng ESP32 → cloud**. Các phần Edge AI (autoencod
 | REQ-10 | Secret không lọt lên GitHub | `.gitignore` | AC-04.4 | BC §5 | ✅ |
 | REQ-11 | Chuyển sang WISE-IoT thật chỉ tốn cấu hình, không sửa logic | `#define STAGE`, `fetchCredentialFromDccs()` | — | — | ⬜ chờ tài khoản |
 
-**Chú thích:** BC = `docs/BANG_CHUNG_KIEM_THU_2026-09-06.md` · AC = `docs/TEST_VA_ACCEPTANCE.md`
+**Chú thích:** BC = `docs/BANG_CHUNG_KIEM_THU_2026-09-06.md` · BC2 = `docs/BANG_CHUNG_PHAN_CUNG_2026-09-06.md` · AC = `docs/TEST_VA_ACCEPTANCE.md`
 
 ---
 
@@ -35,13 +36,13 @@ RTM này mới phủ **chặng ESP32 → cloud**. Các phần Edge AI (autoencod
 | Loại hở | Cụ thể |
 |---|---|
 | **Requirement chưa có test** | REQ-11 (chuyển WISE-IoT) — không test được cho tới khi có tài khoản. |
-| **Test chưa chạy trên phần cứng thật** | REQ-04 phía board, REQ-05 AC-03.6. Toàn bộ RTM hiện dừng ở mức "logic đúng + cloud đúng", **chưa có một lần nào chạy trên ESP32 thật**. Đây là chỗ hở lớn nhất. |
+| **Test chưa chạy trên phần cứng thật** | Đã gỡ 06/09: firmware đã chạy trên ESP32-S3 thật, store-and-forward đã diễn tập thành công. Còn lại: chưa thử với **mạng 4G/điện thoại** và chưa thử trên **VPS công cộng**. |
 | **Code chưa có requirement** | `fetchCredentialFromDccs()`, các topic `cmd`/`ack` mới subscribe chứ chưa xử lý gì. |
 | **Requirement chưa có code** | Toàn bộ lớp Edge AI, mạch đo nhiệt thật, cảnh báo tới người dùng. |
 
 ## Việc tiếp theo theo thứ tự ưu tiên
 
-1. **Nạp firmware lên board thật** và chạy AC-01.6 + AC-03.6. Gỡ được chỗ hở lớn nhất ở trên.
-2. Dựng dashboard Grafana (AC-01.4) — cần cho mọi lần demo về sau.
-3. Đưa stack lên VPS công cộng và chạy lại AC-04 (AC-04.6).
-4. Diễn tập kịch bản 5 phút (AC-05.3).
+1. Đưa stack lên VPS công cộng và chạy lại AC-04 (AC-04.6) — chỗ hở lớn nhất còn lại.
+2. Thử với WiFi phát từ điện thoại thay vì router nhà (AC-05.1).
+3. Diễn tập trọn kịch bản 5 phút ít nhất 2 lần (AC-05.3).
+4. Gắn cảm biến nhiệt thật thay cho 8 giá trị giả lập.

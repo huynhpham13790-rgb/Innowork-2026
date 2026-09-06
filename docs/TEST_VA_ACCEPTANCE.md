@@ -13,9 +13,9 @@ Ký hiệu: ✅ đã kiểm chứng · ⬜ chưa làm · 🔶 làm rồi nhưng 
 | 1.1 | 4 container đều `running` | `docker compose ps` | ✅ 06/09 |
 | 1.2 | Node-RED nối được Mosquitto có auth | log `Connected to broker` | ✅ 06/09 |
 | 1.3 | Payload đúng contract → ghi được vào InfluxDB | query Flux thấy đủ 8 tag | ✅ 06/09 |
-| 1.4 | Grafana vẽ được 8 đường nhiệt độ | mở panel, thấy cell #5 tách khỏi nhóm | ⬜ cần làm bằng tay |
+| 1.4 | Grafana vẽ được 8 đường nhiệt độ | dashboard `hutieu-pin`, panel + ô cảnh báo ngưỡng | ✅ 06/09 |
 | 1.5 | Firmware biên dịch cho ESP32-S3 | `arduino-cli compile` | ✅ 06/09 |
-| 1.6 | ESP32 thật bắn lên và thấy trên dashboard | nạp board, xem Serial + Grafana | ⬜ **cần board** |
+| 1.6 | ESP32 thật bắn lên và thấy trên dashboard | nạp board, 800 điểm / 100 mỗi cell, không mất gói | ✅ 06/09 |
 
 ## AC-02 — Timestamp do thiết bị quyết định (nền của màn demo)
 
@@ -23,7 +23,7 @@ Ký hiệu: ✅ đã kiểm chứng · ⬜ chưa làm · 🔶 làm rồi nhưng 
 |---|---|---|---|
 | 2.1 | Gói có `ts` lùi 2 giờ được vẽ đúng ở vị trí 2 giờ trước | bắn 1 gói backdate, query Influx | ✅ 06/09 |
 | 2.2 | Gói `ts` năm 1970 (NTP fail) bị chặn kèm cảnh báo rõ | bắn gói ts 1970, xem `docker compose logs nodered` | ✅ 06/09 |
-| 2.3 | ESP32 không gửi khi NTP chưa đồng bộ | `timeIsValid()` chặn trong `publishData()` | 🔶 có code, chưa chạy trên board |
+| 2.3 | ESP32 không gửi khi NTP chưa đồng bộ | `timeIsValid()` chặn trong `publishData()` | ✅ 06/09 (NTP đồng bộ OK trên board) |
 | 2.4 | WISE-IoT thật có tôn trọng `ts` không | **ẩn số** — chỉ trả lời được khi có tài khoản | ⬜ chờ tài khoản |
 
 ## AC-03 — Store-and-forward (90 giây đắt nhất của bài demo)
@@ -35,7 +35,8 @@ Ký hiệu: ✅ đã kiểm chứng · ⬜ chưa làm · 🔶 làm rồi nhưng 
 | 3.3 | Rớt mạng giữa lúc đang đẩy bù → phần còn lại giữ nguyên, không mất không đảo | TEST 2 | ✅ 06/09 |
 | 3.4 | Đệm nhiều hơn 1 lô → chia nhiều lượt, không nghẽn `loop()` | TEST 3 | ✅ 06/09 |
 | 3.5 | Flash đầy → bỏ dữ liệu cũ, giữ dữ liệu mới, không phình vô hạn | TEST 4 | ✅ 06/09 |
-| 3.6 | **Trên board thật:** rút WiFi 60s, cắm lại, dữ liệu bù về đúng vị trí thời gian trên Grafana | diễn tập demo | ⬜ **cần board — việc quan trọng nhất còn lại** |
+| 3.6 | **Trên board thật:** ngắt 60s, nối lại, dữ liệu bù về đúng vị trí thời gian | 83 điểm liên tục, 0 lỗ hổng | ✅ 06/09 |
+| 3.7 | Không đẩy bù trước khi subscriber kịp nối lại | TEST 6 + chạy thật trên board | ✅ 06/09 |
 
 ## AC-04 — An toàn khi đưa lên máy chủ công cộng
 

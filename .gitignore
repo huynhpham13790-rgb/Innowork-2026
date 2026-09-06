@@ -29,3 +29,6 @@ Thumbs.db
 .vscode/
 .idea/
 *.swp
+
+# Cấu hình compose riêng của từng máy (port, IP LAN...)
+docker-compose.override.yml

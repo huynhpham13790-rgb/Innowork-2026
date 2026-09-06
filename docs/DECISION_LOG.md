@@ -71,6 +71,26 @@ Kiểm chứng: với cấu hình cũ, token sai (HTTP 401) hoặc ts năm 1970 
 
 *Cách sửa:* thêm node "Kiểm tra kết quả ghi" đọc `statusCode` và `node.error()` kèm chẩn đoán theo từng mã lỗi; chặn sớm ts vô lý ngay trong `convert.js`.
 
+### QĐ-010 · 06/09/2026 · Đã chốt, phát hiện trên phần cứng thật
+**Sau khi nối lại MQTT, chờ 20 giây rồi mới đẩy bù (`LINK_GRACE_MS`).**
+
+Phát hiện khi chạy thật trên board: ngắt broker 60 giây rồi bật lại thì ESP32 nối lại sau ~5 giây, nhưng **Node-RED mất tới 15 giây** mới nối lại. ESP bắn nguyên 33 gói buffer vào một broker chưa có ai subscribe — MQTT QoS 0 không lưu cho subscriber offline nên mất sạch, trong khi log phía ESP vẫn báo `day bu 33 goi, con lai 0`. Nhìn Serial thì tưởng thành công, nhìn Grafana mới thấy thủng lỗ 78 giây.
+
+Đây là mặt trái nguy hiểm của chính cơ chế store-and-forward: nó gom dữ liệu lại rồi bắn hết đúng vào thời điểm mong manh nhất.
+
+*Cách sửa:* sau khi nối lại thì vẫn tiếp tục ghi vào spool thêm 20 giây, hết khoảng đó mới đẩy bù một lượt. Giữ nguyên thứ tự, không mất gói.
+*Đánh đổi:* dữ liệu lên chậm hơn ~20 giây sau mỗi lần nối lại. Với demo và với giám sát pin thì không đáng kể.
+*Đã kiểm chứng:* chạy lại đúng kịch bản đó trên board thật → 83 điểm liên tục, không còn lỗ hổng nào.
+
+### QĐ-011 · 06/09/2026 · Ghi nhận phần cứng
+**Nạp firmware qua cổng COM bằng cáp USB-A sang USB-C, không dùng cáp C-to-C.**
+
+Cổng COM của board thiếu điện trở CC 5.1k nên cáp C-to-C **không cấp được nguồn** (cắm vào không có đèn). Cáp A-to-C thì chạy bình thường: chip CH343 (`1a86:55d3`) lên đúng, tự vào mode nạp qua DTR/RTS, không phải bấm BOOT/RESET.
+
+Cổng USB native cũng nạp được nhưng **không tự vào mode nạp**, phải bấm nút bằng tay.
+
+*Ghi lại vì:* ngày thi mà cầm nhầm cáp là mất 20 phút loay hoay. **Mang theo đúng sợi A-to-C đã thử.**
+
 ---
 
 ## Ẩn số còn treo
@@ -79,4 +99,5 @@ Kiểm chứng: với cấu hình cũ, token sai (HTTP 401) hoặc ts năm 1970 
 |---|---|---|
 | WISE-IoT có tôn trọng `ts` thiết bị gửi không? | Độ chắc chắn của màn demo trên cloud Advantech | Chờ tài khoản, bắn 1 gói backdate. Plan B đã có đường lùi. |
 | WiFi hội trường có chặn/NAT cổng 1883 không? | Kịch bản ngày thi | Đã quyết: phát WiFi từ điện thoại, không dùng mạng hội trường. |
-| Store-and-forward chạy thật trên board ra sao? | AC-03.6 — mục quan trọng nhất còn lại | Cần board thật, diễn tập rút mạng 60 giây. |
+| ~~Store-and-forward chạy thật trên board ra sao?~~ | **Đã gỡ 06/09** — chạy thật thành công, xem `BANG_CHUNG_PHAN_CUNG_2026-09-06.md`. Tìm ra thêm QĐ-010. | |
+| Mạng 4G / WiFi phát từ điện thoại có ổn không? | Kịch bản ngày thi | Thử trước, cùng lúc với AC-04.6 trên VPS. |

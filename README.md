@@ -25,7 +25,8 @@ docs/
   TEST_VA_ACCEPTANCE.md    Thế nào là "chạy đúng"
   DECISION_LOG.md          Đã cân nhắc gì, chọn gì, vì sao
   RTM.md                   Requirement → code → test → bằng chứng
-  BANG_CHUNG_KIEM_THU_*.md Bằng chứng đã chạy thật
+  BANG_CHUNG_KIEM_THU_*.md Bằng chứng chạy thật — tầng cloud
+  BANG_CHUNG_PHAN_CUNG_*.md Bằng chứng chạy thật — trên board ESP32-S3
 VEDCaPhenika/
   esp32s3_wiseiot_test/    Firmware ESP32-S3 + test store-and-forward chạy trên PC
   planb_cloud/             Stack cloud dự phòng (Docker): Mosquitto + Node-RED + InfluxDB + Grafana
@@ -44,9 +45,9 @@ cd VEDCaPhenika/esp32s3_wiseiot_test && ./test/run_test.sh
 
 ## Trạng thái
 
-Chặng ESP32 → cloud đã thông và đã kiểm chứng ở mức logic + cloud: dữ liệu đúng contract vào được InfluxDB, timestamp do thiết bị quyết định, mất mạng không mất dữ liệu, lỗi ghi không còn im lặng.
+Chặng ESP32 → cloud **đã chạy thật trên phần cứng thật** (06/09): ESP32-S3 bắn lên broker, dữ liệu vào InfluxDB không mất gói, dashboard Grafana vẽ được, và màn store-and-forward đã diễn tập thành công — ngắt mạng 60 giây, nối lại, dữ liệu bù về đúng vị trí thời gian, không còn lỗ hổng.
 
-**Chưa có lần nào chạy trên phần cứng thật.** Việc quan trọng nhất còn lại: nạp board và diễn tập màn rút mạng 60 giây (`docs/RTM.md`).
+Việc quan trọng nhất còn lại: đưa stack lên VPS công cộng, thử qua WiFi điện thoại, và gắn cảm biến nhiệt thật (`docs/RTM.md`).
 
 ## Quy ước
 
