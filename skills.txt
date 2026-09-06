@@ -1,0 +1,86 @@
+Khi tài liệu thực sự trở thành một phần của hệ thống phần mềm
+(nếu bạn đang chưa thực sự lái AI một cách hiệu quả thì có thể tài liệu này sẽ giúp ích)
+A. 200.000 dòng source code và câu chuyện phía sau 83.000 dòng “work intelligence”
+Gần đây tôi thử thống kê lại toàn bộ portfolio các sản phẩm mình đang trực tiếp xây dựng cùng AI.
+Kết quả khiến chính tôi cũng bất ngờ:
+a1. 11 dự án;
+a2. 1.456 file được Git theo dõi;
+a3. 206.522 dòng source code;
+a4. 83.054 dòng tài liệu và work artifacts;
+a5. Tương đương khoảng 1.846 trang tài liệu nếu quy đổi trung bình 45 dòng một trang.
+Tỷ lệ giữa Source LOC và Work LOC là khoảng 2,49:1. Nói cách khác, cứ 2,5 dòng code thì có một dòng mô tả yêu cầu, thiết kế, kiến trúc, quyết định, quy trình, kiểm thử, vận hành hoặc bằng chứng công việc đi kèm. Work LOC bằng khoảng 40% Source LOC.
+Đây là một portfolio hơn 200KLOC, không còn là vài ứng dụng thử nghiệm nhỏ. Nhưng điều đáng nói hơn quy mô code là phần tri thức bao quanh nó.
+Trước khi có AI, duy trì khối lượng tài liệu chi tiết như vậy gần như không khả thi đối với một người hoặc một nhóm rất nhỏ. Không phải vì chúng ta không biết tài liệu quan trọng, mà vì chi phí viết, rà soát, liên kết và cập nhật nó quá lớn. Khi tiến độ căng, tài liệu thường là thứ bị cắt đầu tiên. Sau vài vòng thay đổi, source code tiếp tục đi về phía trước còn tài liệu đứng lại phía sau.
+AI đã làm thay đổi bài toán kinh tế ấy.
+B. Không phải “AI viết tài liệu”, mà là code và tài liệu cùng tiến hóa
+Giá trị lớn nhất của AI không nằm ở việc tạo ra thật nhiều file Markdown đẹp mắt. AI giúp biến documentation từ một công việc hậu kỳ thành một phần của vòng lặp phát triển:
+b1.1. Đọc yêu cầu và xác định phạm vi ảnh hưởng.
+b1.2. Lập thiết kế sơ bộ trước khi thay đổi code.
+b1.3. Phân rã công việc và xác định các module, API, dữ liệu, quyền truy cập có liên quan.
+b4. Triển khai theo từng lát cắt nhỏ.
+b1.5. Vừa làm vừa chỉnh thiết kế chi tiết khi hiểu biết về hệ thống thay đổi.
+b1.6. Chạy test và các quality gate.
+b1.7. Cập nhật ngược lại spec, architecture, module map, test case, decision log và tài liệu vận hành.
+b8. Lưu toàn bộ thay đổi trong Git để code và tri thức có cùng lịch sử phiên bản.
+Điểm cốt lõi là bước số 7. Nếu code thay đổi mà tài liệu không được cập nhật ngược, tài liệu sẽ nhanh chóng trở thành “bản mô tả của một hệ thống đã chết”. Ngược lại, nếu mỗi thay đổi quan trọng đều tạo ra một vòng impact analysis → code → test → document update, repository dần trở thành một hệ thống tri thức sống.
+Trong cách làm này, source code vẫn là sự thật có thể thực thi. Nhưng tài liệu cung cấp những thứ source code không tự nói hết được:
+b2.1. Tại sao hệ thống được thiết kế như vậy;
+b2.2. Yêu cầu kinh doanh nào dẫn đến module này;
+b2.3. uyết định nào đã được cân nhắc và đánh đổi;
+b2.4. hay đổi một chức năng sẽ ảnh hưởng đến đâu;
+b2.5. iều kiện nào được coi là đúng;
+b2.6. Rủi ro nào phải dừng để con người quyết định;
+b2.7. eviewer cần kiểm tra gì;
+b2.8. AI được phép làm đến đâu và phải dừng ở gate nào.
+C. 83.000 Work LOC nói lên điều gì — và chưa nói lên điều gì?
+Dashboard của tôi không chỉ đếm documentation theo nghĩa truyền thống. Work LOC gồm Design, Requirement, Architecture, Development Book, SIT/UAT, policy, tool instruction, workflow, analytics, deck và các text artifact hỗ trợ khác. Tôi gọi lớp này là Work Intelligence: phần tri thức giải thích hệ thống được hình thành, kiểm soát và vận hành như thế nào.
+Vì vậy, tỷ lệ 2,49:1 không nên được hiểu là một benchmark phổ quát, càng không phải bằng chứng rằng dự án nào có nhiều tài liệu hơn thì tốt hơn.
+Tôi chưa tìm thấy một “tỷ lệ vàng” đáng tin cậy giữa source LOC và document LOC để so sánh trực tiếp. Cách đếm LOC cũng thay đổi rất mạnh theo ngôn ngữ, cấu trúc repository và loại artifact. “1.846 trang” cũng chỉ là một phép quy đổi trực quan, không phải số trang xuất bản thực tế.
+Tuy nhiên, các nghiên cứu cho thấy vấn đề nền của ngành phần mềm là có thật. Một nghiên cứu trên 25 repository GitHub phổ biến nhận thấy kiến thức về tính năng thường được mô tả thiếu cấu trúc, còn kỹ thuật liên kết rõ ràng giữa tài liệu tính năng và source code được sử dụng rất hiếm. Hệ quả là traceability và maintainability suy giảm theo thời gian. Các nghiên cứu về liên kết trong source comment cũng cảnh báo rằng link có thể bị mục, thiếu versioning và thiếu traceability hai chiều. Nói cách khác, thách thức lịch sử không chỉ là “thiếu tài liệu”, mà là tài liệu không nối được với nơi hệ thống thực sự được triển khai.
+Bởi vậy, điểm đáng chú ý trong con số 83K không phải là số lượng. Nó cho thấy với AI, chi phí biên để tạo và duy trì tri thức kỹ thuật đã giảm đủ sâu để một portfolio 200KLOC có thể mang theo một lớp work intelligence tương đối dày. Điều trước đây rất khó duy trì bằng sức người giờ đã trở nên khả thi.
+Nhưng để chứng minh chất lượng, dashboard cần tiến thêm một bước: từ đo volume sang đo integrity.
+Các chỉ số tiếp theo tôi muốn bổ sung gồm:
+c1. Traceability coverage: bao nhiêu requirement quan trọng nối được tới work item, code/module và test;
+c2. Change coupling: khi code thay đổi, tài liệu liên quan có được cập nhật trong cùng change set hay không;
+c3. Freshness: bao nhiêu tài liệu đã quá hạn hoặc không còn khớp với phiên bản hiện tại;
+c4. Orphan rate: bao nhiêu requirement không có code/test, và bao nhiêu module quan trọng không có tài liệu giải thích;
+c5. Review evidence: bao nhiêu artifact có dấu vết con người sửa, bác bỏ giả định hoặc phê duyệt;
+c6. Decision coverage: các thay đổi kiến trúc và vùng rủi ro cao có decision record hay không;
+c7. Retrieval quality: khi hỏi về một chức năng, AI có tìm đúng spec, code, test và quyết định liên quan hay không.
+Nếu Work LOC là “khối lượng bộ nhớ”, các chỉ số trên mới đo “bộ nhớ đó có đúng, còn sống và dùng được hay không”.
+D. Tài liệu bây giờ không chỉ dành cho con người
+Với một phần mềm nhỏ, AI có thể đọc gần như toàn bộ repository rồi bắt đầu làm việc. Nhưng khi hệ thống phình lên, cách đó nhanh chóng mất hiệu lực. Context window hữu hạn; tên file và source code không chứa đầy đủ business intent; lịch sử quyết định nằm rải rác; một thay đổi nhỏ có thể chạm vào data model, API, permission, UI và test ở nhiều nơi.
+Nếu không có bản đồ tài liệu tốt, AI cũng “lạc đường” như một kỹ sư mới vào dự án — chỉ khác là nó có thể tạo code sai với tốc độ rất cao.
+Một hệ thống tài liệu tốt hoạt động như lớp định vị cho AI:
+d1. Requirement cho biết phải đạt điều gì.
+d2. Module map cho biết chức năng nằm ở đâu.
+d3. Architecture cho biết các phần liên hệ với nhau thế nào.
+d4. API và data contract cho biết ranh giới không được tự ý phá vỡ.
+d5. Test và acceptance criteria cho biết thế nào là đúng.
+d6. Risk, delegation map và policy cho biết AI được phép đi xa đến đâu.
+d7. Development Book và decision log cho biết điều gì đã thử, điều gì sai và vì sao đã chọn hướng hiện tại.
+d8. RTM nối chuỗi requirement → work item → code → test để cả người và AI đều có thể kiểm tra ảnh hưởng.
+Đây chính là điểm chuyển từ “dùng AI để code” sang thiết kế một môi trường để AI có thể làm việc lâu dài trong hệ thống.
+E.Liên hệ với PM AI Bootcamp: quy trình không làm AI chậm đi, quy trình giúp AI không chạy sai hướng
+Trong PM AI Bootcamp, chúng tôi không dạy PM cách hỏi chatbot để có một bản tài liệu đẹp. Chương trình dùng một vòng lặp nhất quán:
+Context → Plan → Delegate → Execute → Gate → Log → Iterate
+Capstone đi qua một artifact chain gồm 11 bước: làm rõ scope, viết spec, lập module map, architecture, WBS, estimation, risk và delegation, Definition of Ready, build vertical slice, test/gate, rồi traceability và telemetry.
+Chuỗi này rất gần với cách portfolio 200KLOC phía trên đã được hình thành trong thực tế.
+Điểm quan trọng nhất của Bootcamp là: AI-generated không có nghĩa là done. Một artifact chỉ được coi là hoàn thành khi người phụ trách có thể giải thích nó, chỉ ra ít nhất một chỗ AI sai hoặc thiếu, sửa lại, và chứng minh gate liên quan đã qua. Chương trình yêu cầu mỗi bài thực hành phải có bằng chứng PM correction; capstone còn có running system và viva để chống việc “rubber-stamp” một chồng tài liệu có vẻ chuyên nghiệp nhưng không ai thực sự hiểu.
+Điều này giải quyết một nghịch lý mới của thời đại AI: tạo tài liệu đã trở nên rất rẻ, nhưng tạo tài liệu đáng tin vẫn cần judgment, traceability và accountability của con người.
+Quy trình vì thế không đối lập với tốc độ. Nó cho phép AI chạy nhanh trong một đường đua có biển chỉ dẫn, rào chắn và checkpoint. Càng trao cho AI khả năng thực hiện nhiều bước, gate càng phải chặt. Nếu không, tốc độ chỉ làm khuếch đại sai lệch.
+F. Từ “documentation as deliverable” đến “documentation as control system”
+Trong mô hình truyền thống, tài liệu thường là deliverable được viết để bàn giao, audit hoặc đáp ứng quy trình. Trong mô hình AI-native, tài liệu có thêm ba vai trò mới:
+Thứ nhất, bộ nhớ của dự án. Nó giữ lại business intent, rationale và những điều source code không thể biểu đạt đầy đủ.
+Thứ hai, giao diện điều khiển AI. Nó cung cấp context, constraint, definition of done và ranh giới tự chủ cho agent.
+Thứ ba, hạ tầng review. Nó giúp reviewer đi từ yêu cầu đến thiết kế, code và test thay vì phải suy luận lại toàn bộ hệ thống từ source.
+Vì vậy, tôi không coi 83.054 Work LOC là “phần giấy tờ đi kèm” 206.522 Source LOC. Nó là một phần của chính hệ thống kỹ thuật — phần giúp con người review được, giúp AI định hướng được và giúp phần mềm tiếp tục mở rộng mà không đánh mất ý định ban đầu.
+200KLOC là một portfolio không nhỏ. Khi đã đến quy mô này, khả năng viết thêm code không còn là nút thắt duy nhất. Nút thắt lớn hơn là giữ cho code, hiểu biết và quyết định cùng nằm trên một phiên bản của sự thật.
+AI giúp chúng ta làm được điều trước đây quá đắt: duy trì một bản đồ chi tiết chạy song song với lãnh thổ. Nhưng bản đồ chỉ có giá trị nếu mỗi lần lãnh thổ thay đổi, bản đồ cũng được cập nhật — và nếu người chịu trách nhiệm vẫn thực sự hiểu mình đang vẽ gì.
+===
+Tài liệu tham khảo (3 tài liệu đầu là chương trình training thực chiến AI cho PM tại FSoft mà tôi là xây dựng và trực tiếp giảng dạy)
+1. PM AI Bootcamp — Operating Model v1.0. 
+2. PM AI Bootcamp — Capstone Playbook v1.0.
+3. PM AI Bootcamp — Workbook (Common/BA/SA/Dev) v1.0.
+4. Puhlfürß, Montgomery & Maalej, An Exploratory Study of Documentation Strategies for Product Features in Popular GitHub Projects, 2022.
+5. Hata et al., 9.6 Million Links in Source Code Comments: Purpose, Evolution, and Decay, ICSE 2019

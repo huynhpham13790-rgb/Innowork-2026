@@ -1,0 +1,31 @@
+# ---- Secret: TUYỆT ĐỐI không commit ----
+.env
+*.env
+!.env.example
+VEDCaPhenika/planb_cloud/mosquitto/passwd
+VEDCaPhenika/planb_cloud/mosquitto/passwd.*
+
+# ---- File nén / bản sao lưu ----
+*.rar
+*.zip
+*.7z
+
+# ---- File tạm của LibreOffice / Office ----
+.~lock.*#
+~$*
+*.tmp
+*.xlsx.tmp
+_probe.txt
+
+# ---- Build artifacts ----
+build/
+*.bin
+*.elf
+*.hex
+
+# ---- Hệ điều hành / editor ----
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp

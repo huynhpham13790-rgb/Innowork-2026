@@ -1,0 +1,85 @@
+# Plan B — nền tảng cloud thay thế WISE-IoT, đội Hủ Tiếu
+# Dựng đúng bộ mà WISE-PaaS dùng bên dưới: MQTT broker + time-series DB + Grafana.
+# ESP32 KHÔNG phải sửa gì về topic/payload.
+#
+# Chạy:   docker compose up -d
+# Dừng:   docker compose down          (dữ liệu vẫn còn trong volume)
+# Xoá hết: docker compose down -v      (mất dữ liệu)
+
+services:
+  mosquitto:
+    # GHIM 2.0.22, ĐỪNG dùng tag "2". Tag "2" nay trỏ sang 2.1.x, mà 2.1
+    # đã bỏ chỉ thị password_file (chuyển sang plugin) -> config này sẽ hỏng.
+    image: eclipse-mosquitto:2.0.22
+    container_name: hutieu-mosquitto
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./mosquitto:/mosquitto/config
+      - mosquitto_data:/mosquitto/data
+
+  influxdb:
+    # GIỮ NGUYÊN 2.7. Tag "latest" của InfluxDB đã chuyển sang InfluxDB 3,
+    # mà bản 3 bỏ hẳn ngôn ngữ truy vấn Flux -> query Grafana bên dưới sẽ chết.
+    image: influxdb:2.7
+    container_name: hutieu-influxdb
+    restart: unless-stopped
+    ports:
+      # Cũng chỉ localhost: Node-RED và Grafana gọi qua mạng nội bộ của Docker
+      # (http://influxdb:8086), không đi qua cổng này. Mở ra ngoài là thừa.
+      - "127.0.0.1:8086:8086"
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: ${INFLUX_USER}
+      DOCKER_INFLUXDB_INIT_PASSWORD: ${INFLUX_PASSWORD}
+      DOCKER_INFLUXDB_INIT_ORG: hutieu
+      DOCKER_INFLUXDB_INIT_BUCKET: battery
+      DOCKER_INFLUXDB_INIT_RETENTION: 90d
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: ${INFLUX_TOKEN}
+    volumes:
+      - influxdb_data:/var/lib/influxdb2
+
+  nodered:
+    # GHIM 4.1, ĐỪNG dùng "latest". Node-RED lên major mới là flow có thể vỡ,
+    # và bạn sẽ phát hiện ra điều đó vào đúng hôm restart máy chủ trước ngày thi.
+    image: nodered/node-red:4.1
+    container_name: hutieu-nodered
+    restart: unless-stopped
+    ports:
+      # CHỈ mở trên localhost. Node-RED KHÔNG có mật khẩu mặc định: ai vào được
+      # cổng 1880 là deploy được function node = chạy code tuỳ ý trên máy chủ.
+      # Muốn mở giao diện từ xa thì dùng SSH tunnel, xem PLAN_B_CLOUD.md.
+      - "127.0.0.1:1880:1880"
+    environment:
+      TZ: Asia/Ho_Chi_Minh
+      INFLUX_TOKEN: ${INFLUX_TOKEN}
+    volumes:
+      - nodered_data:/data
+      # Flow chạy thật nằm trong volume. Mount thêm bản gốc read-only để lúc
+      # cần import lại (sau `down -v`) là có sẵn file ngay trong container.
+      - ./nodered:/data/reference:ro
+    depends_on:
+      - mosquitto
+      - influxdb
+
+  grafana:
+    image: grafana/grafana:12.1
+    container_name: hutieu-grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD}
+      TZ: Asia/Ho_Chi_Minh
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - influxdb
+
+volumes:
+  mosquitto_data:
+  influxdb_data:
+  nodered_data:
+  grafana_data:

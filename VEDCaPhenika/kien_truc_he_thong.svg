@@ -1,0 +1,218 @@
+<svg viewBox="0 0 1000 1180" xmlns="http://www.w3.org/2000/svg" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <marker id="ar" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+      <path d="M0,0 L10,4 L0,8 Z" fill="#5a6472"/>
+    </marker>
+    <marker id="arR" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+      <path d="M0,0 L10,4 L0,8 Z" fill="#c0392b"/>
+    </marker>
+    <marker id="arG" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+      <path d="M0,0 L10,4 L0,8 Z" fill="#1e7a46"/>
+    </marker>
+  </defs>
+
+  <rect width="1000" height="1180" fill="#fbfaf8"/>
+
+  <text x="500" y="34" text-anchor="middle" font-size="21" font-weight="700" fill="#1a1a1a">Kiến trúc hệ thống giám sát nhiệt pin xe điện — Đội Hủ Tiếu</text>
+  <text x="500" y="56" text-anchor="middle" font-size="13" fill="#6b7280">An toàn chạy tại thiết bị (không cần mạng) · Kinh tế chạy trên WISE-IoT</text>
+
+  <!-- ===== ON-VEHICLE ZONE ===== -->
+  <rect x="24" y="76" width="952" height="614" rx="10" fill="#ffffff" stroke="#2c5f8a" stroke-width="2"/>
+  <rect x="24" y="76" width="952" height="30" rx="10" fill="#2c5f8a"/>
+  <rect x="24" y="96" width="952" height="10" fill="#2c5f8a"/>
+  <text x="42" y="97" font-size="14" font-weight="700" fill="#ffffff">TRÊN XE — hoạt động đầy đủ khi KHÔNG có mạng</text>
+
+  <!-- Battery pack -->
+  <rect x="48" y="126" width="270" height="150" rx="8" fill="#fdf4e3" stroke="#c98a1e" stroke-width="1.6"/>
+  <text x="183" y="148" text-anchor="middle" font-size="13" font-weight="700" fill="#8a5d10">PACK PIN XE ĐIỆN (48–84 V)</text>
+  <g fill="#f6d99a" stroke="#c98a1e" stroke-width="1.2">
+    <rect x="66" y="160" width="42" height="52" rx="3"/>
+    <rect x="116" y="160" width="42" height="52" rx="3"/>
+    <rect x="166" y="160" width="42" height="52" rx="3" fill="#f0a08a" stroke="#c0392b"/>
+    <rect x="216" y="160" width="42" height="52" rx="3"/>
+    <rect x="266" y="160" width="38" height="52" rx="3"/>
+  </g>
+  <g font-size="10" fill="#7a5a10" text-anchor="middle">
+    <text x="87" y="190">C1</text><text x="137" y="190">C2</text>
+    <text x="187" y="190" font-weight="700" fill="#c0392b">C3</text>
+    <text x="237" y="190">C4</text><text x="285" y="190">…C8</text>
+  </g>
+  <g font-size="9" fill="#2c5f8a" text-anchor="middle" font-weight="700">
+    <text x="87" y="228">T1</text><text x="137" y="228">T2</text><text x="187" y="228">T3</text>
+    <text x="237" y="228">T4</text><text x="285" y="228">T8</text>
+  </g>
+  <text x="183" y="248" text-anchor="middle" font-size="10.5" fill="#5a6472">DS18B20 áp sát từng cell</text>
+  <text x="183" y="266" text-anchor="middle" font-size="10.5" fill="#c0392b" font-weight="700">C3 nóng bất thường ← thứ cần phát hiện</text>
+
+  <!-- Power chain -->
+  <rect x="48" y="296" width="270" height="120" rx="8" fill="#f4f4f6" stroke="#8892a0" stroke-width="1.4"/>
+  <text x="183" y="316" text-anchor="middle" font-size="12" font-weight="700" fill="#3d4654">CHUỖI NGUỒN</text>
+  <g font-size="10" fill="#3d4654">
+    <rect x="62" y="326" width="74" height="30" rx="4" fill="#ffffff" stroke="#8892a0"/>
+    <text x="99" y="345" text-anchor="middle">Cầu chì</text>
+    <rect x="148" y="326" width="86" height="30" rx="4" fill="#ffffff" stroke="#8892a0"/>
+    <text x="191" y="341" text-anchor="middle" font-size="9.5">Buck ≥100V</text>
+    <text x="191" y="352" text-anchor="middle" font-size="9.5">→ 5V, Iq thấp</text>
+    <rect x="246" y="326" width="58" height="30" rx="4" fill="#ffffff" stroke="#8892a0"/>
+    <text x="275" y="345" text-anchor="middle">LDO 3V3</text>
+    <rect x="88" y="368" width="190" height="32" rx="4" fill="#e6f2ea" stroke="#1e7a46" stroke-width="1.4"/>
+    <text x="183" y="382" text-anchor="middle" font-size="9.5" font-weight="700" fill="#1e7a46">TP4056 + cell 18650 dự phòng</text>
+    <text x="183" y="394" text-anchor="middle" font-size="9" fill="#1e7a46">sống cả khi BMS đã ngắt</text>
+  </g>
+  <line x1="136" y1="341" x2="146" y2="341" stroke="#5a6472" stroke-width="1.4" marker-end="url(#ar)"/>
+  <line x1="234" y1="341" x2="244" y2="341" stroke="#5a6472" stroke-width="1.4" marker-end="url(#ar)"/>
+  <line x1="191" y1="356" x2="191" y2="366" stroke="#1e7a46" stroke-width="1.4" marker-end="url(#arG)"/>
+
+  <!-- arrows into ESP32 -->
+  <line x1="318" y1="200" x2="366" y2="200" stroke="#5a6472" stroke-width="1.8" marker-end="url(#ar)"/>
+  <text x="342" y="193" text-anchor="middle" font-size="9.5" fill="#5a6472">1-Wire</text>
+  <line x1="318" y1="356" x2="366" y2="356" stroke="#5a6472" stroke-width="1.8" marker-end="url(#ar)"/>
+  <text x="342" y="349" text-anchor="middle" font-size="9.5" fill="#5a6472">3V3</text>
+
+  <!-- ESP32 box -->
+  <rect x="368" y="126" width="360" height="360" rx="9" fill="#eef4fa" stroke="#2c5f8a" stroke-width="2"/>
+  <text x="548" y="150" text-anchor="middle" font-size="15" font-weight="700" fill="#1c4266">ESP32-S3</text>
+
+  <rect x="392" y="164" width="312" height="30" rx="5" fill="#ffffff" stroke="#8fabc4"/>
+  <text x="548" y="184" text-anchor="middle" font-size="11.5" fill="#22405c">Đọc cảm biến → chuẩn hoá → cửa sổ trượt</text>
+  <line x1="548" y1="194" x2="548" y2="208" stroke="#5a6472" stroke-width="1.6" marker-end="url(#ar)"/>
+
+  <rect x="418" y="210" width="260" height="54" rx="6" fill="#dbe9f6" stroke="#2c5f8a" stroke-width="1.8"/>
+  <text x="548" y="230" text-anchor="middle" font-size="12.5" font-weight="700" fill="#1c4266">LỚP 1 — AUTOENCODER (INT8)</text>
+  <text x="548" y="248" text-anchor="middle" font-size="10.5" fill="#3d5f80">16→8→4→8→16 · &lt; 50 KB · chạy on-device</text>
+  <text x="548" y="259" text-anchor="middle" font-size="9.5" fill="#6b7280">phát hiện cell lệch tương đối, không phải ngưỡng cứng</text>
+  <line x1="548" y1="264" x2="548" y2="278" stroke="#5a6472" stroke-width="1.6" marker-end="url(#ar)"/>
+
+  <rect x="438" y="280" width="220" height="26" rx="5" fill="#ffffff" stroke="#8fabc4"/>
+  <text x="548" y="297" text-anchor="middle" font-size="11" fill="#22405c">So ngưỡng percentile 95–99</text>
+
+  <path d="M478,306 L478,326 L436,326" fill="none" stroke="#c0392b" stroke-width="1.8" marker-end="url(#arR)"/>
+  <path d="M618,306 L618,326 L660,326" fill="none" stroke="#5a6472" stroke-width="1.8" marker-end="url(#ar)"/>
+  <text x="452" y="320" text-anchor="middle" font-size="9.5" fill="#c0392b" font-weight="700">vượt</text>
+  <text x="648" y="320" text-anchor="middle" font-size="9.5" fill="#5a6472">bình thường</text>
+
+  <rect x="388" y="332" width="150" height="56" rx="6" fill="#fbe4e0" stroke="#c0392b" stroke-width="1.8"/>
+  <text x="463" y="352" text-anchor="middle" font-size="12" font-weight="700" fill="#a3271a">CÒI + LED</text>
+  <text x="463" y="368" text-anchor="middle" font-size="10" fill="#a3271a">tức thì, hoàn toàn</text>
+  <text x="463" y="381" text-anchor="middle" font-size="10" font-weight="700" fill="#a3271a">KHÔNG cần mạng</text>
+
+  <rect x="558" y="332" width="150" height="56" rx="6" fill="#ffffff" stroke="#8fabc4" stroke-width="1.5"/>
+  <text x="633" y="352" text-anchor="middle" font-size="11.5" font-weight="700" fill="#22405c">Ghi flash / SD</text>
+  <text x="633" y="368" text-anchor="middle" font-size="10" fill="#3d5f80">store-and-forward</text>
+  <text x="633" y="381" text-anchor="middle" font-size="10" fill="#3d5f80">~115 KB/ngày · đệm 30 ngày</text>
+
+  <rect x="392" y="402" width="312" height="66" rx="6" fill="#f7f3e8" stroke="#c98a1e" stroke-width="1.5"/>
+  <text x="548" y="420" text-anchor="middle" font-size="11.5" font-weight="700" fill="#8a5d10">QUẢN LÝ CHẾ ĐỘ (24/24, tần số thích ứng)</text>
+  <g font-size="10" fill="#7a5a10">
+    <text x="410" y="438">Sạc — 1 Hz</text>
+    <text x="410" y="452">Chạy — 0,2–1 Hz</text>
+    <text x="410" y="464" font-size="9.5" fill="#8a5d10">31% vụ cháy xảy ra khi ĐỖ → không được ngủ hẳn</text>
+    <text x="556" y="438">Đỗ — 1 mẫu/60s</text>
+    <text x="556" y="452" font-weight="700">+ wake-on-dT/dt</text>
+  </g>
+
+  <!-- Sensors box -->
+  <rect x="756" y="126" width="196" height="150" rx="8" fill="#f4f4f6" stroke="#8892a0" stroke-width="1.4"/>
+  <text x="854" y="148" text-anchor="middle" font-size="12" font-weight="700" fill="#3d4654">CẢM BIẾN KHÁC</text>
+  <g font-size="10.5" fill="#3d4654">
+    <rect x="772" y="160" width="164" height="34" rx="4" fill="#ffffff" stroke="#8892a0"/>
+    <text x="854" y="174" text-anchor="middle" font-weight="700">INA226 / INA228</text>
+    <text x="854" y="187" text-anchor="middle" font-size="9" fill="#c0392b">226 chỉ tới 36V — pack 60V+ phải dùng 228</text>
+    <rect x="772" y="202" width="164" height="30" rx="4" fill="#ffffff" stroke="#8892a0"/>
+    <text x="854" y="221" text-anchor="middle">Chia áp → ADC (áp pack)</text>
+    <rect x="772" y="240" width="164" height="26" rx="4" fill="#ffffff" stroke="#8892a0"/>
+    <text x="854" y="257" text-anchor="middle">I2C · GPIO21/22</text>
+  </g>
+  <line x1="754" y1="200" x2="730" y2="200" stroke="#5a6472" stroke-width="1.6" marker-end="url(#ar)"/>
+
+  <!-- Connectivity options -->
+  <rect x="756" y="296" width="196" height="190" rx="8" fill="#eef7f1" stroke="#1e7a46" stroke-width="1.5"/>
+  <text x="854" y="317" text-anchor="middle" font-size="12" font-weight="700" fill="#155c34">ĐƯỜNG RA MẠNG</text>
+  <text x="854" y="332" text-anchor="middle" font-size="9.5" fill="#1e7a46">(tuỳ chọn — không có vẫn chạy)</text>
+  <g font-size="10" fill="#155c34">
+    <rect x="770" y="342" width="168" height="30" rx="4" fill="#ffffff" stroke="#7fb99a"/>
+    <text x="854" y="356" text-anchor="middle" font-weight="700">Wi-Fi nhà / trạm đổi pin</text>
+    <text x="854" y="367" text-anchor="middle" font-size="9">trút dữ liệu đệm · 0đ/tháng</text>
+    <rect x="770" y="378" width="168" height="30" rx="4" fill="#ffffff" stroke="#7fb99a"/>
+    <text x="854" y="392" text-anchor="middle" font-weight="700">BLE → điện thoại chủ xe</text>
+    <text x="854" y="403" text-anchor="middle" font-size="9">khi đang chạy · 0đ linh kiện</text>
+    <rect x="770" y="414" width="168" height="34" rx="4" fill="#ffffff" stroke="#7fb99a"/>
+    <text x="854" y="428" text-anchor="middle" font-weight="700">4G LTE Cat-1 (gói Pro)</text>
+    <text x="854" y="440" text-anchor="middle" font-size="8.5" fill="#c0392b">PHẢI 4G — VN tắt 2G từ 15/9/2026</text>
+  </g>
+  <text x="854" y="466" text-anchor="middle" font-size="9" fill="#155c34">Phủ sóng di động VN: 99,8%</text>
+
+  <line x1="708" y1="360" x2="754" y2="360" stroke="#1e7a46" stroke-width="1.8" marker-end="url(#arG)"/>
+
+  <!-- Offline banner -->
+  <rect x="48" y="500" width="904" height="42" rx="7" fill="#fbe4e0" stroke="#c0392b" stroke-width="1.6"/>
+  <text x="500" y="519" text-anchor="middle" font-size="12.5" font-weight="700" fill="#a3271a">Đọc cảm biến · chạy Autoencoder · kêu còi · ghi log — TẤT CẢ chạy khi mất mạng hoàn toàn</text>
+  <text x="500" y="535" text-anchor="middle" font-size="11" fill="#a3271a">Mạng chỉ cần để BÁO ĐI XA và để chạy RUL trên cloud. Đây là điểm khác biệt so với giải pháp chỉ-cloud.</text>
+
+  <!-- Power traps -->
+  <rect x="48" y="556" width="904" height="118" rx="8" fill="#fdf4e3" stroke="#c98a1e" stroke-width="1.6"/>
+  <text x="66" y="577" font-size="12.5" font-weight="700" fill="#8a5d10">⚠ BỐN BẪY KHI LẤY NGUỒN TỪ PACK</text>
+  <g font-size="10.5" fill="#7a5a10">
+    <text x="66" y="598">1. Pack "60V" sạc đầy là 67,2V; "72V" là 84V → LM2596HV (max 60V) sẽ NỔ. Mua buck chịu ≥100V.</text>
+    <text x="66" y="617">2. Buck rẻ ăn 5–10 mA khi nghỉ → 192 mAh/ngày → xe đỗ 1 tháng mất ~5,8 Ah. Chọn Iq &lt; 100 µA + mạch cắt áp thấp.</text>
+    <text x="66" y="636">3. Sự cố xảy ra → BMS ngắt → module chết đúng lúc cần nhất. Phải có cell dự phòng riêng.</text>
+    <text x="66" y="655">4. Lấy nguồn SAU BMS, không đấu thẳng vào cực cell. Bắt buộc có cầu chì 0,5–1A.</text>
+  </g>
+
+  <!-- ===== CLOUD ZONE ===== -->
+  <line x1="500" y1="690" x2="500" y2="722" stroke="#5a6472" stroke-width="2.2" marker-end="url(#ar)"/>
+  <text x="516" y="710" font-size="11" font-weight="700" fill="#3d4654">MQTT / TLS</text>
+
+  <rect x="24" y="726" width="952" height="330" rx="10" fill="#ffffff" stroke="#5b3fa8" stroke-width="2"/>
+  <rect x="24" y="726" width="952" height="30" rx="10" fill="#5b3fa8"/>
+  <rect x="24" y="746" width="952" height="10" fill="#5b3fa8"/>
+  <text x="42" y="747" font-size="14" font-weight="700" fill="#ffffff">WISE-IoT (CLOUD) — phần kinh tế, chậm vài giờ không sao</text>
+
+  <rect x="56" y="778" width="180" height="58" rx="6" fill="#f0ecfa" stroke="#5b3fa8" stroke-width="1.5"/>
+  <text x="146" y="801" text-anchor="middle" font-size="12.5" font-weight="700" fill="#42308a">IoT Hub</text>
+  <text x="146" y="819" text-anchor="middle" font-size="10" fill="#5b3fa8">tiếp nhận MQTT</text>
+
+  <line x1="236" y1="807" x2="278" y2="807" stroke="#5a6472" stroke-width="1.8" marker-end="url(#ar)"/>
+
+  <rect x="280" y="778" width="180" height="58" rx="6" fill="#f0ecfa" stroke="#5b3fa8" stroke-width="1.5"/>
+  <text x="370" y="801" text-anchor="middle" font-size="12.5" font-weight="700" fill="#42308a">InfluxDB</text>
+  <text x="370" y="819" text-anchor="middle" font-size="10" fill="#5b3fa8">lưu chuỗi thời gian</text>
+
+  <line x1="370" y1="836" x2="370" y2="866" stroke="#5a6472" stroke-width="1.8" marker-end="url(#ar)"/>
+
+  <rect x="240" y="868" width="260" height="70" rx="6" fill="#e4dcf7" stroke="#5b3fa8" stroke-width="2"/>
+  <text x="370" y="890" text-anchor="middle" font-size="12.5" font-weight="700" fill="#42308a">LỚP 2 — RUL (LSTM / CNN-LSTM)</text>
+  <text x="370" y="908" text-anchor="middle" font-size="10.5" fill="#5b3fa8">chạy 1 lần / chu kỳ sạc — không cần real-time</text>
+  <text x="370" y="926" text-anchor="middle" font-size="10" fill="#6b7280">đây là lý do KHÔNG cần Raspberry Pi trên xe</text>
+
+  <line x1="500" y1="903" x2="546" y2="903" stroke="#5a6472" stroke-width="1.8" marker-end="url(#ar)"/>
+  <line x1="236" y1="820" x2="200" y2="820" stroke="none"/>
+  <path d="M146,836 L146,975 L546,975" fill="none" stroke="#5a6472" stroke-width="1.6" marker-end="url(#ar)"/>
+
+  <rect x="548" y="778" width="396" height="200" rx="7" fill="#f0ecfa" stroke="#5b3fa8" stroke-width="1.8"/>
+  <text x="746" y="801" text-anchor="middle" font-size="13" font-weight="700" fill="#42308a">DASHBOARD (Grafana)</text>
+  <g font-size="11" fill="#42308a">
+    <rect x="566" y="814" width="360" height="30" rx="4" fill="#ffffff" stroke="#a695d4"/>
+    <text x="580" y="833">Nhiệt độ 8 cell theo thời gian thực</text>
+    <rect x="566" y="850" width="360" height="30" rx="4" fill="#ffffff" stroke="#a695d4"/>
+    <text x="580" y="869">Bản đồ nhiệt — chênh lệch GIỮA các cell</text>
+    <rect x="566" y="886" width="360" height="30" rx="4" fill="#ffffff" stroke="#a695d4"/>
+    <text x="580" y="905">RUL: pin còn khoảng N chu kỳ</text>
+    <rect x="566" y="922" width="360" height="30" rx="4" fill="#ffffff" stroke="#a695d4"/>
+    <text x="580" y="941">Lịch sử cảnh báo + báo cáo đội xe</text>
+  </g>
+  <text x="746" y="968" text-anchor="middle" font-size="9.5" fill="#6b7280">Đẩy tính toán lên đây = tăng điểm thi, vì WISE-IoT chiếm phần lớn điểm</text>
+
+  <rect x="56" y="998" width="888" height="42" rx="7" fill="#f0ecfa" stroke="#5b3fa8" stroke-width="1.4"/>
+  <text x="500" y="1016" text-anchor="middle" font-size="11.5" font-weight="700" fill="#42308a">⚠ CẦN XÁC MINH: IoT Hub có nhận dữ liệu quá khứ kèm timestamp riêng không?</text>
+  <text x="500" y="1032" text-anchor="middle" font-size="10.5" fill="#5b3fa8">Nếu nó tự đóng dấu lúc nhận thì dữ liệu store-and-forward sẽ dồn cục sai chỗ. Hỏi forum InnoWorks.</text>
+
+  <!-- Footer principles -->
+  <rect x="24" y="1074" width="952" height="86" rx="9" fill="#eef4fa" stroke="#2c5f8a" stroke-width="1.6"/>
+  <text x="46" y="1096" font-size="12.5" font-weight="700" fill="#1c4266">BA NGUYÊN TẮC — vừa là kiến trúc, vừa là bài thuyết trình</text>
+  <g font-size="11" fill="#22405c">
+    <text x="46" y="1117">1. Mọi thứ liên quan đến AN TOÀN nằm trên ESP32 và chạy offline — mất mạng, mất cloud, còi vẫn kêu.</text>
+    <text x="46" y="1135">2. Mọi thứ liên quan đến KINH TẾ (RUL, dashboard, báo cáo) nằm trên WISE-IoT — chậm vài giờ không sao.</text>
+    <text x="46" y="1153">3. Mạng là tuỳ chọn, không phải điều kiện.</text>
+  </g>
+</svg>

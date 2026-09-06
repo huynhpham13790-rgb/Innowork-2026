@@ -1,0 +1,155 @@
+[
+    {
+        "id": "tab_hutieu",
+        "type": "tab",
+        "label": "WISE-PaaS -> InfluxDB",
+        "disabled": false,
+        "info": "Doi Hu Tieu - Plan B. Nhan MQTT dung dinh dang WISE-PaaS roi ghi vao InfluxDB."
+    },
+    {
+        "id": "broker_local",
+        "type": "mqtt-broker",
+        "name": "Mosquitto noi bo",
+        "broker": "mosquitto",
+        "port": "1883",
+        "clientid": "nodered-hutieu",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": "4",
+        "keepalive": "60",
+        "cleansession": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    },
+    {
+        "id": "mqtt_in",
+        "type": "mqtt in",
+        "z": "tab_hutieu",
+        "name": "data tu ESP32",
+        "topic": "/wisepaas/scada/+/data",
+        "qos": "0",
+        "datatype": "json",
+        "broker": "broker_local",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 170,
+        "y": 140,
+        "wires": [
+            [
+                "fn_convert",
+                "dbg_raw"
+            ]
+        ]
+    },
+    {
+        "id": "fn_convert",
+        "type": "function",
+        "z": "tab_hutieu",
+        "name": "WISE-PaaS -> line protocol",
+        "func": "// Nội dung của node \"function\" trong Node-RED.\n// File này để bạn đọc/sửa cho dễ; bản chạy thật nằm trong flow_wisepaas_to_influx.json.\n//\n// Vào : {\"d\":{\"BatteryPack01\":{\"Cell01_Temp\":30.42}},\"ts\":\"2026-09-06T09:15:22.410000Z\"}\n// Ra  : cell,device=BatteryPack01,tag=Cell01_Temp value=30.42 1757150122410000000\n\nconst p = msg.payload;\nif (p === null || typeof p !== \"object\" || typeof p.d !== \"object\") { return null; }\n\nlet ms = Date.parse(p.ts);\nif (isNaN(ms)) { ms = Date.now(); }\n\n// Chan som goi co timestamp vo ly. Truong hop hay gap nhat: NTP tren ESP32 fail\n// -> ts ra nam 1970 -> Influx tra HTTP 422 (ngoai retention 90d) va vut du lieu di.\n// Bat o day de bao dung nguyen nhan, thay vi de no chet lang le o buoc ghi.\nif (ms < 1700000000000) {\n    node.warn(\"Bo goi: ts=\" + p.ts + \" (nam 1970?). NTP tren ESP32 chua dong bo.\");\n    return null;\n}\n\nconst tsNs = String(ms) + \"000000\";   // ms -> ns\n\nconst esc = (s) => String(s).replace(/([ ,=])/g, \"\\\\$1\");\nconst lines = [];\n\nfor (const dev of Object.keys(p.d)) {\n    const tags = p.d[dev];\n    // bỏ qua gói trạng thái {\"d\":{\"Con\":1}} vì giá trị không phải object\n    if (tags === null || typeof tags !== \"object\") { continue; }\n    for (const t of Object.keys(tags)) {\n        const v = tags[t];\n        if (typeof v !== \"number\" || isFinite(v) === false) { continue; }\n        lines.push(\"cell,device=\" + esc(dev) + \",tag=\" + esc(t) + \" value=\" + v + \" \" + tsNs);\n    }\n}\n\nif (lines.length === 0) { return null; }\n\nmsg.payload = lines.join(\"\\n\");\nmsg.headers = {\n    \"Authorization\": \"Token \" + (env.get(\"INFLUX_TOKEN\") || \"\"),\n    \"Content-Type\": \"text/plain; charset=utf-8\"\n};\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 430,
+        "y": 140,
+        "wires": [
+            [
+                "http_influx"
+            ]
+        ]
+    },
+    {
+        "id": "http_influx",
+        "type": "http request",
+        "z": "tab_hutieu",
+        "name": "Ghi vao InfluxDB",
+        "method": "POST",
+        "ret": "txt",
+        "paytoqs": "ignore",
+        "url": "http://influxdb:8086/api/v2/write?org=hutieu&bucket=battery&precision=ns",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [],
+        "x": 700,
+        "y": 140,
+        "wires": [
+            [
+                "fn_check"
+            ]
+        ]
+    },
+    {
+        "id": "fn_check",
+        "type": "function",
+        "z": "tab_hutieu",
+        "name": "Kiem tra ket qua ghi",
+        "func": "// Kiem tra ket qua ghi InfluxDB. Khong co node nay thi loi ghi HOAN TOAN im lang:\n// Influx tra 401 (sai token) hoac 422 (ts ngoai retention, vd NTP fail -> nam 1970),\n// Node-RED khong log gi, container van \"running\", Grafana chi don gian la trong.\nconst code = msg.statusCode;\n\nif (code === 204) {\n    node.status({ fill: \"green\", shape: \"dot\", text: \"OK \" + new Date().toLocaleTimeString() });\n    return null;                     // ghi thanh cong -> khong can bao gi them\n}\n\nlet hint = \"\";\nif (code === 401) { hint = \" -> SAI INFLUX_TOKEN (kiem tra .env va restart nodered)\"; }\nif (code === 422) { hint = \" -> ts ngoai khoang retention 90d. NTP tren ESP32 fail? (ts nam 1970)\"; }\nif (code === 400) { hint = \" -> line protocol sai cu phap\"; }\n\nconst detail = typeof msg.payload === \"string\" ? msg.payload.slice(0, 300) : \"\";\nnode.status({ fill: \"red\", shape: \"ring\", text: \"LOI \" + code });\nnode.error(\"Influx ghi that bai HTTP \" + code + hint + \"  \" + detail, msg);\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 930,
+        "y": 140,
+        "wires": [
+            [
+                "dbg_resp"
+            ]
+        ]
+    },
+    {
+        "id": "dbg_raw",
+        "type": "debug",
+        "z": "tab_hutieu",
+        "name": "payload tho",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 420,
+        "y": 230,
+        "wires": []
+    },
+    {
+        "id": "dbg_resp",
+        "type": "debug",
+        "z": "tab_hutieu",
+        "name": "LOI ghi Influx",
+        "active": true,
+        "tosidebar": true,
+        "console": true,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1150,
+        "y": 140,
+        "wires": []
+    }
+]
