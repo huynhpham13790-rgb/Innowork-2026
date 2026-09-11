@@ -32,3 +32,11 @@ Thumbs.db
 
 # Cấu hình compose riêng của từng máy (port, IP LAN...)
 docker-compose.override.yml
+
+# ---- AI ----
+# Dữ liệu thô (1,6 GB) và venv (2,6 GB): tải/dựng lại được bằng script.
+ai/.venv/
+ai/data/
+# NHƯNG ai/models/ thì PHẢI commit: chỉ 88 KB, và firmware cần
+# cell_ae_model.h để biên dịch. Không có nó thì repo không build được.
+__pycache__/
