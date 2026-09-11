@@ -83,7 +83,10 @@ Ký hiệu: ✅ đã kiểm chứng · ⬜ chưa làm · 🔶 làm rồi nhưng 
 | 7.5 | Sai số dự đoán sớm (25–50% vòng đời) | 9,8 chu kỳ | ✅ 11/09 |
 | 7.6 | SOH có ích thương mại | RMSE 3,8 điểm phần trăm | ✅ 11/09 |
 | 7.7 | Kiểm chéo trên bộ dữ liệu thứ hai (UPC/CALCE) | — | ⬜ **chưa làm** |
-| 7.8 | Nối vào luồng thật: ESP32 gửi tóm tắt chu kỳ → cloud tính | — | ⬜ chưa làm |
+| 7.8 | Nối luồng thật: ESP32 → cloud tính → dashboard | chạy trên board, RUL 85,2→79,6 | ✅ 11/09 |
+| 7.9 | Bản C của đặc trưng sạc khớp bản Python | `test_charge_cycle.py` | ✅ 11/09 |
+| 7.10 | Cảnh báo khi mô hình ngoại suy | cờ `Extrapolating` + log | ✅ 11/09 |
+| 7.11 | Hiệu chỉnh lại hệ số trên pack THẬT của đội | — | ⬜ **bắt buộc trước khi tin con số RUL** |
 
 ---
 

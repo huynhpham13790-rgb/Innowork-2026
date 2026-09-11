@@ -161,8 +161,29 @@ ai/.venv/bin/python ai/train_rul.py      # 5 phương pháp, leave-one-battery-o
 Tải dữ liệu: `https://phm-datasets.s3.amazonaws.com/NASA/5.+Battery+Data+Set.zip`
 (210 MB, giải nén hai lớp zip).
 
+## Luồng thật — ĐÃ NỐI (11/09)
+
+```
+ESP32-S3 ──9 đặc trưng pha sạc──► Mosquitto ──► Node-RED (hệ số nhúng sẵn)
+                                                      └──► InfluxDB ──► Grafana
+```
+
+ESP32 không chạy mô hình, chỉ gửi 9 con số mỗi chu kỳ sạc. Mô hình là tích vô
+hướng nên nhúng thẳng vào node function của Node-RED — không thêm container.
+
+| File | Vai trò |
+|---|---|
+| `esp32s3_wiseiot_test/charge_cycle.cpp` | ESP32 tóm tắt 1 chu kỳ sạc thành 9 số |
+| `ai/test_charge_cycle.py` | **So bản C với bản Python trên dữ liệu NASA thật** |
+| `ai/export_rul_model.py` | → `models/rul_model.json` |
+| `planb_cloud/nodered/rul_predict.js` | Node tính RUL/SOH, có cảnh báo ngoại suy |
+
+Chi tiết + cái bẫy đã gặp: `docs/BANG_CHUNG_LUONG_THAT_2026-09-11.md`.
+
 ## Việc còn lại
 
+- [ ] **Hiệu chỉnh hệ số trên pack THẬT của đội** — bắt buộc trước khi tin con
+      số RUL. Hệ số hiện tại train trên pin 18650 đơn 2 Ah, pack của đội là
+      8S × 3 Ah, `t_cv` phụ thuộc mạnh vào tỉ lệ dòng sạc/dung lượng.
+- [ ] Thay chu kỳ sạc mô phỏng bằng số đo thật (INA228 + ADC + DS18B20)
 - [ ] Kiểm chéo trên bộ thứ hai (UPC đã tải sẵn, 410 chu kỳ có suy giảm dung lượng)
-- [ ] Nối luồng thật: ESP32 gửi ~10 con số tóm tắt sau mỗi chu kỳ sạc → cloud tính RUL
-- [ ] Panel RUL/SOH trên Grafana

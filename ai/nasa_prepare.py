@@ -36,7 +36,14 @@ BATTERIES = ["B0005", "B0006", "B0007", "B0018"]   # 4 pin chuẩn, cùng 24 °C
 EOL_FRAC = 0.80          # hết đời khi dung lượng còn 80% ban đầu
 V_LO, V_HI = 3.9, 4.15   # khoảng điện áp cố định để đo thời gian sạc
 V_CV = 4.19              # coi như đã vào pha CV
-I_CV_END = 0.2           # dòng tụt dưới mức này thì coi như sạc xong
+I_START = 0.10           # dòng vượt mức này = bắt đầu sạc (A)
+# Coi là sạc xong khi dòng tụt dưới mức này. Chọn 0,2 A (~C/10 với cell 2 Ah)
+# chứ KHÔNG phải 0,02 A của giao thức phòng thí nghiệm NASA. Lý do là tính
+# khả dụng ngoài đời, không phải vì điểm số: mọi bộ sạc thương mại đều ngắt
+# quanh C/20..C/10, và cái đuôi dòng rất thấp phía sau dài bao lâu là do cài
+# đặt của bộ sạc chứ không phải do sức khoẻ viên pin. Lấy tới 0,02 A là nhét
+# đặc tính của thiết bị đo vào đặc trưng của pin.
+I_CV_END = 0.20
 
 FEATURES = ["t_v_interval", "t_cv", "i_cv_mean", "t_charge_total",
             "T_max_ch", "T_mean_ch", "T_rise_ch", "v_start", "dvdt_cc"]
@@ -65,30 +72,49 @@ def charge_features(d):
         idx = np.argmax(mask)
         return t[idx] if mask.any() else np.nan
 
-    t_lo, t_hi = first_at(V >= V_LO), first_at(V >= V_HI)
+    # CỬA SỔ SẠC: từ lúc dòng bắt đầu chạy tới lúc pin no.
+    # Định nghĩa này phải giống hệt bên firmware (charge_cycle.cpp) và phải
+    # dùng được ngoài đời. Bản đầu lấy "toàn bộ mảng ghi được" (t[-1]) —
+    # ngoài đời con số đó phụ thuộc lúc nào người dùng rút sạc, tức là nhiễu
+    # thuần tuý. Test so C với Python đã bắt đúng chỗ này.
+    i_on = first_at(I > I_START)
+    if not np.isfinite(i_on):
+        return None
     t_cv0 = first_at(V >= V_CV)
-    # dòng sạc dương; tụt dưới ngưỡng sau khi đã vào CV = sạc xong
     after_cv = (t >= t_cv0) if np.isfinite(t_cv0) else np.zeros_like(t, bool)
     t_end = first_at(after_cv & (I < I_CV_END))
+    if not np.isfinite(t_end):
+        t_end = t[-1]                      # chưa no thì lấy tới hết bản ghi
 
+    win = (t >= i_on) & (t <= t_end)
+    if win.sum() < 50:
+        return None
+
+    tw, Vw, Iw, Tw = t[win], V[win], I[win], T[win]
+
+    def first_at_w(mask):
+        idx = np.argmax(mask)
+        return tw[idx] if mask.any() else np.nan
+
+    t_lo, t_hi = first_at_w(Vw >= V_LO), first_at_w(Vw >= V_HI)
     if not (np.isfinite(t_lo) and np.isfinite(t_hi)) or t_hi <= t_lo:
         return None
 
-    cv = after_cv & np.isfinite(I)
-    in_cc = (V >= V_LO) & (V <= V_HI)
+    cv = (tw >= t_cv0) if np.isfinite(t_cv0) else np.zeros_like(tw, bool)
+    in_cc = (Vw >= V_LO) & (Vw <= V_HI)
 
     return {
         # thời gian đi hết khoảng 3,9 -> 4,15 V. Đây là chỉ số sức khoẻ kinh
         # điển, và không phụ thuộc pin còn bao nhiêu lúc cắm sạc.
         "t_v_interval": t_hi - t_lo,
-        "t_cv": (t_end - t_cv0) if (np.isfinite(t_end) and np.isfinite(t_cv0)) else np.nan,
-        "i_cv_mean": float(I[cv].mean()) if cv.sum() > 3 else np.nan,
-        "t_charge_total": t[-1],
-        "T_max_ch": float(T.max()),
-        "T_mean_ch": float(T.mean()),
-        "T_rise_ch": float(T.max() - T[0]),
-        "v_start": float(V[0]),
-        "dvdt_cc": float(np.polyfit(t[in_cc], V[in_cc], 1)[0]) if in_cc.sum() > 5 else np.nan,
+        "t_cv": (t_end - t_cv0) if np.isfinite(t_cv0) else 0.0,
+        "i_cv_mean": float(Iw[cv].mean()) if cv.sum() > 3 else 0.0,
+        "t_charge_total": float(t_end - i_on),
+        "T_max_ch": float(Tw.max()),
+        "T_mean_ch": float(Tw.mean()),
+        "T_rise_ch": float(Tw.max() - Tw[0]),
+        "v_start": float(Vw[0]),
+        "dvdt_cc": float(np.polyfit(tw[in_cc], Vw[in_cc], 1)[0]) if in_cc.sum() > 5 else np.nan,
     }
 
 

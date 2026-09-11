@@ -28,6 +28,7 @@
 #include <LittleFS.h>
 #include <time.h>
 #include "cell_ai.h"
+#include "charge_cycle.h"
 
 // ---------------------------------------------------------------- WiFi
 const char* WIFI_SSID = "TEN_WIFI_CUA_BAN";
@@ -108,8 +109,17 @@ const int FAULT_CELL = 5; // cell "hỏng" (1-based)
 // ---------------------------------------------------------------- Lớp 1: AI on-device
 // Autoencoder phát hiện cell bất thường. Trọng số nằm trong cell_ae_weights.h,
 // sinh ra từ ai/export_c_model.py. Ngưỡng và quy tắc giữ liên tục cũng ở đó.
-void publishAnomaly(const CellAIResult& r);   // định nghĩa bên dưới
+void publishAnomaly(const CellAIResult& r);      // định nghĩa bên dưới
+void publishCycleSummary(const ChargeSummary& s);
 CellAI gAI;
+
+// ---------------------------------------------------------------- Lớp 2: tóm tắt chu kỳ sạc
+// ESP32 KHÔNG chạy mô hình RUL. Nó chỉ quan sát quá trình sạc rồi gửi 9 con số
+// lên cloud; Node-RED nhân với hệ số đã train ra RUL/SOH. Xem charge_cycle.h.
+ChargeCycle gCharge;
+int  gSimCycle = 0;                 // số chu kỳ sạc đã MÔ PHỎNG
+const long SIM_CHARGE_EVERY_MS = 45000;   // cứ 45s lại mô phỏng 1 chu kỳ sạc
+unsigned long lastSimCharge = 0;
 float  gCellTemp[AI_N_CELLS];     // nhiệt 8 cell của bước hiện tại
 bool   gAlarmLatched = false;     // đã báo động rồi thì không spam lại
 int    gAlarmCell    = -1;
@@ -431,6 +441,75 @@ void publishAnomaly(const CellAIResult& r) {
   Serial.printf("[AI  ] gui ket qua: %s\n", out.c_str());
 }
 
+// ============================================================ Lớp 2: chu kỳ sạc
+// Gửi 9 con số tóm tắt một chu kỳ sạc. Vẫn đi qua ĐÚNG data contract hiện có
+// (docs/DATA_CONTRACT.md) nên Node-RED và WISE-IoT không phải sửa gì về đường
+// truyền — chỉ thêm một nhánh xử lý khi thấy tag CYC_*.
+void publishCycleSummary(const ChargeSummary& s) {
+  if (!timeIsValid()) return;
+  JsonDocument doc;
+  JsonObject dev = doc["d"][DEVICE_ID].to<JsonObject>();
+  for (int i = 0; i < CC_N_FEATURES; i++) {
+    char name[24];
+    snprintf(name, sizeof(name), "CYC_%s", CC_FEATURE_NAMES[i]);
+    dev[name] = round(s.f[i] * 10000) / 10000.0;
+  }
+  dev["CYC_duration_s"] = (double)s.duration_s;
+  doc["ts"] = isoTimestampUtc();
+
+  String out; serializeJson(doc, out);
+  bool linkReady = mqtt.connected() && millis() >= linkTrustedAt;
+  if (!(linkReady && mqtt.publish(topicData, out.c_str()))) spoolAppend(out);
+  Serial.printf("[CYC ] chu ky sac #%d xong sau %us ao -> gui %d dac trung\n",
+                gSimCycle, s.duration_s, CC_N_FEATURES);
+}
+
+// ------------------------------------------------------------ MÔ PHỎNG SẠC
+// TẠM THỜI: chưa có mạch sạc thật nên sinh một chu kỳ CC-CV tổng hợp, chạy ở
+// "thời gian ảo" (mỗi vòng lặp = 1 giây ảo) để một chu kỳ 3 tiếng gói gọn
+// trong vài giây thật. Khi có phần cứng thật thì bỏ hàm này và gọi
+// gCharge.update() 1 Hz với số đo thật từ INA228 + ADC + DS18B20.
+//
+// Pin được cho "già đi" theo từng chu kỳ mô phỏng: pha CV dài dần ra, đúng
+// quy luật vật lý mà mô hình đã học -> RUL trên dashboard sẽ giảm dần.
+void simulateChargeCycle() {
+  gSimCycle++;
+  // Hằng số HIỆU CHỈNH theo dải thật của bộ NASA mà mô hình đã học:
+  // t_cv chạy từ ~2470 giây (pin mới) tới ~3170 giây (pin sắp hết đời).
+  // Với profile CV suy giảm mũ thì t_cv = tau * ln(I0/I_END) = tau * 2,015,
+  // nên tau phải nằm trong khoảng 1224..1573.
+  // Không hiệu chỉnh thì đầu vào rơi ngoài dải huấn luyện và RUL ra số âm —
+  // đã gặp đúng lỗi đó ở lần chạy đầu, mô hình trả -6 chu kỳ ngay từ chu kỳ 1.
+  // Pha CC chia 3 đoạn, KHÔNG dâng tuyến tính. Pin lithium có vùng điện áp
+  // phẳng ở giữa: lên nhanh tới ~3,9 V, bò rất chậm qua 3,9–4,15 V, rồi lên
+  // nốt. Bản đầu cho dâng tuyến tính -> t_v_interval và dvdt_cc rơi ngoài dải
+  // huấn luyện, và chính node cảnh báo ngoại suy bên Node-RED đã bắt được.
+  // Các con số dưới đây khớp trung bình của bộ NASA (xem ai/data/nasa_cycles.csv).
+  const float t_a = 300.0f;       // 3,60 -> 3,90 V
+  const float t_b = 2074.0f;      // 3,90 -> 4,15 V  (NASA: t_v_interval TB 2074s)
+  const float t_c = 379.0f;       // 4,15 -> 4,20 V
+  const float t_cc = t_a + t_b + t_c;
+  const float tau_cv = 1224.0f + 18.0f * gSimCycle;     // CV dài dần khi pin già
+  const float I0 = 1.5f;
+
+  for (int t = 0; t < 20000; t++) {
+    float v_cell, i;
+    if (t < t_a)              { v_cell = 3.60f + 0.30f * (t / t_a);            i = I0; }
+    else if (t < t_a + t_b)   { v_cell = 3.90f + 0.25f * ((t - t_a) / t_b);    i = I0; }
+    else if (t < t_cc)        { v_cell = 4.15f + 0.05f * ((t - t_a - t_b) / t_c); i = I0; }
+    else {                                              // CV: giữ áp, dòng giảm mũ
+      v_cell = 4.20f;
+      i = I0 * expf(-(t - t_cc) / tau_cv);
+    }
+    // Nhiệt độ: hiệu chỉnh để T_mean rơi quanh 26,7 °C như bộ NASA
+    const float temp = 25.5f + 1.8f * (i / I0);
+    ChargeSummary s = gCharge.update(v_cell * CC_N_CELLS, i, temp);
+    if (s.valid) { publishCycleSummary(s); return; }
+    if (i < CC_I_END && t > t_cc) break;
+  }
+  Serial.println("[CYC ] mo phong khong ra summary hop le");
+}
+
 void publishData() {
   // Chưa có giờ chuẩn thì gói nào gửi lên cũng bị cloud vứt. Bỏ qua lượt này.
   if (!timeIsValid()) { Serial.println("[DATA] bo qua - NTP chua dong bo"); return; }
@@ -529,6 +608,7 @@ void setup() {
 
   spoolBegin();
   gAI.begin();
+  gCharge.begin();
   Serial.print("[WiFi] noi toi "); Serial.println(WIFI_SSID);
   WiFi.mode(WIFI_STA);
   WiFi.begin(WIFI_SSID, WIFI_PASS);
@@ -588,6 +668,12 @@ void loop() {
   if (now - lastAi >= AI_PERIOD_MS) {
     lastAi = now;
     runAI();
+  }
+
+  // Lớp 2: mô phỏng một chu kỳ sạc theo nhịp, chỉ khi đã có mạng để gửi
+  if (now - lastSimCharge >= SIM_CHARGE_EVERY_MS && timeIsValid()) {
+    lastSimCharge = now;
+    simulateChargeCycle();
   }
 
   if (now - lastPublish >= PUBLISH_MS)    { lastPublish   = now; publishData(); }

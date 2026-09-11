@@ -25,10 +25,12 @@ RTM này mới phủ **chặng ESP32 → cloud**. Các phần Edge AI (autoencod
 | REQ-10 | Secret không lọt lên GitHub | `.gitignore` | AC-04.4 | BC §5 | ✅ |
 | REQ-13 | Lớp 1 phát hiện cell bất thường, chạy on-device | `ai/`, `cell_ai.cpp`, `cell_ae_weights.h` | AC-06 | BC3 | ✅ **chạy trên board thật** |
 | REQ-14 | Bản C phải khớp bản Python từng số | `ai/test_c_vs_python.py` | AC-06.3 | BC3 §2 | ✅ lệch <1e-6 |
-| REQ-15 | Lớp 2 dự báo RUL/SOH từ dữ liệu sạc, chạy cloud | `ai/nasa_prepare.py`, `ai/train_rul.py` | AC-07 | BC4 | ✅ mô hình xong · ⬜ chưa nối luồng |
+| REQ-15 | Lớp 2 dự báo RUL/SOH từ dữ liệu sạc, chạy cloud | `ai/nasa_prepare.py`, `ai/train_rul.py`, `nodered/rul_predict.js` | AC-07 | BC4, BC5 | ✅ **luồng đã thông** · ⬜ chưa hiệu chỉnh pack thật |
+| REQ-16 | ESP32 tóm tắt chu kỳ sạc thành 9 con số | `charge_cycle.cpp` | AC-07.9 | BC5 §2 | ✅ |
+| REQ-17 | Cảnh báo khi mô hình ngoại suy ngoài dải huấn luyện | `rul_predict.js` | AC-07.10 | BC5 §3 | ✅ |
 | REQ-11 | Chuyển sang WISE-IoT thật chỉ tốn cấu hình, không sửa logic | `#define STAGE`, `fetchCredentialFromDccs()` | — | — | ⬜ chờ tài khoản |
 
-**Chú thích:** BC = `docs/BANG_CHUNG_KIEM_THU_2026-09-06.md` · BC2 = `docs/BANG_CHUNG_PHAN_CUNG_2026-09-06.md` · BC3 = `docs/BANG_CHUNG_AI_2026-09-11.md` · BC4 = `docs/BANG_CHUNG_LOP2_RUL_2026-09-11.md` · AC = `docs/TEST_VA_ACCEPTANCE.md`
+**Chú thích:** BC = `docs/BANG_CHUNG_KIEM_THU_2026-09-06.md` · BC2 = `docs/BANG_CHUNG_PHAN_CUNG_2026-09-06.md` · BC3 = `docs/BANG_CHUNG_AI_2026-09-11.md` · BC4 = `docs/BANG_CHUNG_LOP2_RUL_2026-09-11.md` · BC5 = `docs/BANG_CHUNG_LUONG_THAT_2026-09-11.md` · AC = `docs/TEST_VA_ACCEPTANCE.md`
 
 ---
 
@@ -45,7 +47,8 @@ RTM này mới phủ **chặng ESP32 → cloud**. Các phần Edge AI (autoencod
 
 ## Việc tiếp theo theo thứ tự ưu tiên
 
-1. Đưa stack lên VPS công cộng và chạy lại AC-04 (AC-04.6) — chỗ hở lớn nhất còn lại.
+1. Gắn 8 con DS18B20 + INA228 thật — mắt xích cuối còn mô phỏng ở cả hai lớp.
+2. Đưa stack lên VPS công cộng và chạy lại AC-04 (AC-04.6).
 2. Thử với WiFi phát từ điện thoại thay vì router nhà (AC-05.1).
 3. Diễn tập trọn kịch bản 5 phút ít nhất 2 lần (AC-05.3).
 4. Gắn cảm biến nhiệt thật thay cho 8 giá trị giả lập.

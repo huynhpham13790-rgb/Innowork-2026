@@ -182,6 +182,41 @@ vô dụng"* — nói kiểu sau là sai và sẽ bị hỏi lại.
 *Hệ quả cho slide:* SOH (sai số 3,8 điểm phần trăm) đáng tin hơn RUL và cũng là
 con số khách hàng định giá xe cũ thật sự cần. Nên dẫn bằng SOH.
 
+### QĐ-018 · 11/09/2026 · Đã chốt
+**Mô hình Lớp 2 chạy trong Node-RED bằng hệ số nhúng sẵn, không dựng dịch vụ riêng.**
+
+RUL là hồi quy tuyến tính 2 tham số, SOH là Ridge 10 tham số — cả hai chỉ là
+tích vô hướng. Nhúng hệ số vào một node function là xong. Dựng thêm container
+Python chỉ để nhân 10 số là tự rước thêm một thứ có thể hỏng vào ngày thi.
+
+*Ranh giới thiết bị / cloud:* ESP32 chỉ gửi 9 con số tóm tắt mỗi chu kỳ sạc,
+cloud tính. Nhờ vậy đổi mô hình không phải nạp lại firmware — cần thiết vì mô
+hình còn phải hiệu chỉnh lại cho pack thật.
+
+### QĐ-019 · 11/09/2026 · Đã chốt
+**Mọi dự đoán Lớp 2 phải kèm cờ cảnh báo NGOẠI SUY.**
+
+Phát hiện khi chạy thật: mô hình tuyến tính **không bao giờ từ chối trả lời**.
+Cho nó đầu vào cách trung bình huấn luyện 5 độ lệch chuẩn, nó vẫn trả về một
+con số trông hợp lý. Lần chạy đầu RUL ra 0 và SOH ra 105% mà không có gì báo
+là đang ngoại suy — chỉ vì profile sạc mô phỏng chưa đúng thực tế.
+
+*Chốt:* node tính kiểm |z| > 3 cho từng đặc trưng, cảnh báo vào log và ghi cờ
+`Extrapolating` lên dashboard. Đây là thứ cần nhất lúc gắn pack thật, vì khi đó
+đầu vào chắc chắn khác bộ NASA.
+
+### QĐ-020 · 11/09/2026 · Đã chốt
+**Ngưỡng kết thúc sạc lấy 0,2 A (~C/10), không lấy 0,02 A của NASA.**
+
+0,02 A là giao thức phòng thí nghiệm. Bộ sạc thương mại ngắt quanh C/20–C/10,
+và cái đuôi dòng rất thấp phía sau dài bao lâu là do **cài đặt bộ sạc** chứ
+không phải do sức khoẻ pin. Lấy tới 0,02 A là nhét đặc tính thiết bị đo vào
+đặc trưng của pin.
+
+*Lưu ý trung thực:* lựa chọn này cũng cho điểm tốt hơn (MAE 12,1 vs 16,8),
+nhưng lý do chọn là khả dụng ngoài đời — nếu chọn vì điểm thì đó là tinh chỉnh
+trên tập test.
+
 ---
 
 ## Ẩn số còn treo
