@@ -58,6 +58,20 @@ Ký hiệu: ✅ đã kiểm chứng · ⬜ chưa làm · 🔶 làm rồi nhưng 
 | 5.3 | Diễn tập trọn kịch bản 5 phút ít nhất 2 lần | ⬜ |
 | 5.4 | Dashboard Grafana đã dựng sẵn, không dựng tại chỗ | ⬜ |
 
+## AC-06 — Lớp 1: AI phát hiện cell bất thường
+
+| # | Tiêu chí | Cách kiểm | Trạng thái |
+|---|---|---|---|
+| 6.1 | Mô hình < 50 KB | 1,4 KB float32 (356 tham số) | ✅ 11/09 |
+| 6.2 | Bắt 100% ca ramp ở mọi tốc độ đã thử | `tune_threshold.py` | ✅ 11/09 |
+| 6.3 | **Bản C khớp bản Python từng số** | `test_c_vs_python.py`, lệch <1e-6 | ✅ 11/09 |
+| 6.4 | Báo động giả < 1 lần/ngày | 0,033/giờ = 1 lần mỗi 1,3 ngày | ✅ 11/09 |
+| 6.5 | Chạy được trên ESP32 thật, 1 Hz | +5,5 KB flash, +2,9 KB RAM | ✅ 11/09 |
+| 6.6 | Phát hiện đúng cell trên board thật | cell 5: 5,189 vs 7 cell còn lại ~0,4 | ✅ 11/09 |
+| 6.7 | Kết quả AI lên tới dashboard, không đổi data contract | query InfluxDB thấy `AI_*` | ✅ 11/09 |
+| 6.8 | Kiểm chứng trên mất cân bằng THẬT (Stanford/Warwick) | — | ⬜ **chưa làm** |
+| 6.9 | Ngưỡng cứng 60°C vẫn chạy song song | `runAI()` kiểm độc lập | ✅ 11/09 |
+
 ---
 
 ## Cách chạy bộ test

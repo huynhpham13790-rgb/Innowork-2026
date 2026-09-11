@@ -91,6 +91,61 @@ Cổng USB native cũng nạp được nhưng **không tự vào mode nạp**, p
 
 *Ghi lại vì:* ngày thi mà cầm nhầm cáp là mất 20 phút loay hoay. **Mang theo đúng sợi A-to-C đã thử.**
 
+### QĐ-012 · 11/09/2026 · Đã chốt
+**Mô hình nhìn TỪNG CELL qua 16 đặc trưng tương đối, không nhìn cả pack.**
+
+Bộ UPC có pack 36 cell, phần cứng của đội có 8 cell. Cho mô hình ăn thẳng
+"nhiệt độ 36 cell" thì train xong không deploy được. Thay vào đó mỗi cell được
+mô tả bằng 16 con số kiểu *"cell này lệch khỏi phần còn lại của pack ra sao"*.
+
+*Được gì:* train trên pack 36, chạy trên pack 8 không sửa gì; mỗi thời điểm
+cho ra N mẫu huấn luyện thay vì 1; mô hình chỉ đúng cell nào bất thường; và
+chỉ cần 356 tham số. Dữ liệu cũng được ép về đúng phần cứng trước khi train
+(1 cảm biến/cell, 1 Hz, bước lượng tử 0,0625 °C của DS18B20).
+
+*Đánh đổi:* mô hình không thấy được kiểu lỗi mà CẢ pack cùng bất thường — vì
+mọi đặc trưng đều là tương đối. Đây là lý do ngưỡng cứng 60 °C phải giữ.
+
+### QĐ-013 · 11/09/2026 · Đã chốt, khác với kế hoạch ban đầu
+**Không dùng TFLite Micro. Firmware tự nhân 4 lớp dense bằng tay.**
+
+Kế hoạch ban đầu là INT8 + TFLite Micro để lọt giới hạn 50 KB. Nhưng mô hình
+chỉ có 356 tham số: float32 đã là **1,4 KB**, nhỏ hơn giới hạn 35 lần. Lượng
+tử hoá để "cho vừa" là giải quyết một vấn đề không tồn tại.
+
+Forward pass viết tay hết ~30 dòng C, không phụ thuộc thư viện nào, và **kiểm
+chứng được khớp từng số với Python**. TFLite Micro trên Arduino-ESP32 kéo theo
+hàng trăm KB flash, một arena bộ nhớ phải tự chỉnh, cộng sai số lượng tử hoá
+phải đi giải trình — rủi ro không đáng rước 4 ngày trước bán kết.
+
+*Số đo thực tế:* AI thêm 5,5 KB flash và 2,9 KB RAM vào firmware.
+*Vẫn giữ:* bản INT8 .tflite trong ai/models/ nếu sau này muốn đổi hướng.
+
+### QĐ-014 · 11/09/2026 · Đã chốt
+**Hạng nhiệt trong pack dùng HẠNG TRUNG BÌNH khi hoà, không phá hoà bằng chỉ số.**
+
+`np.argsort` dùng quicksort (không ổn định) nên khi hai cell bằng nhau thì kết
+quả tuỳ nội bộ numpy — mà sau khi lượng tử hoá về bước 0,0625 °C thì bằng nhau
+xảy ra rất thường xuyên, và firmware không tài nào tái tạo được.
+
+Phá hoà bằng chỉ số cell cũng sai: đánh số cell là do mình đặt, không mang
+thông tin vật lý nào, nên cell 0 luôn bị xếp dưới là thiên lệch vô nghĩa.
+
+*Chốt:* `rank[i] = (số cell lạnh hơn + (số cell bằng − 1)/2) / (N−1)`.
+Xác định, không phụ thuộc thứ tự đánh số, và viết bằng C chỉ vài dòng.
+
+### QĐ-015 · 11/09/2026 · Đã chốt
+**Độ lệch chuẩn trượt tính lại từ vòng đệm mỗi bước, KHÔNG dùng tổng chạy.**
+
+Lần đầu viết bằng công thức `E[x²] − E[x]²` với tổng chạy float32. Test đối
+chiếu bắt được lệch **1,3e-3** so với Python trong khi các đặc trưng khác lệch
+cỡ 1e-9. Nguyên nhân: nhiệt độ ~25 bình phương rồi cộng 60 mẫu ra ~37.500,
+trong khi phương sai thật chỉ ~0,001 → float32 mất sạch chữ số có nghĩa. Tổng
+chạy còn tích luỹ sai số vô hạn theo thời gian vì cứ cộng vào rồi trừ ra.
+
+*Chốt:* tính lại hai lượt (trung bình rồi phương sai) từ vòng đệm, tích luỹ
+bằng double. 60×8 phép tính mỗi giây — không đáng kể. Sau khi sửa: lệch 5e-10.
+
 ---
 
 ## Ẩn số còn treo

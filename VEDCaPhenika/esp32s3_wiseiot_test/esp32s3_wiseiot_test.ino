@@ -27,6 +27,7 @@
 #include <ArduinoJson.h>
 #include <LittleFS.h>
 #include <time.h>
+#include "cell_ai.h"
 
 // ---------------------------------------------------------------- WiFi
 const char* WIFI_SSID = "TEN_WIFI_CUA_BAN";
@@ -95,13 +96,23 @@ bool    gUseTls = false;
 
 char topicData[160], topicConn[160], topicCfg[160], topicCmd[160], topicAck[160];
 
-unsigned long lastPublish = 0, lastHeartbeat = 0, lastReconnect = 0;
+unsigned long lastPublish = 0, lastHeartbeat = 0, lastReconnect = 0, lastAi = 0;
+const long AI_PERIOD_MS = 1000;   // AI chạy đúng 1 Hz — đặc trưng phụ thuộc nhịp này
 unsigned long linkTrustedAt = 0;   // trước mốc này thì vẫn đệm, chưa đẩy bù
 unsigned long spoolDropped = 0;   // số gói bị bỏ vì flash đầy (báo cho biết là có mất)
 bool   fsReady = false;
 float cellBias[NUM_CELLS];
 float faultRise = 0.0f;   // độ nóng cộng dồn của cell lỗi
 const int FAULT_CELL = 5; // cell "hỏng" (1-based)
+
+// ---------------------------------------------------------------- Lớp 1: AI on-device
+// Autoencoder phát hiện cell bất thường. Trọng số nằm trong cell_ae_weights.h,
+// sinh ra từ ai/export_c_model.py. Ngưỡng và quy tắc giữ liên tục cũng ở đó.
+void publishAnomaly(const CellAIResult& r);   // định nghĩa bên dưới
+CellAI gAI;
+float  gCellTemp[AI_N_CELLS];     // nhiệt 8 cell của bước hiện tại
+bool   gAlarmLatched = false;     // đã báo động rồi thì không spam lại
+int    gAlarmCell    = -1;
 
 // ============================================================ Tiện ích thời gian
 // EdgeHub yêu cầu ISO-8601 UTC, đúng format "%Y-%m-%dT%H:%M:%S.%fZ" (6 số lẻ giây).
@@ -353,6 +364,73 @@ void publishHeartbeat() {
 
 // Payload dữ liệu — đây là thứ quyết định dashboard có vẽ được hay không:
 // { "d": { "<deviceId>": { "<tag>": <so>, ... } }, "ts": "...Z" }
+// ============================================================ Lớp 1: AI on-device
+// Chạy 1 Hz. Đọc nhiệt 8 cell (hiện đang giả lập — khi gắn DS18B20 thật thì
+// chỉ thay chỗ đọc), cho qua autoencoder, và báo động nếu một cell vượt ngưỡng
+// đủ lâu.
+//
+// LƯU Ý AN TOÀN: đây là lớp phát hiện SỚM cell bất thường, KHÔNG phải bộ dự
+// báo cháy nổ. Nó bỏ sót kiểu trôi nhiệt rất chậm (xem ai/README.md), nên
+// ngưỡng cứng 60 °C bên dưới PHẢI giữ, không được bỏ đi vì "đã có AI".
+void runAI() {
+  // Nhiệt độ cell: hiện lấy từ phần giả lập, sau này là 8 con DS18B20.
+  for (int i = 0; i < AI_N_CELLS; i++) {
+    float v = 30.0f + cellBias[i] + random(-30, 31) / 100.0f;
+    if (i + 1 == FAULT_CELL) v += faultRise;
+    gCellTemp[i] = roundf(v * 16.0f) / 16.0f;   // bước 0,0625 °C như DS18B20
+  }
+  const float ambient = 28.0f;    // sẽ là con DS18B20 đo môi trường
+  const float current = 0.0f;     // sẽ là INA228
+  const float soc     = 80.0f;    // sẽ tính từ điện áp pack
+
+  CellAIResult r = gAI.update(gCellTemp, ambient, current, soc);
+  if (!r.valid) return;           // còn trong giai đoạn khởi động
+
+  // --- lớp an toàn độc lập với AI: ngưỡng cứng, không bao giờ được bỏ ---
+  for (int i = 0; i < AI_N_CELLS; i++) {
+    if (gCellTemp[i] >= 60.0f) {
+      Serial.printf("[SAFE] CELL %d = %.2f degC >= 60 - NGUONG CUNG\n", i + 1, gCellTemp[i]);
+    }
+  }
+
+  if (r.alarm && !gAlarmLatched) {
+    gAlarmLatched = true;
+    gAlarmCell = r.worst_cell;
+    Serial.printf("[AI  ] *** BAT THUONG *** cell %d, diem %.3f (nguong %.3f), "
+                  "giu %us\n", r.worst_cell + 1, r.worst_score,
+                  (double)CellAI::threshold(), r.run_s[r.worst_cell]);
+    publishAnomaly(r);
+  } else if (!r.alarm && gAlarmLatched) {
+    gAlarmLatched = false;
+    Serial.println("[AI  ] het bat thuong");
+    publishAnomaly(r);
+  }
+}
+
+// Đẩy kết quả AI lên cloud theo ĐÚNG data contract hiện có: vẫn là
+// {"d":{"<device>":{...}},"ts":...} nên Node-RED/WISE-IoT không phải sửa gì.
+// Xem docs/DATA_CONTRACT.md — giá trị phải là số, nên trạng thái mã hoá bằng 0/1.
+void publishAnomaly(const CellAIResult& r) {
+  if (!timeIsValid()) return;
+  JsonDocument doc;
+  JsonObject dev = doc["d"][DEVICE_ID].to<JsonObject>();
+  dev["AI_Alarm"]      = r.alarm ? 1 : 0;
+  dev["AI_WorstCell"]  = r.worst_cell + 1;         // 1-based cho người đọc
+  dev["AI_WorstScore"] = round(r.worst_score * 1000) / 1000.0;
+  for (int i = 0; i < AI_N_CELLS; i++) {
+    char name[16]; snprintf(name, sizeof(name), "AI_Score%02d", i + 1);
+    dev[name] = round(r.score[i] * 1000) / 1000.0;
+  }
+  doc["ts"] = isoTimestampUtc();
+
+  String out; serializeJson(doc, out);
+  bool linkReady = mqtt.connected() && millis() >= linkTrustedAt;
+  if (!(linkReady && mqtt.publish(topicData, out.c_str()))) {
+    spoolAppend(out);        // mất mạng thì cảnh báo cũng phải được đệm lại
+  }
+  Serial.printf("[AI  ] gui ket qua: %s\n", out.c_str());
+}
+
 void publishData() {
   // Chưa có giờ chuẩn thì gói nào gửi lên cũng bị cloud vứt. Bỏ qua lượt này.
   if (!timeIsValid()) { Serial.println("[DATA] bo qua - NTP chua dong bo"); return; }
@@ -450,6 +528,7 @@ void setup() {
   for (int i = 0; i < NUM_CELLS; i++) cellBias[i] = random(-80, 81) / 100.0f;
 
   spoolBegin();
+  gAI.begin();
   Serial.print("[WiFi] noi toi "); Serial.println(WIFI_SSID);
   WiFi.mode(WIFI_STA);
   WiFi.begin(WIFI_SSID, WIFI_PASS);
@@ -502,6 +581,13 @@ void loop() {
   if (mqtt.connected()) {
     mqtt.loop();
     spoolFlush();   // đẩy bù tối đa FLUSH_BATCH gói mỗi vòng
+  }
+
+  // AI chạy 1 Hz, độc lập với nhịp gửi dữ liệu. Chạy cả khi MẤT MẠNG —
+  // đây là lý do đặt AI on-device: an toàn không được phụ thuộc đường truyền.
+  if (now - lastAi >= AI_PERIOD_MS) {
+    lastAi = now;
+    runAI();
   }
 
   if (now - lastPublish >= PUBLISH_MS)    { lastPublish   = now; publishData(); }

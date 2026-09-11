@@ -23,9 +23,11 @@ RTM này mới phủ **chặng ESP32 → cloud**. Các phần Edge AI (autoencod
 | REQ-08 | Máy chủ công cộng không bị chiếm quyền | `docker-compose.yml` port binding, `mosquitto.conf` | AC-04.1→4.3 | BC §4 | ✅ ở local · ⬜ AC-04.6 trên VPS thật |
 | REQ-09 | Lỗi ghi dữ liệu phải phát hiện được ngay | node "Kiểm tra kết quả ghi", `check_influx_response.js` | AC-04.5 | BC §4 | ✅ |
 | REQ-10 | Secret không lọt lên GitHub | `.gitignore` | AC-04.4 | BC §5 | ✅ |
+| REQ-13 | Lớp 1 phát hiện cell bất thường, chạy on-device | `ai/`, `cell_ai.cpp`, `cell_ae_weights.h` | AC-06 | BC3 | ✅ **chạy trên board thật** |
+| REQ-14 | Bản C phải khớp bản Python từng số | `ai/test_c_vs_python.py` | AC-06.3 | BC3 §2 | ✅ lệch <1e-6 |
 | REQ-11 | Chuyển sang WISE-IoT thật chỉ tốn cấu hình, không sửa logic | `#define STAGE`, `fetchCredentialFromDccs()` | — | — | ⬜ chờ tài khoản |
 
-**Chú thích:** BC = `docs/BANG_CHUNG_KIEM_THU_2026-09-06.md` · BC2 = `docs/BANG_CHUNG_PHAN_CUNG_2026-09-06.md` · AC = `docs/TEST_VA_ACCEPTANCE.md`
+**Chú thích:** BC = `docs/BANG_CHUNG_KIEM_THU_2026-09-06.md` · BC2 = `docs/BANG_CHUNG_PHAN_CUNG_2026-09-06.md` · BC3 = `docs/BANG_CHUNG_AI_2026-09-11.md` · AC = `docs/TEST_VA_ACCEPTANCE.md`
 
 ---
 

@@ -115,8 +115,21 @@ def build_features(temps, ambient, current, soc):
     dev_med = temps - pack_med
     z       = dev / (pack_std + eps)
 
-    # thứ hạng nhiệt trong pack, chuẩn hoá về 0..1
-    rank = np.argsort(np.argsort(temps, axis=1), axis=1) / max(N - 1, 1)
+    # Thứ hạng nhiệt trong pack, chuẩn hoá về 0..1, dùng HẠNG TRUNG BÌNH khi hoà.
+    #   rank[i] = ( số cell lạnh hơn i  +  (số cell bằng i - 1)/2 ) / (N-1)
+    #
+    # Phải định nghĩa tường minh vì hai lý do:
+    #  1. np.argsort dùng quicksort (không ổn định) -> hoà nhau thì kết quả tuỳ
+    #     nội bộ numpy, mà sau khi lượng tử hoá về bước 0,0625 °C thì hoà nhau
+    #     xảy ra rất thường xuyên. Firmware không thể tái tạo được.
+    #  2. Phá hoà bằng chỉ số cell (cell 0 luôn xếp dưới) là thiên lệch vô
+    #     nghĩa: đánh số cell là do mình đặt, không mang thông tin vật lý nào.
+    # Hạng trung bình xử lý được cả hai, và viết bằng C chỉ vài dòng.
+    A = temps[:, :, None]                      # (T, i, 1)
+    B = temps[:, None, :]                      # (T, 1, j)
+    n_less = (B < A).sum(2)
+    n_eq = (B == A).sum(2)                     # luôn >= 1 (chính nó)
+    rank = (n_less + (n_eq - 1) / 2.0) / max(N - 1, 1)
 
     amb = ambient[:, None]
     dT_cell = _rate_per_min(temps, DT_WIN)

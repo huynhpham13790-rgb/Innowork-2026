@@ -125,16 +125,24 @@ def main():
             # mục tiêu: dưới 1 báo động giả mỗi 24 h, mà vẫn bắt 100% mọi ramp
             if fp_hr < 1 / 24 and ok_all:
                 mark = "  <<< đạt"
-                if best is None or fp_hr < best[2]:
-                    best = (pct, k, fp_hr, th)
+                # Trong nhóm đạt mục tiêu báo động giả, chọn theo ĐỘ TRỄ THẤP
+                # NHẤT ở ca chậm nhất (0,05 °C/phút) — đó mới là thứ quyết định
+                # lead time. Chọn theo "ít báo động giả nhất" là sai mục tiêu:
+                # giữ càng lâu thì báo động giả càng về 0 mà phát hiện càng muộn.
+                slow = np.median([np.argmax(persist_mask(s > th, k)
+                                            [FAULT_START - WARMUP:, c])
+                                  for s, c in ramp_scores[RAMP_RATES[0]]])
+                if best is None or slow < best[4]:
+                    best = (pct, k, fp_hr, th, slow)
             print(f"{pct:>9} {k:>4}s {fp_hr:>11.3f} │ " + " ".join(cells_txt) + mark)
 
     print("\nô ghi số = độ trễ trung vị (phút), bắt được 100% ca")
     print("ô ghi %  = chỉ bắt được từng ấy phần trăm ca -> loại")
 
     if best:
-        pct, k, fp_hr, th = best
+        pct, k, fp_hr, th, slow = best
         print(f"\nCHỌN: ngưỡng p{pct} (= {th:.4f}), giữ liên tục {k}s")
+        print(f"  -> độ trễ ở ca chậm nhất (0,05 degC/phút): {slow/60:.0f} phút")
         if fp_hr > 0:
             print(f"  -> báo động giả {fp_hr:.4f}/giờ = 1 lần mỗi {1/fp_hr/24:.1f} ngày")
         else:
