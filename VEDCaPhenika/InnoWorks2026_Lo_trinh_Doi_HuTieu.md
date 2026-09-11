@@ -1,5 +1,14 @@
 # LỘ TRÌNH TRIỂN KHAI — InnoWorks 2026 | Đội Hủ Tiếu
 
+> ## ⚠️ TÀI LIỆU NÀY CÓ PHẦN ĐÃ LỖI THỜI — đọc cùng KHUNG_NGHIEN_CUU_v2
+>
+> Kiến trúc đã đổi sau khi viết file này. **Raspberry Pi đã bị BỎ** (lý do ở
+> `KHUNG_NGHIEN_CUU_v2_HuTieu.md` §2), Lớp 2 chuyển lên **WISE-IoT cloud**.
+> Mọi chỗ nhắc tới "Pi chạy LSTM" bên dưới đều đã được đánh dấu lại.
+> Khi hai tài liệu mâu thuẫn, **KHUNG_NGHIEN_CUU_v2 và `docs/DECISION_LOG.md`
+> là đúng**.
+
+
 **Dự án:** Hệ thống giám sát nhiệt độ pin xe điện tích hợp AI nhúng — Dự đoán tuổi thọ (RUL) & phát hiện bất thường sớm
 **Trường:** ĐH Công nghệ Thông tin và Truyền thông — ĐH Thái Nguyên (ICTU)
 **Trạng thái:** Đã lọt Top 20 (qua Sơ loại)
@@ -32,9 +41,9 @@
 | Vai | Người phụ trách | Nhiệm vụ chính |
 |---|---|---|
 | **Team Lead + Business** | Phạm Văn Huynh (đội trưởng) | Điều phối, timeline, mô hình kinh doanh/ROI, thuyết trình |
-| **AI/ML Engineer 1** | (bạn giỏi Python nhất) | Lớp 1 — Autoencoder phát hiện bất thường + quantize INT8 |
+| **AI/ML Engineer 1** | (bạn giỏi Python nhất) | Lớp 1 — Autoencoder phát hiện bất thường + xuất sang C cho ESP32 |
 | **AI/ML Engineer 2** | | Lớp 2 — LSTM/CNN-LSTM dự đoán RUL + đánh giá |
-| **Embedded/Hardware** | | STM32/ESP32 + cảm biến + Raspberry Pi + MQTT |
+| **Embedded/Hardware** | | ESP32-S3 + cảm biến + MQTT (~~Raspberry Pi~~ đã bỏ) |
 | **Cloud/WISE-IoT + Demo** | | WISE-IoT dashboard, tích hợp MQTT, quay video demo, slide |
 
 > Ai cũng nên học chứng chỉ WISE-IoT (mỗi đội được cấp tối đa 5 tài khoản). Có thể chia đôi: 2 người "cày" AI, 3 người lo phần cứng + cloud + business trong tháng đầu.
@@ -57,10 +66,10 @@
 - [ ] **Dựng Dashboard WISE-IoT đầu tiên** (dữ liệu giả lập/CSV cũng được) — để thỏa ràng buộc "có hoạt động trước 01/09".
 
 ### Phase 2 — Đưa AI lên thiết bị biên (01/09 → 10/09)
-- [ ] Convert Autoencoder → TensorFlow Lite → lượng hóa INT8 (<50KB), nạp lên ESP32/STM32.
+- [x] ~~Convert Autoencoder → TFLite → INT8~~ → **ĐÃ XONG 11/09 theo hướng khác**: xuất trọng số float32 (1,4 KB) ra file .h, firmware tự nhân. Không cần TFLite Micro. Xem `docs/DECISION_LOG.md` QĐ-013.
 - [ ] Đọc cảm biến thật (NTC/DS18B20 + INA226), chạy inference on-device, bật LED/còi khi bất thường.
-- [ ] Raspberry Pi chạy LSTM (TFLite), nhận dữ liệu từ MCU qua UART/I2C.
-- [ ] Pi publish dữ liệu tóm tắt qua **MQTT → WISE-IoT IoT Hub**.
+- [x] ~~Raspberry Pi chạy LSTM, nhận dữ liệu từ MCU qua UART/I2C~~ → **BỎ Pi.** Lớp 2 chạy trên cloud, ESP32 publish thẳng lên IoT Hub.
+- [x] ~~Pi publish qua MQTT → WISE-IoT IoT Hub~~ → **ESP32 publish thẳng**, đã chạy được (xem `docs/BANG_CHUNG_PHAN_CUNG_2026-09-06.md`).
 
 ### Phase 3 — Tích hợp WISE-IoT hoàn chỉnh (10/09 → 14/09) — *cho Bán kết*
 - [ ] Dashboard WISE-IoT hiển thị nhiệt độ real-time từng cell + chỉ số RUL + cảnh báo.
@@ -101,19 +110,21 @@
 - **Kiến trúc:** Autoencoder dày (dense) nhỏ, ví dụ `16 → 8 → 4 → 8 → 16`. Nếu cần bắt quan hệ thời gian mạnh hơn → **LSTM-Autoencoder** (nhưng nặng hơn, cân nhắc để trên Pi).
 - **Huấn luyện:** chỉ dùng dữ liệu **vận hành bình thường**. Loss = MSE tái tạo.
 - **Ngưỡng phát hiện:** đặt tại percentile 95–99 của reconstruction error trên tập validation bình thường. Lỗi vượt ngưỡng liên tục N mẫu → cảnh báo.
-- **Triển khai:** Keras → TFLite → **INT8 quantization** → C array → nạp qua TFLite Micro. Mục tiêu mô hình <50KB.
+- **Triển khai (ĐÃ LÀM, khác kế hoạch):** Keras → trọng số float32 → C array → firmware tự nhân. Mô hình 1,4 KB, nhỏ hơn mục tiêu 50 KB tới 35 lần nên INT8 là không cần thiết. Xem `docs/DECISION_LOG.md` QĐ-013 và `ai/README.md`.
 - **Mẹo:** dùng **Edge Impulse** để rút ngắn thời gian nếu nhóm chưa quen quy trình quantize thủ công (xuất trực tiếp `.tflite`/thư viện Arduino).
 
-### Lớp 2 — Dự đoán RUL (LSTM/CNN-LSTM, chạy trên Raspberry Pi 4)
+### Lớp 2 — Dự đoán RUL (LSTM/CNN-LSTM, chạy trên **WISE-IoT cloud**, không phải Pi)
 
 - **Đầu vào:** đặc trưng theo chu kỳ (dung lượng phóng, thời gian sạc CC/CV, nhiệt độ trung bình/đỉnh, nội trở nếu có).
-- **Kiến trúc gợi ý (theo mức độ):**
+- **KẾT QUẢ THỰC TẾ (11/09):** đã thử cả LSTM, Gradient Boosting, Ridge và hồi quy tuyến tính. **Tuyến tính 1 đặc trưng thắng** (MAE 12,2 chu kỳ vs LSTM 20,3) vì chỉ có 4 viên pin để học. Xem `docs/BANG_CHUNG_LOP2_RUL_2026-09-11.md`. Phần dưới giữ lại làm hướng mở rộng khi có nhiều pin hơn.
+- **Kiến trúc gợi ý ban đầu (theo mức độ):**
   - Cơ bản: LSTM 1–2 lớp → Dense → giá trị RUL.
   - Tốt hơn: **CNN-LSTM** (CNN trích đặc trưng cục bộ, LSTM học phụ thuộc dài) — nhiều repo tham khảo ở Phần 5.
   - Nâng cao (Chung kết): thêm attention/Transformer.
-- **Nhãn:** RUL = số chu kỳ còn lại đến khi dung lượng < 80%.
+- **Nhãn:** RUL = số chu kỳ còn lại đến khi dung lượng < 80%. ✅ đã làm.
+- **Đầu vào:** CHỈ đặc trưng pha sạc, không dùng dung lượng phóng (rò rỉ nhãn + không đo được ngoài đời) — QĐ-016.
 - **Đánh giá:** RMSE, MAE, và "early prediction error" (dự đoán sớm ở 25–50% vòng đời).
-- **Tần suất chạy:** mỗi 1 giờ (latency-tolerant) → không cần GPU, CPU ARM Cortex-A72 đủ.
+- **Tần suất chạy:** 1 lần mỗi chu kỳ sạc → không cần GPU. Mô hình cuối chỉ 2 tham số, chạy vài mili-giây.
 
 ### Các phương án thay thế / dự phòng
 - Bất thường: **Isolation Forest / One-Class SVM** (nhẹ, dễ, làm baseline so sánh).
@@ -158,8 +169,8 @@
                  - Lớp 2: LSTM/CNN-LSTM, loss=MSE, optimizer=Adam
 5. Đánh giá:     - Lớp 1: chọn ngưỡng theo percentile; tính Precision/Recall/F1 trên tập có nhãn bất thường
                  - Lớp 2: RMSE, MAE; vẽ đường RUL dự đoán vs thực tế
-6. Xuất mô hình: - Lớp 1: TFLite + INT8 (representative dataset) → kiểm tra sai số sau lượng hóa
-                 - Lớp 2: TFLite float16/INT8 cho Raspberry Pi
+6. Xuất mô hình: - Lớp 1: trọng số float32 → C array; kiểm chứng bản C khớp bản Python từng số (`ai/test_c_vs_python.py`)
+                 - Lớp 2: chạy trên cloud nên không cần lượng hoá, giữ nguyên float32
 7. Kiểm thử on-device: đo RAM/Flash, độ trễ inference, so sánh output PC vs MCU
 ```
 
@@ -195,10 +206,10 @@
 
 ### Luồng tích hợp đề xuất
 ```
-ESP32/STM32 (Autoencoder INT8)
-   │  UART/I2C
+ESP32-S3 (Autoencoder float32, 1,4 KB — Lớp 1, on-device)
+   │  MQTT trực tiếp, topic /wisepaas/scada/{nodeId}/data
    ▼
-Raspberry Pi 4 (LSTM RUL) ── MQTT ──► WISE-IoT IoT Hub (RabbitMQ)
+WISE-IoT IoT Hub (RabbitMQ)   [Plan B: Mosquitto + Node-RED]
                                           │
                                           ├─► Lưu trữ: InfluxDB (time-series)
                                           └─► WISE-IoT Dashboard (Grafana):
@@ -214,7 +225,7 @@ Raspberry Pi 4 (LSTM RUL) ── MQTT ──► WISE-IoT IoT Hub (RabbitMQ)
 | Linh kiện | Vai trò | Giá tham khảo |
 |---|---|---|
 | ESP32 / STM32F4 | MCU chạy Autoencoder | 150.000–300.000đ |
-| Raspberry Pi 4 (2–4GB) | Edge AI chạy LSTM | 1,5–2,5 triệu |
+| ~~Raspberry Pi 4 (2–4GB)~~ | ~~Edge AI chạy LSTM~~ | ~~1,5–2,5 triệu~~ — **ĐÃ BỎ**, tiết kiệm được khoản này |
 | Cảm biến nhiệt NTC / DS18B20 | Đo nhiệt từng cell | ~20.000đ/cái |
 | IC INA226 | Đo dòng/áp (I2C) | ~40.000đ/cái |
 | Pin/cell mẫu + đế, dây, breadboard | Dựng nguyên mẫu | — |

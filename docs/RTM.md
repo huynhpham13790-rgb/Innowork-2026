@@ -25,9 +25,10 @@ RTM này mới phủ **chặng ESP32 → cloud**. Các phần Edge AI (autoencod
 | REQ-10 | Secret không lọt lên GitHub | `.gitignore` | AC-04.4 | BC §5 | ✅ |
 | REQ-13 | Lớp 1 phát hiện cell bất thường, chạy on-device | `ai/`, `cell_ai.cpp`, `cell_ae_weights.h` | AC-06 | BC3 | ✅ **chạy trên board thật** |
 | REQ-14 | Bản C phải khớp bản Python từng số | `ai/test_c_vs_python.py` | AC-06.3 | BC3 §2 | ✅ lệch <1e-6 |
+| REQ-15 | Lớp 2 dự báo RUL/SOH từ dữ liệu sạc, chạy cloud | `ai/nasa_prepare.py`, `ai/train_rul.py` | AC-07 | BC4 | ✅ mô hình xong · ⬜ chưa nối luồng |
 | REQ-11 | Chuyển sang WISE-IoT thật chỉ tốn cấu hình, không sửa logic | `#define STAGE`, `fetchCredentialFromDccs()` | — | — | ⬜ chờ tài khoản |
 
-**Chú thích:** BC = `docs/BANG_CHUNG_KIEM_THU_2026-09-06.md` · BC2 = `docs/BANG_CHUNG_PHAN_CUNG_2026-09-06.md` · BC3 = `docs/BANG_CHUNG_AI_2026-09-11.md` · AC = `docs/TEST_VA_ACCEPTANCE.md`
+**Chú thích:** BC = `docs/BANG_CHUNG_KIEM_THU_2026-09-06.md` · BC2 = `docs/BANG_CHUNG_PHAN_CUNG_2026-09-06.md` · BC3 = `docs/BANG_CHUNG_AI_2026-09-11.md` · BC4 = `docs/BANG_CHUNG_LOP2_RUL_2026-09-11.md` · AC = `docs/TEST_VA_ACCEPTANCE.md`
 
 ---
 
@@ -40,7 +41,7 @@ RTM này mới phủ **chặng ESP32 → cloud**. Các phần Edge AI (autoencod
 | **Requirement chưa có test** | REQ-11 (chuyển WISE-IoT) — không test được cho tới khi có tài khoản. |
 | **Test chưa chạy trên phần cứng thật** | Đã gỡ 06/09: firmware đã chạy trên ESP32-S3 thật, store-and-forward đã diễn tập thành công. Còn lại: chưa thử với **mạng 4G/điện thoại** và chưa thử trên **VPS công cộng**. |
 | **Code chưa có requirement** | `fetchCredentialFromDccs()`, các topic `cmd`/`ack` mới subscribe chứ chưa xử lý gì. |
-| **Requirement chưa có code** | Toàn bộ lớp Edge AI, mạch đo nhiệt thật, cảnh báo tới người dùng. |
+| **Requirement chưa có code** | Mạch đo nhiệt thật (DS18B20), cảnh báo tới người dùng, và luồng ESP32 gửi tóm tắt chu kỳ sạc lên cloud cho Lớp 2. |
 
 ## Việc tiếp theo theo thứ tự ưu tiên
 

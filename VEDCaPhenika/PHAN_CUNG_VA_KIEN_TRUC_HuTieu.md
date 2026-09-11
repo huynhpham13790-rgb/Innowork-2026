@@ -108,7 +108,7 @@ Pack pin (48–84 V)
 >
 > | | ESP32 (WROOM-32D/E) | **ESP32-S3** |
 > |---|---|---|
-> | Lệnh vector (SIMD) cho ML | ❌ không | ✅ **có** — thư viện ESP-NN của Espressif khai thác để tăng tốc kernel INT8 trong TFLite Micro |
+> | Lệnh vector (SIMD) cho ML | ❌ không | ✅ **có** — ESP-NN dùng để tăng tốc kernel INT8 trong TFLite Micro. *Lớp 1 hiện KHÔNG cần tới: mô hình chỉ 356 tham số, nhân tay đã thừa nhanh. Để dành cho mô hình lớn hơn sau này.* |
 > | PSRAM | thường không / 4MB | tới 8MB |
 > | Flash | 4MB | 16MB → buffer offline dài hơn nhiều (Bẫy mất mạng, §9 khung nghiên cứu) |
 > | USB | qua chip CP2102/CH340 | native USB-OTG |
@@ -283,8 +283,8 @@ Mua ở đâu cũng được — không bắt buộc một shop. Các nơi có b
 ║   │                              │                          │            ║
 ║   │                              ▼                          │            ║
 ║   │                   ┌──────────────────────┐              │            ║
-║   │                   │  AUTOENCODER INT8    │  ◄── LỚP 1   │            ║
-║   │                   │  16→8→4→8→16, <50KB  │              │            ║
+║   │                   │  AUTOENCODER float32 │  ◄── LỚP 1   │            ║
+║   │                   │  16→8→4→8→16, 1,4 KB │              │            ║
 ║   │                   └──────────┬───────────┘              │            ║
 ║   │                              │ lỗi tái tạo              │            ║
 ║   │                              ▼                          │            ║
@@ -361,7 +361,7 @@ Ba câu này vừa là kiến trúc, vừa là bài thuyết trình.
 | Chặng | Nội dung | Tần suất | Dung lượng |
 |---|---|---|---|
 | Cảm biến → ESP32 | 8 nhiệt độ + dòng + áp | Theo chế độ | — |
-| ESP32 nội bộ | Cửa sổ trượt → vector 16 chiều → Autoencoder | Mỗi mẫu | Mô hình < 50 KB |
+| ESP32 nội bộ | Cửa sổ trượt → vector 16 chiều → Autoencoder | 1 Hz | Mô hình 1,4 KB (+5,5 KB flash, +2,9 KB RAM) |
 | ESP32 → flash | Bản ghi nén | Mỗi mẫu | ~20 byte/mẫu, **~115 KB/ngày** khi đỗ |
 | ESP32 → WISE-IoT | Tóm tắt + cảnh báo | 30s–15 phút tuỳ chế độ | vài trăm byte/lần |
 | ESP32 → WISE-IoT | Tóm tắt chu kỳ sạc (cho RUL) | 1 lần/chu kỳ sạc | ~10–20 số |
@@ -386,7 +386,7 @@ Ba câu này vừa là kiến trúc, vừa là bài thuyết trình.
 - [ ] Đo dòng tiêu thụ thật của module ở từng chế độ (số này lên slide)
 - [ ] Thử điện trở sưởi qua MOSFET: bao lâu thì cell lên 45°C, chênh với cell khác bao nhiêu
 - [ ] **Viết cắt cứng firmware: cell bị sưởi chạm 60°C → MOSFET ngắt ngay.** Làm cái này TRƯỚC lần sưởi đầu tiên, không phải sau
-- [ ] Xác nhận ESP-NN/TFLite Micro build được cho S3 và đo thời gian suy luận thật
+- [x] ~~Xác nhận TFLite Micro build được cho S3~~ → **KHÔNG DÙNG TFLite Micro nữa.** Mô hình 356 tham số nên firmware tự nhân tay, 30 dòng C, không phụ thuộc thư viện. Xem `docs/DECISION_LOG.md` QĐ-013
 
 **Chốt trước Bán kết**
 - [ ] Sơ đồ kiến trúc này vẽ lại thành 1 slide sạch đẹp

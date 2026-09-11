@@ -40,3 +40,8 @@ ai/data/
 # NHƯNG ai/models/ thì PHẢI commit: chỉ 88 KB, và firmware cần
 # cell_ae_model.h để biên dịch. Không có nó thì repo không build được.
 __pycache__/
+
+# Dữ liệu NASA (210 MB) — tải lại bằng lệnh trong ai/README.md
+ai/data/nasa_raw/
+ai/data/nasa_battery.zip
+ai/data/nasa_cycles.csv

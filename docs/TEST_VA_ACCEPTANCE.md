@@ -72,6 +72,19 @@ Ký hiệu: ✅ đã kiểm chứng · ⬜ chưa làm · 🔶 làm rồi nhưng 
 | 6.8 | Kiểm chứng trên mất cân bằng THẬT (Stanford/Warwick) | — | ⬜ **chưa làm** |
 | 6.9 | Ngưỡng cứng 60°C vẫn chạy song song | `runAI()` kiểm độc lập | ✅ 11/09 |
 
+## AC-07 — Lớp 2: Dự báo tuổi thọ (RUL/SOH) trên cloud
+
+| # | Tiêu chí | Cách kiểm | Trạng thái |
+|---|---|---|---|
+| 7.1 | Chỉ dùng đặc trưng đo được ngoài đời (pha sạc) | `nasa_prepare.py`, không dùng dung lượng phóng | ✅ 11/09 |
+| 7.2 | Đánh giá trên pin CHƯA TỪNG THẤY | leave-one-battery-out, 4 pin | ✅ 11/09 |
+| 7.3 | Thắng baseline "đoán trung bình" | 12,2 vs 25,8 chu kỳ MAE | ✅ 11/09 |
+| 7.4 | So với LSTM như tài liệu đề xuất | LSTM 20,3 — **thua** tuyến tính 12,2 | ✅ 11/09 (kết quả ngược kỳ vọng) |
+| 7.5 | Sai số dự đoán sớm (25–50% vòng đời) | 9,8 chu kỳ | ✅ 11/09 |
+| 7.6 | SOH có ích thương mại | RMSE 3,8 điểm phần trăm | ✅ 11/09 |
+| 7.7 | Kiểm chéo trên bộ dữ liệu thứ hai (UPC/CALCE) | — | ⬜ **chưa làm** |
+| 7.8 | Nối vào luồng thật: ESP32 gửi tóm tắt chu kỳ → cloud tính | — | ⬜ chưa làm |
+
 ---
 
 ## Cách chạy bộ test

@@ -192,8 +192,8 @@ Và tệ hơn: nếu chỉ dựa vào **nhiệt độ**, thời gian cảnh báo
 
 | Lớp | Chạy ở đâu | Mô hình | Chu kỳ | Vai trò |
 |---|---|---|---|---|
-| **Lớp 1 — Bất thường** | ESP32 (on-device, INT8, <50KB) | Autoencoder dense 16→8→4→8→16 | Theo chế độ §2 | An toàn, chạy offline |
-| **Lớp 2 — RUL/SOH** | **WISE-IoT cloud** | LSTM / 1D-CNN / CNN-LSTM | 1 lần/chu kỳ sạc | Kinh tế, làm dày phần WISE-IoT |
+| **Lớp 1 — Bất thường** | ESP32 (on-device, float32, **1,4 KB**) | Autoencoder dense 16→8→4→8→16 | 1 Hz | An toàn, chạy offline |
+| **Lớp 2 — RUL/SOH** | **WISE-IoT cloud** | ~~LSTM / CNN-LSTM~~ → **hồi quy tuyến tính** (đã thử LSTM, thua — QĐ-017) | 1 lần/chu kỳ sạc | Kinh tế, làm dày phần WISE-IoT |
 
 **Baseline bắt buộc phải có để so sánh** (giám khảo sẽ hỏi "sao không dùng cách đơn giản hơn?"):
 - Ngưỡng cứng 60°C
@@ -251,7 +251,7 @@ Giá trị mang lại cho khách = (số pin cứu được × giá pin) + (rủ
 
 **Kỹ thuật**
 - [ ] Mua pack 4–8 cell + điện trở sưởi 5–10Ω/5W (< 700k)
-- [ ] Autoencoder chạy trên ESP32, INT8, phát hiện được cell bị sưởi
+- [x] ~~Autoencoder chạy trên ESP32~~ → **ĐÃ XONG 11/09**, float32 1,4 KB (không dùng INT8/TFLite — xem `docs/DECISION_LOG.md` QĐ-013). Còn lại: thử với cell bị sưởi THẬT khi có DS18B20
 - [ ] Bảng so sánh Autoencoder vs 3 baseline (ngưỡng cứng / ΔT cố định / Isolation Forest)
 - [ ] LSTM RUL trên NASA — chỉ cần chạy end-to-end, có RMSE
 - [ ] Đo ngân sách điện thật của module ở chế độ đỗ

@@ -146,6 +146,42 @@ chạy còn tích luỹ sai số vô hạn theo thời gian vì cứ cộng vào
 *Chốt:* tính lại hai lượt (trung bình rồi phương sai) từ vòng đệm, tích luỹ
 bằng double. 60×8 phép tính mỗi giây — không đáng kể. Sau khi sửa: lệch 5e-10.
 
+### QĐ-016 · 11/09/2026 · Đã chốt
+**Lớp 2 chỉ dùng đặc trưng PHA SẠC, không dùng dung lượng phóng.**
+
+Hai lý do. Thứ nhất, nhãn RUL được tính TỪ dung lượng — đưa dung lượng vào đầu
+vào là cho mô hình nhìn trộm đáp án. Thứ hai, quan trọng hơn: đo dung lượng
+thật đòi hỏi phóng kiệt pin theo dòng cố định, việc không bao giờ xảy ra với
+một chiếc xe điện đang chạy ngoài đường.
+
+Pha sạc thì ngày nào cũng có, và ESP32 đo được đủ điện áp/dòng/nhiệt độ.
+
+*Bẫy đã gặp:* thời gian sạc CC **thô** không dùng được — đo ra 11 phút ở chu kỳ
+này, 38 phút ở chu kỳ khác, nhưng do pin còn bao nhiêu lúc cắm sạc chứ không
+phải do lão hoá. Nên mọi đặc trưng thời gian đo trên **khoảng điện áp cố định**
+(3,9 → 4,15 V), tính từ lúc đạt mốc điện áp chứ không từ lúc cắm dây.
+
+### QĐ-017 · 11/09/2026 · Đã chốt, NGƯỢC với kế hoạch ban đầu
+**Lớp 2 dùng hồi quy tuyến tính 1 đặc trưng, KHÔNG dùng LSTM.**
+
+Tài liệu đề xuất LSTM/CNN-LSTM. Đã làm cả hai và so bằng leave-one-battery-out.
+Kết quả (MAE, số chu kỳ): tuyến tính trên `t_cv` **12,2** · GBM 17,2 · LSTM
+20,3 · Ridge 9 đặc trưng 27,0 · baseline đoán trung bình 25,8.
+
+**Mô hình 2 tham số đánh bại LSTM 3.500 tham số.** Ridge còn tệ hơn cả baseline.
+
+*Nguyên nhân, đã kiểm chứng:* bốn pin có tuổi thọ 60/77/105/123 chu kỳ. B0006
+(60) ngắn hơn mọi pin trong tập train, và đúng là chỗ mọi mô hình phức tạp sụp
+(LSTM 42,8 · GBM 35,7 · Ridge 32,4 · tuyến tính 6,4). LSTM không học "pin già
+thì pha CV dài ra" — nó học thuộc tuổi thọ của đúng 3 viên pin được cho xem.
+
+*Giới hạn của kết luận này:* chỉ đúng ở quy mô 4 viên pin. Có 50 viên thì LSTM
+rất có thể thắng. Phải nói là *"với dữ liệu chúng em có"*, không phải *"LSTM
+vô dụng"* — nói kiểu sau là sai và sẽ bị hỏi lại.
+
+*Hệ quả cho slide:* SOH (sai số 3,8 điểm phần trăm) đáng tin hơn RUL và cũng là
+con số khách hàng định giá xe cũ thật sự cần. Nên dẫn bằng SOH.
+
 ---
 
 ## Ẩn số còn treo

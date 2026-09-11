@@ -1,7 +1,16 @@
+# Phần AI — hai lớp
+
+| Lớp | Chạy ở đâu | Việc | Trạng thái |
+|---|---|---|---|
+| **1 — Bất thường** | ESP32 (1,4 KB) | Cell nào đang cư xử lạ | ✅ chạy trên board thật |
+| **2 — RUL/SOH** | Cloud | Pin còn dùng được bao lâu | ✅ mô hình xong, chưa nối luồng |
+
+---
+
 # Lớp 1 — Phát hiện cell bất thường (on-device)
 
 Autoencoder chạy thẳng trên ESP32-S3, phát hiện cell nào trong pack đang cư xử
-bất thường về nhiệt. **4,1 KB INT8**, chạy 8 lần mỗi giây.
+bất thường về nhiệt. **1,4 KB float32**, chạy 8 lần mỗi giây.
 
 Bối cảnh và lý do chọn hướng này: `VEDCaPhenika/KHUNG_NGHIEN_CUU_v2_HuTieu.md` §4, §8.
 
@@ -18,7 +27,7 @@ Nên mô hình **không nhìn cả pack** — nó nhìn **từng cell một**, q
 Hệ quả:
 - Train trên pack 36 cell, chạy trên pack 8 cell, không sửa gì
 - Mô hình chỉ ra **đúng cell nào** bất thường, không chỉ nói "pack có vấn đề"
-- Chỉ 356 tham số → 4,1 KB sau khi lượng tử hoá INT8
+- Chỉ 356 tham số → 1,4 KB float32, firmware tự nhân, không cần TFLite Micro
 
 Và dữ liệu được ép về đúng phần cứng thật trước khi train: gộp Top+Bottom
 thành 1 cảm biến/cell (đội dùng 8× DS18B20), hạ 2,5 Hz xuống 1 Hz, lượng tử
@@ -39,7 +48,7 @@ chu kỳ. Không lọc thì autoencoder học luôn lỗi cảm biến và coi �
 
 ## Kết quả
 
-Điểm vận hành: ngưỡng p99.9, phải vượt liên tục **30 giây**.
+Điểm vận hành: ngưỡng p99.9 = 1,8474, phải vượt liên tục **60 giây**.
 
 **Ca an toàn quan trọng nhất — ramp (tiền đề thermal runaway), độ trễ phát hiện:**
 
@@ -95,14 +104,65 @@ là RAM và đọc parquet, không phải phép nhân ma trận.
 | `train_autoencoder.py` | Train 16→8→4→8→16 |
 | `evaluate.py` | AE đấu 3 baseline, tiêm lỗi tổng hợp |
 | `tune_threshold.py` | Dò ngưỡng × thời gian giữ |
-| `export_tflite.py` | → INT8 + `cell_ae_model.h` cho firmware |
+| `export_c_model.py` | → **`cell_ae_weights.h`** cho firmware (float32) |
+| `export_tflite.py` | → INT8 .tflite. *Không dùng nữa*, giữ làm dự phòng |
+| `test_c_vs_python.py` | **So bản C với bản Python từng số** |
 | `models/cell_ae_model.h` | **File firmware `#include`** |
 
 ## Việc còn lại
 
-- [ ] Viết lại `features.py` bằng C trong firmware (16 đặc trưng, phải khớp từng con số)
-- [ ] Nhúng TFLite Micro vào sketch ESP32
+- [x] ~~Viết lại `features.py` bằng C~~ → xong 11/09, `cell_ai.cpp`, khớp Python <1e-6
+- [x] ~~Nhúng model vào sketch~~ → xong 11/09, **không dùng TFLite Micro** (QĐ-013)
+- [ ] Thay 8 giá trị nhiệt giả lập bằng 8 con DS18B20 thật
 - [ ] Kiểm chứng trên **Stanford/Warwick** — mất cân bằng THẬT, có nhãn
       (Mendeley `zh58byr53c`). Đây là bằng chứng mạnh nhất để lên slide,
       mạnh hơn nhiều so với lỗi tự tiêm.
 - [ ] Lớp 2 (RUL/SOH) trên NASA PCoE — chạy ở cloud, chưa bắt đầu
+
+
+---
+
+# Lớp 2 — Dự báo tuổi thọ (RUL/SOH), chạy trên cloud
+
+Dự báo **số chu kỳ còn lại tới khi pin còn 80% dung lượng**, 1 lần mỗi chu kỳ sạc.
+Dữ liệu: NASA PCoE, 4 pin, 364 chu kỳ. Chi tiết: `docs/BANG_CHUNG_LOP2_RUL_2026-09-11.md`.
+
+**Chỉ dùng đặc trưng PHA SẠC** — không dùng dung lượng phóng, vì (a) nhãn RUL
+tính từ dung lượng nên đó là rò rỉ đáp án, (b) đo dung lượng thật cần phóng
+kiệt pin, việc không bao giờ xảy ra với xe đang chạy. Câu chuyện sản phẩm:
+*"đoán tuổi thọ pin từ cách nó sạc"*.
+
+## Kết quả — mô hình đơn giản thắng
+
+MAE (số chu kỳ), leave-one-battery-out:
+
+| Phương pháp | TB | Ghi chú |
+|---|---|---|
+| **Tuyến tính, chỉ `t_cv`** | **12,2** | 2 tham số |
+| Gradient Boosting | 17,2 | |
+| LSTM cửa sổ 10 | 20,3 | ~3.500 tham số |
+| Ridge 9 đặc trưng | 27,0 | tệ hơn cả baseline |
+| Baseline đoán trung bình | 25,8 | |
+
+Lý do: 4 pin có tuổi thọ 60/77/105/123. B0006 (60, ngắn hơn mọi pin train) là
+chỗ mọi mô hình phức tạp sụp — LSTM sai 42,8 chu kỳ, tuyến tính sai 6,4. LSTM
+học thuộc tuổi thọ 3 viên pin được xem, không học quy luật.
+
+**SOH: RMSE 3,8 điểm phần trăm** — đáng tin hơn RUL, và là con số khách hàng
+định giá xe cũ thật sự cần. Nên dẫn slide bằng SOH.
+
+## Chạy
+
+```bash
+ai/.venv/bin/python ai/nasa_prepare.py   # .mat -> bảng đặc trưng theo chu kỳ
+ai/.venv/bin/python ai/train_rul.py      # 5 phương pháp, leave-one-battery-out
+```
+
+Tải dữ liệu: `https://phm-datasets.s3.amazonaws.com/NASA/5.+Battery+Data+Set.zip`
+(210 MB, giải nén hai lớp zip).
+
+## Việc còn lại
+
+- [ ] Kiểm chéo trên bộ thứ hai (UPC đã tải sẵn, 410 chu kỳ có suy giảm dung lượng)
+- [ ] Nối luồng thật: ESP32 gửi ~10 con số tóm tắt sau mỗi chu kỳ sạc → cloud tính RUL
+- [ ] Panel RUL/SOH trên Grafana
