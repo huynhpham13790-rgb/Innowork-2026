@@ -38,8 +38,16 @@
 #define TEMP_PIN      4      // bus 1-Wire, khớp với các sketch trong test/
 
 // ---------------------------------------------------------------- WiFi
-const char* WIFI_SSID = "TEN_WIFI_CUA_BAN";
-const char* WIFI_PASS = "MAT_KHAU_WIFI";
+const char* WIFI_SSID = "ICTU";
+const char* WIFI_PASS = "";        // mạng mở, không mật khẩu
+
+// Mạng mở thì phải gọi WiFi.begin(ssid) một tham số. Truyền chuỗi rỗng làm
+// tham số mật khẩu khiến driver vẫn thương lượng theo kiểu có mã hoá và hỏng
+// im lặng — nối mãi không được mà không báo lỗi gì.
+static inline void wifiStart() {
+  if (WIFI_PASS && WIFI_PASS[0]) WiFi.begin(WIFI_SSID, WIFI_PASS);
+  else                           WiFi.begin(WIFI_SSID);
+}
 // LƯU Ý: ESP32-S3 chỉ bắt WiFi 2.4GHz. Wifi 5GHz sẽ không hiện/không nối được.
 
 // ---------------------------------------------------------------- STAGE 2: WISE-IoT
@@ -301,7 +309,7 @@ void ensureWifi() {
   lastTry = millis();
   Serial.printf("[WiFi] chua co mang, thu noi lai %s ...\n", WIFI_SSID);
   WiFi.disconnect();
-  WiFi.begin(WIFI_SSID, WIFI_PASS);
+  wifiStart();
 }
 
 // ============================================================ DCCS
@@ -691,9 +699,21 @@ void setup() {
 #endif
   Serial.print("[WiFi] noi toi "); Serial.println(WIFI_SSID);
   WiFi.mode(WIFI_STA);
-  WiFi.begin(WIFI_SSID, WIFI_PASS);
-  while (WiFi.status() != WL_CONNECTED) { delay(500); Serial.print("."); }
+  wifiStart();
+  // CHỜ CÓ HẠN, không chờ vô hạn. Bản cũ quay vòng mãi trong setup(): mạng
+  // hỏng là board treo, Lớp 1 không chạy, còi không kêu — trong khi an toàn
+  // tại chỗ đúng ra KHÔNG được phụ thuộc đường truyền. Hết giờ thì đi tiếp,
+  // ensureWifi() trong loop() sẽ tự thử lại nền.
+  unsigned long t0 = millis();
+  while (WiFi.status() != WL_CONNECTED && millis() - t0 < 20000) {
+    delay(500); Serial.print(".");
+  }
   Serial.println();
+  if (WiFi.status() != WL_CONNECTED)
+    Serial.println("[WiFi] CHUA NOI DUOC - chay tiep offline, se tu thu lai");
+  else
+    Serial.printf("[WiFi] OK, IP %s, RSSI %d dBm\n",
+                  WiFi.localIP().toString().c_str(), WiFi.RSSI());
   ensureWifi();
   syncTime();
   buildTopics();
