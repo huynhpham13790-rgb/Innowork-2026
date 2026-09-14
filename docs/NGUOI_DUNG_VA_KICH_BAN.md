@@ -74,12 +74,12 @@ Một chặng. Không có hộp trung gian nào.
 ### Còn chuyện tốn pin thì sao?
 
 Đây là lý do chính cô nêu, nên phải kiểm bằng số. Ước lượng trên pack
-8S × 3 Ah ≈ **86 Wh**, thiết bị chạy liên tục:
+8S × 18650 2,55 Ah ≈ **73 Wh**, thiết bị chạy liên tục:
 
 | Chế độ | Dòng trung bình | Công suất | Pack cạn sau |
 |---|---|---|---|
-| Wi-Fi giữ kết nối | ~100 mA | ~0,33 W | ~11 ngày |
-| BLE quảng bá | ~10 mA | ~0,04 W | ~90 ngày |
+| Wi-Fi giữ kết nối | ~100 mA | ~0,33 W | ~9 ngày |
+| BLE quảng bá | ~10 mA | ~0,04 W | ~76 ngày |
 
 BLE tiết kiệm hơn **thật**, khoảng 8 lần — cô nói đúng về hướng. Nhưng phải
 nhìn mẫu số: xe máy điện được sạc **mỗi 1–3 ngày**. Kể cả phương án tốn điện
@@ -189,7 +189,8 @@ Không xếp theo deadline, xếp theo mức độ thứ đó còn là mô phỏ
 2. **Dán đầu dò lên pack rồi đo lại offset** — bảng offset đo lúc đầu dò để rời
    ngoài không khí không dùng được sau khi dán.
 3. **Hiệu chỉnh lại hệ số Lớp 2 trên pack thật** — hiện đang dùng hệ số của pin
-   NASA 18650 2 Ah, con số RUL chưa dùng được cho pack 8S × 3 Ah của đội.
+   NASA 18650 2,0 Ah; pack của đội là 8S × 18650 2,55 Ah — cùng loại cell nên
+   sai lệch nhỏ hơn tưởng, nhưng phải sạc ở 1,9 A cho khớp tốc độ 0,75C.
 4. **BLE tối giản cho NGƯỜI DÙNG B.**
 5. Thử Wi-Fi phát từ điện thoại (AC-05.1), diễn tập demo (AC-05.3).
 

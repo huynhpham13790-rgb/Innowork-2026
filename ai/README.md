@@ -184,6 +184,7 @@ Chi tiết + cái bẫy đã gặp: `docs/BANG_CHUNG_LUONG_THAT_2026-09-11.md`.
 
 - [ ] **Hiệu chỉnh hệ số trên pack THẬT của đội** — bắt buộc trước khi tin con
       số RUL. Hệ số hiện tại train trên pin 18650 đơn 2 Ah, pack của đội là
-      8S × 3 Ah, `t_cv` phụ thuộc mạnh vào tỉ lệ dòng sạc/dung lượng.
+      8S × 18650 2,55 Ah — CÙNG loại cell với NASA, nên phải sạc ở 1,9 A để
+      khớp tốc độ 0,75C. `t_cv` phụ thuộc mạnh vào tỉ lệ dòng sạc/dung lượng.
 - [ ] Thay chu kỳ sạc mô phỏng bằng số đo thật (INA228 + ADC + DS18B20)
 - [ ] Kiểm chéo trên bộ thứ hai (UPC đã tải sẵn, 410 chu kỳ có suy giảm dung lượng)

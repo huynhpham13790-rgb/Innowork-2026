@@ -91,7 +91,7 @@ Phải nói rõ để không ai tưởng cả hệ đã thật:
 | Nhiệt độ môi trường | ⬜ hằng số 28 °C — cần con DS18B20 thứ 9 |
 | Dòng điện, SOC | ⬜ hằng số — cần INA228 + đo áp pack |
 | Chu kỳ sạc (Lớp 2) | ⬜ **MÔ PHỎNG** — cần mạch sạc thật |
-| Hệ số RUL/SOH | ⬜ train trên pin NASA 18650 2 Ah, **chưa hiệu chỉnh cho pack 8S 3 Ah** |
+| Hệ số RUL/SOH | ⬜ train trên NASA 18650 2,0 Ah. Pack đội là 18650 **2,55 Ah** — cùng loại cell, lệch 27 %. Phải sạc ở **1,9 A** cho khớp 0,75C. Xem QĐ-026 |
 | Pack pin | ⬜ chưa có — đầu dò còn để rời |
 
 Câu nói đúng trước giám khảo: *"Lớp 1 đã chạy hoàn toàn trên số đo thật và

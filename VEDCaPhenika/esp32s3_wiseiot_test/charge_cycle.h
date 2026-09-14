@@ -9,14 +9,27 @@
  *
  *  9 đặc trưng phải KHỚP thứ tự trong ai/nasa_prepare.py FEATURES.
  *
- *  ================== CẢNH BÁO VỀ PHẠM VI ÁP DỤNG ==========================
- *  Hệ số hiện tại train trên NASA PCoE: pin 18650 ĐƠN, 2 Ah, sạc 1,5 A (~0,75C).
- *  Pack của đội là 8S cell LG HG2 3 Ah. Hai thứ khác nhau về:
- *    - điện áp: pack ~33,6 V, nên phải quy về điện áp TRUNG BÌNH MỖI CELL
- *    - tốc độ sạc: t_cv phụ thuộc mạnh vào tỉ lệ dòng sạc / dung lượng
- *  => Đường ống dữ liệu chạy đúng, nhưng CON SỐ RUL chưa dùng được cho pack
- *     thật cho tới khi hiệu chỉnh lại trên chính pack đó. Đừng đưa con số này
- *     lên slide như thể đã đo trên pin của đội.
+ *  ================== PHẠM VI ÁP DỤNG (cập nhật 14/09/2026) ================
+ *  Hệ số hiện tại train trên NASA PCoE: pin 18650 ĐƠN, 2,0 Ah, sạc 1,5 A (0,75C).
+ *  Pack của đội: 8S × 18650 **2,55 Ah** (2 đế 4 cell nối tiếp).
+ *
+ *  Tin tốt: CÙNG loại cell 18650, dung lượng chỉ lệch 27 % — gần hơn nhiều so
+ *  với giả định cũ trong tài liệu (LG HG2 3 Ah, nay đã biết là sai). Nghĩa là
+ *  dáng đường sạc của hai bên tương đồng, và việc mượn hệ số NASA có cơ sở
+ *  hơn hẳn.
+ *
+ *  ĐIỀU KIỆN để sự tương đồng đó thành thật: phải sạc ở CÙNG TỐC ĐỘ C.
+ *    NASA: 1,5 A / 2,00 Ah = 0,75C
+ *    đội : cần 0,75 × 2,55 = **1,9 A**
+ *  Sạc ở dòng khác đi thì t_cv và dvdt_cc lệch hệ thống, và mô hình sai theo
+ *  một hướng cố định — kiểu sai khó phát hiện nhất.
+ *
+ *  Vẫn còn: điện áp pack ~33,6 V nên phải quy về TRUNG BÌNH MỖI CELL (đã làm,
+ *  xem CC_N_CELLS).
+ *
+ *  => Đường ống chạy đúng. Con số RUL vẫn nên trình bày là "mô hình hiệu chỉnh
+ *     trên bộ chuẩn NASA, cùng loại cell 18650", KHÔNG phải "đo trên pin của
+ *     chúng em". Xem docs/DECISION_LOG.md QĐ-026.
  * ========================================================================== */
 #pragma once
 #include <stdint.h>

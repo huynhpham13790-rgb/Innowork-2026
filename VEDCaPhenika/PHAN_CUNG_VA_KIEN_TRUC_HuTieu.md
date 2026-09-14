@@ -146,7 +146,7 @@ Pack pin (48–84 V)
 
 | Linh kiện | SL | Ghi chú |
 |---|---|---|
-| **Cell pin LG HG2, mã đầy đủ `INR18650HG2`** | 9 | 8 cho pack + 1 làm nguồn dự phòng module. **Mua cùng một lô** |
+| **Cell pin 18650** *(kế hoạch: LG HG2 3 Ah — thực tế đã mua **2,55 Ah**, xem QĐ-026)* | 9 | 8 cho pack + 1 làm nguồn dự phòng module. **Mua cùng một lô** |
 | **Đế pin (hộp nhựa rỗng) 18650 loại 4 cell nối tiếp** | 2 | Ghép nối tiếp 2 đế → 8S. *Đây là khung nhựa, KHÔNG có pin bên trong* |
 | **BMS 8S 30A có cân bằng (balance)** | 1 | Bắt buộc. Chính nó tạo ra Bẫy #3 để demo |
 | Bộ sạc 33,6V 2A | 1 | Đúng điện áp cho 8S |

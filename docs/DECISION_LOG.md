@@ -391,6 +391,67 @@ khuấy, đợi ổn định, chạy `ds18b20_stress_test` 5 phút. **Làm hai l
 bảng phải khớp trong 0,05 °C. Thực tế đạt 0,025 °C. Chỉ làm lại khi thay cảm
 biến.
 
+### QĐ-026 · 14/09/2026 · Đã chốt
+**Pack thật là 8S × 18650 2,55 Ah, không phải LG HG2 3 Ah. Và cách kiểm chứng
+Lớp 2 đổi từ "lão hoá pack" sang "mượn pin đã chai sẵn".**
+
+*Đính chính thông số:* tài liệu ghi pack là LG HG2 3 Ah — đó là **kế hoạch mua**,
+không phải thứ đã mua. Thực tế: **18650, 2,55 Ah**, 8 viên, 2 đế 4 cell nối
+tiếp (8S). Đã sửa ở `charge_cycle.h`, `ai/README.md`,
+`docs/NGUOI_DUNG_VA_KICH_BAN.md` (phép tính Wh cũng đổi: 86 → 73 Wh).
+
+**Việc này làm Lớp 2 khả thi hơn hẳn so với đánh giá trước đó.** NASA PCoE dùng
+**cùng loại cell 18650**, 2,0 Ah. Lệch dung lượng chỉ 27 %, không phải "khác
+hẳn dòng cell" như giả định cũ. Dáng đường sạc do hoá học + hình dạng cell
+quyết định, nên mượn hệ số NASA giờ có cơ sở vật lý, không còn là chắp vá.
+
+**Điều kiện bắt buộc: sạc ở cùng tốc độ C.**
+```
+NASA : 1,5 A / 2,00 Ah = 0,75C
+đội  : 0,75 × 2,55     = 1,9 A
+```
+Sạc ở dòng khác thì `t_cv` và `dvdt_cc` lệch **hệ thống** — sai theo một hướng
+cố định, kiểu sai khó phát hiện nhất vì kết quả vẫn trông hợp lý.
+
+### Vì sao KHÔNG thể hiệu chuẩn RUL trên pack của đội
+
+Hiệu chuẩn cần các cặp *(đặc trưng sạc, tuổi thọ còn lại thật)*. Vế sau chỉ
+biết được sau khi lão hoá pack tới mốc còn 80 % dung lượng — hàng trăm chu kỳ,
+tính bằng tháng. Đây là **bản chất bài toán**, không phải chuyện thiếu thời
+gian hay thiếu chăm chỉ. Không có mẹo nào rút ngắn được.
+
+### Đường vòng: mượn pin đã chai sẵn
+
+Không lão hoá được pin thì **lấy pin đã chai rồi**. Mua/xin một nhúm 18650 cũ
+(pin laptop tháo ra là nguồn rẻ nhất) có độ chai khác nhau, rồi với **từng viên**:
+
+1. Đo dung lượng thật — xả dòng cố định, tích phân dòng theo thời gian.
+   → đây là **SOH thật**, nhãn ground-truth.
+2. Ghi đường sạc của chính viên đó → 9 đặc trưng.
+3. So SOH mô hình đoán với SOH đo được.
+
+Biến bài toán **hàng tháng** thành bài toán **một buổi chiều**. Chỗ then chốt:
+mô hình cần pin ở nhiều mức sức khoẻ khác nhau, chứ không cần chính pin của đội
+phải già đi.
+
+*Giới hạn phải nói rõ:* pin cũ tháo ra thường khác model, khác hoá học, nên
+phương sai lớn hơn một bộ dữ liệu phòng thí nghiệm. Và cách này kiểm được
+**SOH**, còn RUL thì chỉ suy ra gián tiếp từ xu hướng SOH.
+
+*Vì sao vẫn đáng làm:* SOH mới là phần có nội dung vật lý; RUL chỉ là phép ngoại
+suy xu hướng SOH. Kiểm được SOH trên pin thật là đã kiểm được phần lõi.
+
+### Thứ tự ưu tiên cho Lớp 2
+
+1. Đo 1–2 chu kỳ sạc **thật** ở 1,9 A → chứng minh 9 đặc trưng đo được ngoài
+   đời và ra đúng dải (cần INA228 + đo áp pack).
+2. Mượn pin chai để kiểm SOH như trên.
+3. Kiểm chéo trên bộ dữ liệu thứ hai có nhãn dung lượng thật (CALCE / Oxford).
+   **Bộ UPC đã tải KHÔNG dùng được** cho việc này: cả 410 file đều là bản
+   `partial_data`, chu kỳ đo dung lượng chỉ còn đoạn dòng ±2 A trong 10 giờ với
+   SoC đứng yên ở 99 %; tích phân ra 0,008 Ah, vô lý với pack EV. Bộ này vẫn
+   tốt cho Lớp 1 — và đó đúng là việc đã dùng nó.
+
 ---
 
 ## Ẩn số còn treo
