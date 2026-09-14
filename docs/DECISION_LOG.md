@@ -240,9 +240,13 @@ Lý do thật sự để không đổi:
 4. BLE hợp nhất với người dùng cá nhân — mà §5 xếp hạng 3 và khuyến nghị không
    làm khách hàng chính. Chọn BLE làm trung tâm là âm thầm đổi khách mục tiêu.
 
-Còn 1 ngày tới Bán kết: đổi kiến trúc truyền dữ liệu lúc này là rủi ro lớn
-nhất có thể tự chuốc, không đổi lại điểm nào. Phân tích đầy đủ và phân vai 3
-nhóm người dùng: `docs/NGUOI_DUNG_VA_KICH_BAN.md`.
+**Không lấy "sắp tới ngày thi" làm lý do.** Kiến trúc chọn vì kịp deadline là
+kiến trúc phải làm lại ngay sau đó. Ba lý do trên đúng bất kể còn bao nhiêu
+ngày. BLE vẫn nên làm — bản tối giản qua GATT, đọc bằng nRF Connect, không cần
+viết app — nhưng xếp sau việc thay nốt các phần còn đang mô phỏng.
+
+Phân tích đầy đủ và phân vai 3 nhóm người dùng:
+`docs/NGUOI_DUNG_VA_KICH_BAN.md`.
 
 ### QĐ-022 · 14/09/2026 · Đã chốt
 **Phải hiệu chỉnh offset 8 cảm biến DS18B20 trước khi cho Lớp 1 ăn số thật.**

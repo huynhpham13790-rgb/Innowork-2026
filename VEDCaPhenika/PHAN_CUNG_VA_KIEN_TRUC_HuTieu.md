@@ -8,7 +8,7 @@
 
 > ### ⚠️ ĐỌC TRƯỚC: có HAI pack khác nhau trong tài liệu này
 >
-> | | **Pack thí nghiệm** (bán kết 15/09) | **Pack xe thật** (chung kết / sản phẩm) |
+> | | **Pack thí nghiệm** (bán kết 26/09) | **Pack xe thật** (chung kết / sản phẩm) |
 > |---|---|---|
 > | Cấu hình | **8S 18650** (2 đế 4 cell nối tiếp) | 16S–20S |
 > | Điện áp danh định | 29,6 V | 48 / 60 / 72 V |

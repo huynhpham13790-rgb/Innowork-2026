@@ -13,9 +13,9 @@ Bảng lịch trên landing page chính thức ghi:
 | Vòng Bán Kết | **26/09** | ĐH Phenikaa |
 | Vòng Chung Kết | 27/11 | ĐH Phenikaa |
 
-Tài liệu của đội mình đang ghi Bán kết **15/09**. Chênh 11 ngày. Đây là thứ phải gọi hỏi trước tất cả mọi thứ khác, vì mọi kế hoạch tớ viết cho bạn mấy hôm nay đều tính theo 15/09.
+Tài liệu của đội mình đang ghi Bán kết **26/09**. Chênh 11 ngày. Đây là thứ phải gọi hỏi trước tất cả mọi thứ khác, vì mọi kế hoạch tớ viết cho bạn mấy hôm nay đều tính theo 26/09.
 
-Cho tới khi BTC xác nhận, **cứ chuẩn bị theo mốc 15/09**. Sai theo hướng sớm thì thừa 11 ngày, sai theo hướng muộn thì mất giải.
+Cho tới khi BTC xác nhận, **cứ chuẩn bị theo mốc 26/09**. Sai theo hướng sớm thì thừa 11 ngày, sai theo hướng muộn thì mất giải.
 
 **BTC Phenikaa:** Cô Trần Thị Linh — 0346.286.519 · Anh Quan Văn Dương — 0328.582.728
 

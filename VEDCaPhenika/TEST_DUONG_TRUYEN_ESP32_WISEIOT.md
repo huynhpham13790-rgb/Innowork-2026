@@ -1,6 +1,6 @@
 # Test đường truyền ESP32-S3 → WISE-IoT
 
-Đội Hủ Tiếu · 06/09/2026 · **còn 9 ngày tới Bán kết 15/09**
+Đội Hủ Tiếu · 06/09/2026 · Bán kết **26/09** *(cập nhật 14/09: bản gốc ghi "còn 9 ngày" theo mốc cũ 15/09)*
 
 Kèm sketch: `esp32s3_wiseiot_test/esp32s3_wiseiot_test.ino`
 

@@ -8,7 +8,7 @@ File này là thứ AI đọc đầu tiên. Nó không mô tả sản phẩm (đ
 
 Hệ giám sát an toàn pack pin xe điện cho cuộc thi **AIoT InnoWorks 2026**. ESP32-S3 đọc nhiệt độ cell → phát hiện bất thường on-device → đẩy lên cloud qua giao thức WISE-PaaS của Advantech → dashboard.
 
-Bán kết: **15/09/2026**. Mọi quyết định kỹ thuật đều bị chi phối bởi mốc này.
+Bán kết: **26/09/2026**. Mọi quyết định kỹ thuật đều bị chi phối bởi mốc này.
 
 ## Bản đồ tài liệu — đọc cái nào khi nào
 

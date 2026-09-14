@@ -2,7 +2,7 @@
 
 Hệ giám sát an toàn pack pin xe điện: ESP32-S3 đo nhiệt độ cell → phát hiện bất thường on-device → đẩy lên cloud qua giao thức WISE-PaaS của Advantech → dashboard.
 
-**Bán kết: 15/09/2026.**
+**Bán kết: 26/09/2026.**
 
 ---
 

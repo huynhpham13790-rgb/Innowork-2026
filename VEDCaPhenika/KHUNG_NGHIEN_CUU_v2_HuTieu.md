@@ -1,6 +1,8 @@
 # KHUNG NGHIÊN CỨU LẠI — InnoWorks 2026 | Đội Hủ Tiếu
 
-**Ngày:** 03/09/2026 · **Bán kết:** 15/09/2026 (còn **12 ngày**) · **Chung kết:** 27/11/2026
+**Ngày:** 03/09/2026 · **Bán kết:** 26/09/2026 · **Chung kết:** 27/11/2026
+
+> ⚠️ *Cập nhật 14/09/2026: ngày Bán kết đã chốt lại là **26/09** theo landing page BTC (trước đây tài liệu ghi 15/09). Mọi chỗ nói "12 ngày tới" trong bản gốc là tính từ 03/09 theo mốc cũ — tính lại theo 26/09 thì kế hoạch giãn ra 11 ngày. Xem `docs/NGUOI_DUNG_VA_KICH_BAN.md` §3 cho thứ tự việc hiện tại.*
 
 > Đây là **khung tư duy**, không phải kết luận cuối. Mục tiêu: trả lời 4 câu hỏi cậu đặt ra, kèm dữ liệu để tự quyết.
 
@@ -240,7 +242,7 @@ Giá trị mang lại cho khách = (số pin cứu được × giá pin) + (rủ
 
 ---
 
-## §6. VIỆC PHẢI LÀM — 12 NGÀY TỚI (03/09 → 15/09)
+## §6. VIỆC PHẢI LÀM — 12 NGÀY TỚI (03/09 → 26/09)
 
 **Ưu tiên tuyệt đối**
 - [ ] **HÔM NAY:** kiểm tra tài khoản WISE-IoT còn sống không; dựng 1 Dashboard bất kỳ (dữ liệu giả cũng được). Đây là điều kiện tồn tại.
@@ -378,7 +380,7 @@ Nếu chỉ nhớ một câu từ phần này thì là câu trên. Đây là câ
 - Module A7670C (SIMCOM, LTE Cat-1, UART) hoặc kit ESP32-S3 + A7670 bán sẵn ở VN.
 - Cat-1 đủ dùng và rẻ hơn nhiều Cat-4; dự án này chỉ đẩy vài trăm byte mỗi lần.
 - **Phủ sóng di động VN đã đạt 99,8%** → về cơ bản chỗ nào đỗ xe cũng có sóng.
-- 🚨 **BẪY CHẾT NGƯỜI — đọc kỹ:** **Việt Nam tắt sóng 2G toàn quốc từ 15/9/2026** — đúng ngày Bán kết. Mọi module 2G/GSM (SIM800L, SIM900...) sẽ **thành cục sắt**. Rất nhiều tutorial và module giá rẻ trên mạng vẫn là 2G. **Tuyệt đối không dùng.** Chỉ mua module 4G LTE.
+- 🚨 **BẪY CHẾT NGƯỜI — đọc kỹ:** **Việt Nam tắt sóng 2G toàn quốc từ 15/9/2026** — tức là **11 ngày trước Bán kết 26/09**. Mọi module 2G/GSM (SIM800L, SIM900...) sẽ **thành cục sắt**. Rất nhiều tutorial và module giá rẻ trên mạng vẫn là 2G. **Tuyệt đối không dùng.** Chỉ mua module 4G LTE.
   - *Bonus:* đưa chi tiết này vào slide. Nó cho thấy đội hiểu bối cảnh hạ tầng VN 2026 — giám khảo Việt sẽ đánh giá cao.
 - Chi phí: module + SIM data. Đẩy giá module lên → chỉ hợp lý cho đội xe.
 - ⚠️ Ngân sách điện: 4G phát sóng có đỉnh dòng ~0,5–2A. Cần tụ đệm và phải tính lại phần điện ở §2.

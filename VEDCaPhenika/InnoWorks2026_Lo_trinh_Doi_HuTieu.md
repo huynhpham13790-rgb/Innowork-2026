@@ -22,8 +22,8 @@
 
 | Mốc | Ngày | Ghi chú |
 |---|---|---|
-| Hôm nay | 15/08/2026 | Còn ~1 tháng tới Bán kết |
-| **Vòng Bán kết** | **15/09/2026** | Tại ĐH Phenikaa (Hà Nội) |
+| Cập nhật gần nhất | 14/09/2026 | Ngày Bán kết chốt lại **26/09** (landing page BTC), trước đây ghi 15/09 |
+| **Vòng Bán kết** | **26/09/2026** | Tại ĐH Phenikaa (Hà Nội) |
 | **Vòng Chung kết** | **27/11/2026** | Tại ĐH Phenikaa |
 
 **Hai ràng buộc "sống còn" từ thể lệ (đừng bỏ qua):**
@@ -77,7 +77,7 @@
 - [ ] Slide + video demo dự phòng (phòng khi mạng lỗi tại hội trường).
 - [ ] Chuẩn bị phần business/ROI (Phần 9).
 
-### Phase 4 — Bán kết (15/09)
+### Phase 4 — Bán kết (26/09)
 - [ ] Thuyết trình + demo trực tiếp. Nhấn mạnh: Edge AI hoạt động offline + WISE-IoT làm cloud.
 
 ### Phase 5 — Nâng cấp cho Chung kết (16/09 → 26/11)
@@ -257,7 +257,7 @@ Mua ở: các cửa hàng linh kiện điện tử VN (Hshop, Nshop, ICdayroi, �
 
 ---
 
-## 11. Checklist nhanh trước Bán kết (15/09)
+## 11. Checklist nhanh trước Bán kết (26/09)
 
 - [ ] Cả đội có chứng chỉ WISE-IoT.
 - [ ] Tài khoản WISE-IoT có ít nhất 1 Dashboard hoạt động **trước 01/09**.

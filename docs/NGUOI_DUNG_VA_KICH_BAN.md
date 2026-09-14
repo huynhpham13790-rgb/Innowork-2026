@@ -128,19 +128,71 @@ lại kết luận kinh doanh đã chốt. Đây là lý do mạnh nhất để 
 
 ---
 
-## Phần 3 — Quyết định cho ngày mai (Bán kết 15/09)
+## Phần 3 — Chốt phương án
 
-**Giữ nguyên kiến trúc. Không viết BLE trước Bán kết.**
+Phần này **không xét còn bao nhiêu ngày tới ngày thi**. Lý do: một kiến trúc
+chọn vì "kịp deadline" là kiến trúc phải làm lại ngay sau đó. Câu hỏi đúng là
+*phương án nào giải quyết được vấn đề thật*, và câu trả lời đó không đổi theo
+lịch thi.
 
-Lý do: còn **1 ngày**. Làm BLE cho ra hồn cần một app Android — vài ngày làm,
-vài ngày sửa. Đổi kiến trúc truyền dữ liệu vào đêm trước ngày thi là rủi ro
-lớn nhất có thể tự chuốc vào, mà đổi lại không được thêm điểm nào.
+**Chốt: giữ cả bốn kênh, Wi-Fi là kênh chính lên cloud, BLE là kênh phụ cho
+NGƯỜI DÙNG B.**
 
-**Nhưng đưa nó vào bài nói.** Khi giám khảo hỏi *"đi ra đường thì lấy mạng ở
-đâu?"* — mà chắc chắn sẽ có người hỏi — trả lời bằng bảng phân vai 4 kênh ở
-trên. Nó cho thấy đội đã nghĩ tới, biết vì sao chưa làm, và biết làm cho ai.
-Đó là câu trả lời của người hiểu bài toán, không phải người quên mất.
+Đây không phải thỏa hiệp giữa hai phương án — nó là kết luận thẳng từ Phần 1:
+**ba nhóm người dùng đứng ở ba chỗ khác nhau, nên cần ba kênh khác nhau.** Hỏi
+"BLE hay Wi-Fi" là hỏi sai câu, vì nó giả định một kênh phải phục vụ cả ba.
 
-Việc cần làm sau Bán kết, xếp theo thứ tự: gộp BLE vào gói Basic cho NGƯỜI
-DÙNG B, viết app đọc 8 nhiệt độ + trạng thái Lớp 1 qua BLE, giữ Wi-Fi làm kênh
-chính lên cloud.
+| | NGƯỜI DÙNG A (quản lý) | NGƯỜI DÙNG B (thợ) | NGƯỜI DÙNG C (người lái) |
+|---|---|---|---|
+| Ở đâu khi cần dữ liệu | Văn phòng, cách pack hàng km | Đứng ngay cạnh pack | Trên xe / đang ngủ |
+| BLE phục vụ được? | ❌ ngoài tầm | ✅ đúng bài | ❌ không mở app |
+| Wi-Fi→cloud phục vụ được? | ✅ đúng bài | ⚠️ được, nhưng vòng vèo | ❌ không nhìn màn hình |
+| Còi tại chỗ phục vụ được? | ❌ | ✅ | ✅ đúng bài |
+
+Không ô nào thừa, và không kênh nào phủ được cả ba cột. Đó là toàn bộ lý do
+giữ cả ba.
+
+### Vì sao Wi-Fi là kênh *chính*, không phải BLE
+
+Ba lý do, không cái nào liên quan tới thời gian:
+
+1. **BLE không phủ được khoảnh khắc nguy hiểm nhất.** Pin lithium dễ cháy nhất
+   lúc **sạc qua đêm không ai trông** — đúng lúc điện thoại ở phòng khác và app
+   đã bị hệ điều hành đóng. Một hệ an toàn không được có lỗ hổng đúng chỗ đó.
+2. **BLE không thay được cloud, chỉ đổi người đưa thư.** Lớp 2 (RUL/SOH) cần
+   nhìn **cả đội xe qua nhiều tháng** mới có ích. Dữ liệu vẫn phải về một chỗ
+   tập trung; BLE chỉ thêm một thiết bị nữa phải có mặt đúng lúc.
+3. **BLE làm trung tâm là âm thầm đổi khách hàng mục tiêu.** Kiến trúc
+   "ESP32 ↔ điện thoại cá nhân" chỉ hợp với người dùng cá nhân — mà §5 xếp hạng
+   3 và khuyến nghị không làm khách chính. Đổi kiến trúc truyền dữ liệu là đổi
+   luôn mô hình kinh doanh, dù không ai nói ra.
+
+### Vì sao vẫn nên làm BLE
+
+Không phải để chiều góp ý. NGƯỜI DÙNG B là người thật, và với họ BLE **tốt hơn
+Wi-Fi thật**: không cần cấu hình SSID, không phụ thuộc mạng kho, mở máy là thấy
+8 nhiệt độ của đúng cái pack đang cầm. Bắt thợ mở dashboard cloud để xem một
+pack cách mình 30 cm là thiết kế tồi.
+
+Bản tối giản đủ dùng: ESP32 phát 8 nhiệt độ + trạng thái Lớp 1 qua GATT
+characteristic, đọc bằng nRF Connect có sẵn trên store — **không phải viết app**.
+ESP32-S3 có sẵn BLE, không tốn thêm linh kiện. Chi phí thấp, giá trị thật.
+
+### Thứ tự làm — xếp theo "cái nào còn đang giả"
+
+Không xếp theo deadline, xếp theo mức độ thứ đó còn là mô phỏng:
+
+1. **Nối 8 cảm biến thật vào firmware chính** — kèm hiệu chỉnh offset (QĐ-022)
+   và đọc không chặn. Đây là mắt xích mô phỏng cuối cùng của Lớp 1, và là việc
+   có giá trị cao nhất trong toàn bộ dự án lúc này: nó biến demo "hơ nóng cell
+   → còi kêu" từ diễn thành thật.
+2. **Dán đầu dò lên pack rồi đo lại offset** — bảng offset đo lúc đầu dò để rời
+   ngoài không khí không dùng được sau khi dán.
+3. **Hiệu chỉnh lại hệ số Lớp 2 trên pack thật** — hiện đang dùng hệ số của pin
+   NASA 18650 2 Ah, con số RUL chưa dùng được cho pack 8S × 3 Ah của đội.
+4. **BLE tối giản cho NGƯỜI DÙNG B.**
+5. Thử Wi-Fi phát từ điện thoại (AC-05.1), diễn tập demo (AC-05.3).
+
+Việc 1–3 đều là "biến thứ đang giả thành thật". Việc 4 là thêm năng lực mới.
+Khi phải chọn, ưu tiên loại 1–3 trước: một hệ thống ít chức năng mà thật thì
+thuyết phục hơn một hệ nhiều chức năng mà nửa mô phỏng.

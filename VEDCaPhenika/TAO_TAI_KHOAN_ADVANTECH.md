@@ -1,6 +1,6 @@
 # Tự tạo tài khoản Advantech — không cần chờ BTC
 
-Đội Hủ Tiếu · 06/09/2026 · còn 9 ngày tới Bán kết
+Đội Hủ Tiếu · 06/09/2026 · Bán kết **26/09** *(cập nhật 14/09: bản gốc ghi "còn 9 ngày" theo mốc cũ 15/09)*
 
 ---
 
@@ -8,7 +8,7 @@
 
 Advantech có sẵn gói **free trial EdgeHub 90 ngày, quota 5 thiết bị / 100 parameter, đầy đủ tính năng**. Đội chỉ cần 1 thiết bị và 8 tag nhiệt độ, nên quota này thừa sức — kể cả khi sau này thêm dòng, áp, SOC vẫn còn xa mới chạm 100.
 
-Mốc thời gian cũng vừa đủ đẹp: đăng ký hôm nay 06/09 thì trial hết hạn khoảng 05/12, **phủ được cả Bán kết 15/09 lẫn Chung kết 27/11**. Nhưng chỉ dư 8 ngày sau Chung kết, nên đừng đăng ký muộn hơn tuần này — trễ một tuần là trial chết trước ngày thi.
+Mốc thời gian cũng vừa đủ đẹp: đăng ký hôm nay 06/09 thì trial hết hạn khoảng 05/12, **phủ được cả Bán kết 26/09 lẫn Chung kết 27/11**. Nhưng chỉ dư 8 ngày sau Chung kết, nên đừng đăng ký muộn hơn tuần này — trễ một tuần là trial chết trước ngày thi.
 
 ---
 
@@ -38,7 +38,7 @@ Thêm một đường nữa để rút ngắn thời gian chờ: hỏi lại BTC
 
 Ý tưởng dùng Advantech dù chưa bắt buộc là hợp lý, nhưng nên cân nhắc chỗ này: một dashboard dựng vội, dữ liệu giả, không nói lên nhiều điều. Cái thực sự tạo khác biệt ở vòng đầu là **bạn đã tự giải mã được giao thức MQTT của WISE-IoT và cho ESP32 nối thẳng, bỏ được tầng Raspberry Pi** — kéo BOM từ 2–3 triệu xuống 400–500k mỗi xe. Đó là một quyết định kỹ thuật có con số đằng sau, và nó chính là kiểu lập luận đã giúp đội vô địch 2025 thắng.
 
-Nên nếu trial chưa kịp về trước 15/09, đừng coi là hỏng. Slide kiến trúc vẫn vẽ WISE-IoT ở tầng cloud, kèm demo ESP32 đang bắn đúng topic và đúng payload của WISE-IoT trên một broker MQTT — nói rõ là đang chờ cấp tài khoản. Giám khảo Advantech sẽ nhận ra ngay format đó là của họ, và điều đó thuyết phục hơn một dashboard đẹp mà bên dưới không có gì.
+Nên nếu trial chưa kịp về trước 26/09, đừng coi là hỏng. Slide kiến trúc vẫn vẽ WISE-IoT ở tầng cloud, kèm demo ESP32 đang bắn đúng topic và đúng payload của WISE-IoT trên một broker MQTT — nói rõ là đang chờ cấp tài khoản. Giám khảo Advantech sẽ nhận ra ngay format đó là của họ, và điều đó thuyết phục hơn một dashboard đẹp mà bên dưới không có gì.
 
 ---
 
