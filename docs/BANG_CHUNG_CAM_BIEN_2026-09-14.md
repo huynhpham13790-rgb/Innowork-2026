@@ -25,9 +25,10 @@ arduino-cli compile --fqbn esp32:esp32:esp32s3:PartitionScheme=default_8MB,Flash
    0,02–0,05 °C, 25/25 lần khởi động sạch.
 2. **Đã gặp lỗi bus 31–35 %, nhưng hiện KHÔNG tái hiện được.** Lỗi chập chờn —
    loại khó nhất. Không được coi là đã sửa xong.
-3. **Chưa đo được sai lệch giữa các cảm biến, và cũng chưa biết nó có tồn tại
-   hay không.** Vì đầu dò để rời mỗi cái một chỗ nên số đo hiện tại là chênh
-   lệch nhiệt độ thật giữa các vị trí, không phải sai số cảm biến.
+3. **Sai lệch giữa các cảm biến: 0,3665 °C — đã đo được, lặp lại được, PHẢI
+   hiệu chỉnh.** Đo bằng cách bó cụm nhúng nước; hai lần độc lập khớp nhau
+   trong 0,025 °C. Hệ số đã ghi vào `esp32s3_wiseiot_test/ds18b20_offsets.h`.
+   (Đo trong không khí thì vô nghĩa — xem KQ-06.)
 
 ---
 
@@ -189,6 +190,53 @@ Lúc đó mới trả lời được câu "có cần hiệu chỉnh không". N�
 Tra `models/eval_results.npz`, autoencoder bắt lỗi offset 0,5 °C ở tỉ lệ 41,7 %.
 Nên *nếu* lệch thật sự cỡ 0,5 °C thì phải hiệu chỉnh. Chỉ là ta **chưa biết**.
 
+## KQ-08 · Hiệu chuẩn trong nước — ✅ ĐẠT, và trả lời được câu hỏi
+
+Bó cả 8 đầu dò thành một cụm, nhúng trong nước ở nhiệt độ phòng (~27,3 °C),
+khuấy đều, đợi ổn định. Đo **hai lần độc lập**, mỗi lần 5 phút / 350 vòng đọc:
+
+| Kênh | Lần A | Lần B | \|lệch\| |
+|---|---|---|---|
+| P01 | −0,0207 | −0,0126 | 0,0081 |
+| P02 | −0,1700 | −0,1776 | 0,0076 |
+| P03 | +0,1958 | +0,1896 | 0,0062 |
+| P04 | −0,0539 | −0,0567 | 0,0028 |
+| P05 | +0,0911 | +0,1163 | **0,0252** |
+| P06 | +0,0125 | +0,0031 | 0,0094 |
+| P07 | −0,0592 | −0,0633 | 0,0041 |
+| P08 | +0,0044 | +0,0012 | 0,0032 |
+
+**Lệch lớn nhất giữa hai lần: 0,025 °C** — dưới tiêu chí 0,05 °C đặt ra ở
+KQ-06. Độ rộng: lần A 0,3658 °C, lần B 0,3672 °C, khớp nhau trong 0,0014 °C.
+
+So với đo trong không khí, nơi cùng một kênh đổi tới **0,359 °C** giữa hai lần:
+phép đo nay ổn định hơn **14 lần**. Đây là bằng chứng nước đã ép được cả 8 con
+về cùng một nhiệt độ thật, còn không khí thì không.
+
+→ **Sai số chế tạo thật sự tồn tại và đo được: 0,3665 °C** (P03 nóng nhất,
+P02 lạnh nhất). Nằm trong ±0,5 °C của datasheet nên cảm biến bình thường,
+nhưng vượt xa ngưỡng bỏ qua 0,1 °C.
+
+→ **Trả lời dứt điểm: CÓ, phải hiệu chỉnh.** Bảng hệ số đã ghi vào
+`VEDCaPhenika/esp32s3_wiseiot_test/ds18b20_offsets.h`, kèm cả 8 địa chỉ ROM.
+
+*Ghi chú về chất lượng số liệu:* lần A có 2 mẫu ngoại lai ở P03 (đọc ra
+24,81 °C) và 4 lần `DISC` ở P08 — tỉ lệ lỗi 0,14 %. Lần B sạch tuyệt đối
+(2 800 đọc, 0 lỗi). Hai lần vẫn khớp nhau nên kết luận không bị ảnh hưởng.
+
+### Sự cố giữa chừng — và nó xác nhận giả thuyết ở KQ-05
+
+Lần đo nước đầu tiên phải bỏ đi vì **chỉ tìm thấy 6 cảm biến**: một dây tín
+hiệu tuột khỏi breadboard. Cắm lại thì đủ 8 ngay.
+
+Đây chính là loại tiếp xúc chập chờn đã nghi ở KQ-05. Nó xác nhận: breadboard
+là nghi phạm đúng, và **phải bỏ breadboard trước khi gắn lên pack**.
+
+Cũng cho thấy một chế độ hỏng cần đề phòng trong firmware: khi mất một cảm
+biến, sketch vẫn chạy bình thường, vẫn in ra bảng đẹp, chỉ là bảng có 6 cột
+thay vì 8. Không có cảnh báo nào. Firmware chính **phải kiểm số cảm biến đếm
+được đúng bằng 8 lúc khởi động**, thiếu là báo lỗi ngay — xem QĐ-024.
+
 ## KQ-07 · Đọc không chặn — chạy được
 
 Không lần nào đọc phải giá trị reset 85,0 °C. Đọc chặn và không chặn cho tỉ lệ
@@ -202,16 +250,18 @@ lỗi như nhau (0,00 % cả hai) khi bus khoẻ.
 
 ## Việc phải làm, theo thứ tự
 
-1. **Đo lại offset bằng cách bó cụm + nhúng nước** (quy trình ở KQ-06). Đây là
-   việc rẻ nhất và nó quyết định có cần bước hiệu chỉnh hay không.
-2. **Firmware phải ĐẾM và BÁO lỗi cảm biến lúc chạy** — xem QĐ-024. Đây là việc
-   quan trọng hơn cả việc truy cho ra nguyên nhân lỗi chập chờn, vì trên xe thật
-   có rung động thì dây **chắc chắn** sẽ có lúc tiếp xúc kém.
-3. **Kiểm lại cờ ký sinh bằng `readPowerSupply()` từng con**, không tin cờ tổng
-   của `isParasitePowerMode()` (QĐ-024).
-4. **Bỏ breadboard trước khi gắn lên pack** — hàn thẳng hoặc dùng terminal block
-   bắt vít. Breadboard không chịu được rung.
-5. Dán nhãn ROM lên từng dây, dán đầu dò lên pack, rồi **đo offset lần cuối lúc
-   pack nghỉ** (không sạc, không xả). Bảng đó mới là bảng nạp vào firmware.
+1. ~~Đo offset bằng cách bó cụm + nhúng nước~~ — **XONG**, xem KQ-08.
+   Hệ số ở `VEDCaPhenika/esp32s3_wiseiot_test/ds18b20_offsets.h`.
+2. **Dán nhãn ROM lên từng sợi dây** theo bảng KQ-01, làm ngay trước khi động
+   vào pack.
+3. **Nối cảm biến thật vào firmware chính**: đọc theo ROM (không theo index),
+   đọc không chặn, trừ `DS_OFFSET`, thay nhiệt độ mô phỏng của Lớp 1.
+4. **Firmware phải ĐẾM và BÁO lỗi cảm biến lúc chạy** — QĐ-024. Quan trọng hơn
+   cả việc truy cho ra nguyên nhân lỗi chập chờn, vì trên xe thật có rung thì
+   dây **chắc chắn** sẽ có lúc tiếp xúc kém. Kèm theo: kiểm đủ 8 con lúc khởi
+   động (sự cố tuột dây ở KQ-08 cho thấy thiếu cảm biến không báo gì cả).
+5. **Bỏ breadboard trước khi gắn lên pack** — hàn thẳng hoặc terminal block bắt
+   vít. Breadboard không chịu được rung, và đã tuột một lần ngay trên bàn.
+6. Dán đầu dò lên pack. **KHÔNG hiệu chuẩn lại sau khi dán** — xem QĐ-025.
 
-Xem QĐ-022, QĐ-023, QĐ-024 trong `DECISION_LOG.md`.
+Xem QĐ-022, QĐ-023, QĐ-024, QĐ-025 trong `DECISION_LOG.md`.

@@ -354,6 +354,43 @@ Yêu cầu với firmware chính:
 Cũng vì lý do này: **bỏ breadboard trước khi gắn lên pack** — hàn thẳng hoặc
 dùng terminal block bắt vít.
 
+### QĐ-025 · 14/09/2026 · Đã chốt
+**Hiệu chuẩn offset cảm biến trong NƯỚC, lúc rời pack. TUYỆT ĐỐI không hiệu
+chuẩn lại sau khi đã dán lên pack.**
+
+Đây là chỗ tớ (AI) đã khuyên **ngược** ở bản đầu — bản đầu viết *"đo lại lần
+cuối sau khi dán lên pack, bảng đó mới là bảng nạp vào firmware"*. Lời khuyên
+đó nguy hiểm, và lý do đáng ghi lại.
+
+Cái ta cần sửa là **sai số của dụng cụ đo** — mỗi con DS18B20 lệch một ít do
+chế tạo (đo được 0,3665 °C, datasheet ±0,5 °C). Sai số đó là hằng số, đo trong
+nước là đo đúng nó.
+
+Nếu hiệu chuẩn lúc cảm biến đã dán lên pack thì trong số đo có thêm hai thứ
+khác: chênh lệch nhiệt độ **thật** giữa các cell, và chất lượng tiếp xúc của
+từng mối dán. Trừ đi cả cụm đó thì hỏng theo hai đường:
+
+1. **Xoá mất chính tín hiệu cần tìm.** Lớp 1 phát hiện bất thường bằng chênh
+   lệch tương đối giữa các cell. Cân bằng phẳng chênh lệch đó bằng hiệu chuẩn
+   là làm mù mô hình.
+2. **Nguy hiểm hơn: đóng băng một lỗi có sẵn thành "bình thường".** Nếu lúc
+   hiệu chuẩn đã có một cell tiếp xúc kém đang nóng hơn, phép hiệu chuẩn ghi
+   nhận cái nóng đó là mức nền của cell ấy — và từ đó **vĩnh viễn không bao giờ
+   phát hiện được nữa**. Đúng cell nguy hiểm nhất lại là cell bị làm mù.
+
+Còn chênh lệch nhiệt độ thật giữa các vị trí trong pack thì **để nguyên cho mô
+hình thấy** — Lớp 1 train trên dữ liệu pack thật (bộ UPC 36 cell) nên đã gặp
+kiểu chênh lệch không gian đó rồi. Thứ nó chưa từng gặp là sai số **dụng cụ**,
+và đó đúng là thứ duy nhất nên trừ đi.
+
+Quy tắc chung: **chỉ hiệu chuẩn cái thuộc về dụng cụ đo, không bao giờ hiệu
+chuẩn cái thuộc về đối tượng đo.**
+
+Quy trình đã kiểm chứng: bó 8 đầu dò thành cụm, nhúng nước nhiệt độ phòng,
+khuấy, đợi ổn định, chạy `ds18b20_stress_test` 5 phút. **Làm hai lần**; hai
+bảng phải khớp trong 0,05 °C. Thực tế đạt 0,025 °C. Chỉ làm lại khi thay cảm
+biến.
+
 ---
 
 ## Ẩn số còn treo

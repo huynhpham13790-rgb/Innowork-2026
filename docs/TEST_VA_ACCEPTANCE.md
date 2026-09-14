@@ -77,7 +77,7 @@ Ký hiệu: ✅ đã kiểm chứng · ⬜ chưa làm · 🔶 làm rồi nhưng 
 | 6.13 | Đọc không chặn vòng lặp 1 Hz | chặn và không chặn đều 0,00 % lỗi | ✅ 14/09 |
 | 6.14 | **Bus sạch: 3 lần × ≥5 phút liên tiếp, lỗi 0,00 %** | đã gặp 31,86 % và 35,42 %, nay không tái hiện | ⚠️ **CHẬP CHỜN** — QĐ-024 |
 | 6.15 | Firmware đếm + báo lỗi cảm biến theo từng kênh | — | ⬜ **chưa làm** — QĐ-024 |
-| 6.16 | Bảng offset đo trong nước, 2 lần khớp ~0,05 °C | đo trong không khí: xáo trộn 0,36 °C | ⬜ **chưa làm** — QĐ-022 |
+| 6.16 | Bảng offset đo trong nước, 2 lần khớp ~0,05 °C | 2 lần khớp 0,025 °C; lệch thật 0,3665 °C | ✅ 14/09 — `ds18b20_offsets.h` |
 | 6.17 | Bỏ breadboard, hàn/terminal block trước khi gắn pack | — | ⬜ chưa làm |
 | 6.18 | Lớp 1 chạy trên nhiệt độ THẬT (không mô phỏng) | — | ⬜ chặn bởi 6.14–6.17 |
 

@@ -1,0 +1,69 @@
+/* =============================================================================
+ *  Bảng hiệu chỉnh sai số chế tạo của 8 cảm biến DS18B20.
+ *
+ *  Đo ngày 14/09/2026: bó cả 8 đầu dò thành một cụm, nhúng trong nước ở nhiệt
+ *  độ phòng (~27,3 °C), khuấy đều, đợi ổn định. Đo 2 lần độc lập, mỗi lần 5
+ *  phút / 350 vòng đọc. Hai bảng khớp nhau trong **0,025 °C** — dưới tiêu chí
+ *  0,05 °C, nên số này tin được.
+ *
+ *  VÌ SAO PHẢI NHÚNG NƯỚC, KHÔNG ĐO TRONG KHÔNG KHÍ:
+ *  Đo trong không khí cho ra bảng offset **xáo trộn hoàn toàn giữa hai lần
+ *  chạy** — có kênh đổi tới 0,359 °C. Sai số chế tạo là hằng số vật lý, không
+ *  thể đổi. Thứ đo được lúc đó là chênh lệch nhiệt độ THẬT giữa các vị trí đầu
+ *  dò đang nằm, không phải sai số cảm biến. Nước dẫn nhiệt hơn không khí hàng
+ *  trăm lần nên mới ép được cả 8 con về cùng một nhiệt độ thật.
+ *  Chi tiết: docs/BANG_CHUNG_CAM_BIEN_2026-09-14.md
+ *
+ *  ⚠️ KHÔNG ĐO LẠI BẢNG NÀY SAU KHI DÁN LÊN PACK — xem QĐ-025.
+ *  Bảng này chỉ sửa **sai số của dụng cụ đo**. Nếu hiệu chuẩn lúc đã dán lên
+ *  pack, ta sẽ trừ đi luôn cả chênh lệch nhiệt độ THẬT giữa các cell — mà đó
+ *  chính là tín hiệu Lớp 1 cần. Tệ hơn: nếu lúc hiệu chuẩn đã có một cell lỗi
+ *  đang nóng sẵn, phép hiệu chuẩn sẽ ghi nhận cái lỗi đó thành "bình thường"
+ *  và vĩnh viễn không bao giờ phát hiện được nữa.
+ *
+ *  Thứ tự kênh theo địa chỉ ROM ở dưới, KHÔNG theo thứ tự dò bus. Phải đọc
+ *  bằng ROM (`getTempC(rom)`), không dùng `getTempCByIndex()`.
+ *
+ *  Sinh lại bảng này khi: thay bất kỳ con cảm biến nào. Chạy
+ *  test/ds18b20_stress_test hai lần theo quy trình nhúng nước ở trên.
+ * ========================================================================== */
+#pragma once
+#include <stdint.h>
+
+#define DS_N_PROBES 8
+
+// Địa chỉ ROM — dán nhãn đúng thứ tự này lên từng sợi dây.
+// Đọc theo index thay vì theo ROM sẽ hoán vị dữ liệu 8 cell mà KHÔNG có lỗi
+// nào báo: Lớp 1 vẫn chạy, vẫn ra số, chỉ là sai cell.
+const uint8_t DS_ROM[DS_N_PROBES][8] = {
+  { 0x28, 0x30, 0xF1, 0x01, 0x00, 0x00, 0x00, 0x17 },   // P01
+  { 0x28, 0xB8, 0xC8, 0x01, 0x00, 0x00, 0x00, 0x2B },   // P02
+  { 0x28, 0xFA, 0x81, 0x02, 0x00, 0x00, 0x00, 0xA2 },   // P03
+  { 0x28, 0x46, 0xAF, 0x01, 0x00, 0x00, 0x00, 0x0A },   // P04
+  { 0x28, 0xEE, 0x07, 0x03, 0x00, 0x00, 0x00, 0xFD },   // P05
+  { 0x28, 0xD1, 0xF8, 0x03, 0x00, 0x00, 0x00, 0xFD },   // P06
+  { 0x28, 0x4D, 0x49, 0x04, 0x00, 0x00, 0x00, 0x35 },   // P07
+  { 0x28, 0x7F, 0xCD, 0x01, 0x00, 0x00, 0x00, 0xE3 },   // P08
+};
+
+// Nhiệt độ đã hiệu chỉnh = số đọc được - DS_OFFSET[i]
+// Tổng 8 hệ số bằng 0, nên phép hiệu chỉnh không làm dịch nhiệt độ trung bình
+// của pack — chỉ nắn lại chênh lệch giữa các kênh.
+const float DS_OFFSET[DS_N_PROBES] = {
+  -0.0166f,   // P01
+  -0.1738f,   // P02  <- lạnh nhất
+  +0.1927f,   // P03  <- nóng nhất
+  -0.0553f,   // P04
+  +0.1037f,   // P05
+  +0.0078f,   // P06
+  -0.0612f,   // P07
+  +0.0028f,   // P08
+};
+
+// Độ rộng thật của sai số chế tạo: 0,3665 °C (P03 - P02).
+// Datasheet DS18B20 công bố ±0,5 °C nên đây là hàng bình thường, không hỏng.
+// Nhưng Lớp 1 nhìn CHÊNH LỆCH TƯƠNG ĐỐI giữa các cell (QĐ-012), nên lệch cố
+// định cỡ này trông y hệt "cell P03 lúc nào cũng nóng hơn". Đối chiếu
+// ai/models/eval_results.npz: autoencoder bắt lỗi offset 0,5 °C ở tỉ lệ 41,7%
+// => không hiệu chỉnh là rước báo động giả vĩnh viễn.
+#define DS_OFFSET_SPREAD_C  0.3665f
