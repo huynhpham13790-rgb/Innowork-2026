@@ -35,7 +35,7 @@
 #include <DallasTemperature.h>
 
 #define ONE_WIRE_BUS   4
-#define N_PROBES       8
+#define N_PROBES       9
 #define REPORT_MS      30000
 #define RESOLUTION     12        // 0,0625 °C — khớp mức lượng tử hoá dữ liệu train
 

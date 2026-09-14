@@ -1,10 +1,16 @@
 /* =============================================================================
  *  Bảng hiệu chỉnh sai số chế tạo của 8 cảm biến DS18B20.
  *
- *  Đo ngày 14/09/2026: bó cả 8 đầu dò thành một cụm, nhúng trong nước ở nhiệt
- *  độ phòng (~27,3 °C), khuấy đều, đợi ổn định. Đo 2 lần độc lập, mỗi lần 5
- *  phút / 350 vòng đọc. Hai bảng khớp nhau trong **0,025 °C** — dưới tiêu chí
- *  0,05 °C, nên số này tin được.
+ *  Đo ngày 14/09/2026 (bản thứ hai, có cả cảm biến môi trường): bó CẢ 9 đầu dò
+ *  thành một cụm, nhúng **chỉ phần đầu kim loại** vào nước ở nhiệt độ phòng
+ *  (~26,3 °C), giữ dây và mối nối trên mặt nước. Đo 2 lần độc lập, mỗi lần
+ *  ~6,5 phút / 420 vòng đọc, cả hai lần bus 0,0000 % lỗi.
+ *
+ *  Hai bảng khớp nhau trong **0,012 °C** — tốt gấp 4 lần tiêu chí 0,05 °C.
+ *  Và khớp với bảng đo lần trước (8 con, mẻ khác) trong **0,029 °C** ở MỌI
+ *  kênh. Điều này giải quyết chỗ lấn cấn cũ: bản đo lúc để khô trong không khí
+ *  từng lệch 0,049 và 0,068 °C ở hai kênh — nay xác định bản KHÔ mới là bản
+ *  sai lệch, do bó cụm trong không khí vẫn còn chênh nhiệt giữa lõi và rìa.
  *
  *  VÌ SAO PHẢI NHÚNG NƯỚC, KHÔNG ĐO TRONG KHÔNG KHÍ:
  *  Đo trong không khí cho ra bảng offset **xáo trộn hoàn toàn giữa hai lần
@@ -50,23 +56,23 @@ const uint8_t DS_ROM[DS_N_PROBES][8] = {
 // Tổng 8 hệ số bằng 0, nên phép hiệu chỉnh không làm dịch nhiệt độ trung bình
 // của pack — chỉ nắn lại chênh lệch giữa các kênh.
 const float DS_OFFSET[DS_N_PROBES] = {
-  -0.0166f,   // P01
-  -0.1738f,   // P02  <- lạnh nhất
-  +0.1927f,   // P03  <- nóng nhất
-  -0.0553f,   // P04
-  +0.1037f,   // P05
-  +0.0078f,   // P06
-  -0.0612f,   // P07
-  +0.0028f,   // P08
+  -0.0362f,   // P01
+  -0.1585f,   // P02  <- lạnh nhất
+  +0.1675f,   // P03  <- nóng nhất
+  -0.0430f,   // P04
+  +0.0813f,   // P05
+  +0.0295f,   // P06
+  -0.0719f,   // P07
+  +0.0313f,   // P08
 };
 
-// Độ rộng thật của sai số chế tạo: 0,3665 °C (P03 - P02).
+// Độ rộng thật của sai số chế tạo: 0,3260 °C (P03 - P02).
 // Datasheet DS18B20 công bố ±0,5 °C nên đây là hàng bình thường, không hỏng.
 // Nhưng Lớp 1 nhìn CHÊNH LỆCH TƯƠNG ĐỐI giữa các cell (QĐ-012), nên lệch cố
 // định cỡ này trông y hệt "cell P03 lúc nào cũng nóng hơn". Đối chiếu
 // ai/models/eval_results.npz: autoencoder bắt lỗi offset 0,5 °C ở tỉ lệ 41,7%
 // => không hiệu chỉnh là rước báo động giả vĩnh viễn.
-#define DS_OFFSET_SPREAD_C  0.3665f
+#define DS_OFFSET_SPREAD_C  0.3260f
 
 /* ---------------------------------------------------------------------------
  *  Cảm biến thứ 9 — ĐO NHIỆT ĐỘ MÔI TRƯỜNG, không dán lên cell.
@@ -76,14 +82,15 @@ const float DS_OFFSET[DS_N_PROBES] = {
  *  liệu thật. Pack nóng lên 10 °C vì trời nắng sẽ bị đọc nhầm thành pack tự
  *  sinh nhiệt.
  *
- *  ⚠️ OFFSET CHƯA HIỆU CHUẨN — đang để 0.
- *  Con này cắm sau khi đã hiệu chuẩn 8 con kia, nên chưa có số. Phải nhúng
- *  nước CẢ 9 con một lượt rồi lấy lại bảng: offset của nó chỉ có nghĩa khi đo
- *  CÙNG mẻ với 8 con cell, vì thứ cần đúng là chênh lệch GIỮA nó và các cell.
- *  Hiệu chuẩn riêng lẻ là vô nghĩa.
+ *  ✅ ĐÃ HIỆU CHUẨN 14/09/2026, cùng mẻ nước với 8 con cell — bắt buộc phải
+ *  cùng mẻ, vì thứ cần đúng là chênh lệch GIỮA nó và các cell. Hiệu chuẩn
+ *  riêng lẻ là vô nghĩa.
+ *
+ *  Mốc quy chiếu của cả bảng là TRUNG BÌNH 8 CELL (không phải trung bình 9),
+ *  để việc thêm/bớt cảm biến môi trường không làm dịch offset của các cell.
  * ------------------------------------------------------------------------- */
 const uint8_t DS_ROM_AMBIENT[8] =
   { 0x28, 0x73, 0x4C, 0x04, 0x00, 0x00, 0x00, 0x19 };
 
-#define DS_AMBIENT_OFFSET   0.0f      // <-- thay bằng số đo được
-#define DS_AMBIENT_CALIBRATED 0       // <-- đổi thành 1 sau khi hiệu chuẩn
+#define DS_AMBIENT_OFFSET   +0.0452f
+#define DS_AMBIENT_CALIBRATED 1
