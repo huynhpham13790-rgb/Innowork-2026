@@ -272,39 +272,87 @@ mỗi giây thì `mqtt.loop()` rớt keep-alive.
 
 Bằng chứng: `docs/BANG_CHUNG_CAM_BIEN_2026-09-14.md`.
 
-*Đính chính 14/09 (cùng ngày):* con số 0,575 °C trong bản đầu **không dùng
-được** — đo trên bus chạy nguồn ký sinh (QĐ-023), và đo trong không khí là môi
-trường không đẳng nhiệt. Kết luận "phải hiệu chỉnh" vẫn đúng, nhưng **bảng
-offset thì phải đo lại** trong nước khuấy đều, sau khi đã sửa nguồn.
+> ⛔ **ĐÍNH CHÍNH 14/09 (cùng ngày) — quyết định này nói quá.**
+> Bản đầu khẳng định "sai lệch 0,575 °C, **bắt buộc** hiệu chỉnh". Cả con số
+> lẫn chữ "bắt buộc" đều chưa có cơ sở.
+>
+> Đo thêm ở hai lần chạy sạch khác nhau thì bảng offset **xáo trộn hoàn toàn**:
+> P04 đổi **0,359 °C**, P07 đổi 0,211 °C, P02 đổi 0,205 °C. Sai số chế tạo của
+> cảm biến là **hằng số vật lý**, không thể đổi; nhiễu đọc chỉ 0,03 °C nên cũng
+> không phải nhiễu.
+>
+> → Cái đo được **không phải sai số cảm biến**, mà là chênh lệch nhiệt độ THẬT
+> giữa các vị trí 8 đầu dò đang nằm. Để rời mỗi cái một chỗ thì mỗi cái ở trong
+> một luồng không khí khác nhau — chênh 0,3 °C giữa hai điểm cách nhau 20 cm
+> trong phòng là bình thường.
+>
+> **Không khí không phải môi trường hiệu chuẩn hợp lệ.** Hiện **chưa biết** 8
+> con này có lệch nhau hay không, vì phép đo bị môi trường lấn át hoàn toàn.
 
-### QĐ-023 · 14/09/2026 · Đã chốt
-**8 cảm biến DS18B20 phải đấu 3 dây (cấp nguồn VDD riêng), không dùng nguồn ký sinh.**
+Quy trình đo đúng: **bó cả 8 đầu dò thành một cụm, nhúng vào cốc nước** ở nhiệt
+độ phòng, khuấy, đợi 10 phút rồi mới đo 5 phút. Nước dẫn nhiệt hơn không khí
+hàng trăm lần nên mới ép được cả 8 con về cùng một nhiệt độ thật. **Làm hai
+lần; hai bảng phải khớp trong ~0,05 °C** thì mới tin.
 
-`sensors.isParasitePowerMode()` báo `true` → cả 8 con đang hút điện từ chính
-dây dữ liệu lúc chuyển đổi. Hậu quả đo được: chạy 4 lần cùng một sketch, không
-ai động vào phần cứng, mà tỉ lệ lỗi đọc là **0,00 % → 31,86 % → 35,42 %**.
+Nếu độ rộng đo ra < 0,1 °C thì **bỏ qua hiệu chỉnh**. Chỉ khi cỡ 0,5 °C mới cần
+làm, vì lúc đó autoencoder bắt lỗi offset 0,5 °C ở tỉ lệ 41,7 %
+(`models/eval_results.npz`) — tức là báo động giả vĩnh viễn.
 
-Đây là chữ ký kinh điển của nguồn ký sinh quá tải: nằm ngay ranh giới hoạt
-động được nên lúc chạy lúc không. Hai bằng chứng xác nhận không phải cảm biến
-hỏng:
-- **Cả 8 kênh mất cùng lúc** (đúng 51 lần `DISC` mỗi kênh) → lỗi ở nguồn/dây
-  chung, không phải ở một con.
-- **P08 đọc ra −20 °C và +43 °C trong phòng 28 °C** → sụt áp giữa lúc chuyển
-  đổi làm thanh ghi ra rác.
+### QĐ-023 · 14/09/2026 · Đã chốt *(đã sửa lại trong ngày — xem phần đính chính)*
+**Không tin cờ `isParasitePowerMode()`. Phải hỏi nguồn từng con bằng `readPowerSupply(rom)`.**
 
-Với 1–2 cảm biến thì ký sinh thường sống. Với 8 con cùng chuyển đổi một lúc thì
-điện trở kéo lên không cấp nổi dòng. Đây cũng là lý do thư viện yêu cầu giữ dây
-dữ liệu ở mức cao suốt quá trình chuyển đổi ở chế độ ký sinh — tức là **không
-tương thích với kiểu đọc không chặn** mà QĐ-022 đòi hỏi. Đấu 3 dây giải quyết
-cả hai vấn đề cùng lúc.
+> ⛔ **ĐÍNH CHÍNH — bản đầu của quyết định này SAI.**
+> Bản đầu viết: *"8 cảm biến đang chạy nguồn ký sinh, phải đấu lại 3 dây"*.
+> Thực tế đã đấu 3 dây đúng từ đầu (hàng VCC, hàng GND, hàng tín hiệu, trở
+> 4,7 kΩ). Tớ kết luận về phần cứng chỉ từ **một dòng log**, không kiểm chứng.
+> Giữ lại nguyên văn sai lầm này vì nó có ích hơn là xoá đi.
 
-Tiêu chí nghiệm thu: chạy `ds18b20_stress_test` **3 lần, mỗi lần ≥5 phút, tỉ lệ
-lỗi 0,00 % cả 3 lần**. Một lần sạch không đủ — lần chạy thứ 2 ở trên đã sạch
-tuyệt đối rồi mà hai lần sau vẫn hỏng.
+Sự thật đo được (`test/ds18b20_power_diag`): hỏi riêng từng con 200 lần, tổng
+**1 600 lần hỏi, 0 lần báo ký sinh**. Cả 8 con đều có nguồn riêng.
 
-*Bài học phương pháp:* sketch chỉ in số ra màn hình thì không phát hiện được
-chuyện này — nhìn log chạy thấy toàn số đẹp. Phải **đếm lỗi** mới thấy. Mọi
-sketch kiểm tra phần cứng từ nay đều phải có bộ đếm lỗi, không chỉ có `print`.
+Vậy vì sao `isParasitePowerMode()` từng trả về `true`? Đọc mã
+DallasTemperature 4.0.6:
+
+```cpp
+// parasite = false CHỈ nằm trong setOneWire(), begin() không bao giờ tắt nó
+if (!parasite && readPowerSupply(deviceAddress)) parasite = true;
+```
+
+Cờ **chỉ có chiều bật**, và quyết định bằng **một lần hỏi duy nhất** cho mỗi
+con lúc quét bus. Một lần nhiễu thoáng qua đúng khoảnh khắc đó là cờ bật và giữ
+nguyên **suốt cả phiên chạy** — từ đó thư viện xử lý cả 8 con theo kiểu ký sinh
+dù dây nối đúng hoàn toàn.
+
+Đây là lý do lỗi có hình dạng **chốt** chứ không suy giảm dần: hoặc 0 %, hoặc
+~33 %, không có giá trị ở giữa.
+
+Quy tắc rút ra: **một cờ tổng hợp của cả bus không bao giờ đủ để kết luận về
+phần cứng.** Có API hỏi từng thiết bị thì phải dùng.
+
+### QĐ-024 · 14/09/2026 · Đã chốt
+**Firmware phải ĐẾM và BÁO lỗi đọc cảm biến lúc chạy, không được nuốt im lặng.**
+
+Đã gặp bus lỗi **31,86 %** rồi **35,42 %** trên hai lần chạy liên tiếp, sau đó
+**không tái hiện được** qua 25 lần khởi động và 2 lần chạy 5 phút — không ai
+sửa gì phần cứng ở giữa. Lỗi chập chờn, nghi phạm số một là tiếp xúc breadboard.
+
+Không truy được nguyên nhân không có nghĩa là bỏ qua. Ngược lại: trên xe thật
+có rung động thì dây **chắc chắn** sẽ có lúc tiếp xúc kém, nên phần mềm phải
+sống chung với nó. Với một hệ giám sát an toàn, đọc sai 1/3 số lần mà **không
+báo gì cả** là chế độ hỏng tệ nhất có thể có — tệ hơn cả chết hẳn, vì chết hẳn
+thì còn biết mà sửa.
+
+Yêu cầu với firmware chính:
+1. Đếm `DISC` / CRC / giá trị 85,0 °C **theo từng kênh**, không gộp.
+2. Đẩy tỉ lệ lỗi lên cloud như một tag bình thường (không đổi data contract —
+   chỉ thêm tag mới trong `d`), và vẽ lên dashboard.
+3. Một kênh vượt ngưỡng lỗi thì **loại kênh đó khỏi đầu vào Lớp 1** và báo
+   "cảm biến hỏng", chứ không đưa số rác cho AI.
+4. Kiểm nguồn bằng `readPowerSupply(rom)` từng con lúc khởi động (QĐ-023), ghi
+   log nếu có con nào báo ký sinh.
+
+Cũng vì lý do này: **bỏ breadboard trước khi gắn lên pack** — hàn thẳng hoặc
+dùng terminal block bắt vít.
 
 ---
 

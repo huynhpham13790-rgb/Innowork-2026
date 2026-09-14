@@ -1,11 +1,15 @@
 # Bằng chứng — 8 cảm biến DS18B20 trên board thật (14/09/2026)
 
 Board: ESP32-S3-DevKitC-1 N16R8 · `/dev/ttyACM0` · bus 1-Wire ở GPIO 4.
-Cảm biến **để rời ngoài không khí, chưa dán vào pin**.
+Đấu 3 dây trên breadboard: một hàng VCC, một hàng GND, một hàng tín hiệu, điện
+trở kéo lên 4,7 kΩ từ VCC sang tín hiệu.
+Cảm biến **để rời, mỗi đầu dò một chỗ, chưa dán vào pin**.
 
-Hai sketch:
-- `test/ds18b20_bench_test/` (nhánh `debug`) — đếm cảm biến, in ROM.
-- `test/ds18b20_stress_test/` — đo nhiễu nền, lệch giữa con, **đếm lỗi bus**.
+Sketch dùng trong tài liệu này:
+- `test/ds18b20_bench_test/` (nhánh `debug`) — đếm cảm biến, in ROM
+- `test/ds18b20_stress_test/` — nhiễu nền, lệch giữa con, **đếm lỗi bus**
+- `test/ds18b20_power_diag/` — hỏi nguồn **từng con**, so đọc chặn / không chặn
+- `test/ds18b20_boot_latch/` — đo tần suất cờ ký sinh bị bật nhầm lúc khởi động
 
 ```
 arduino-cli lib install "OneWire"           # 2.3.8
@@ -15,32 +19,21 @@ arduino-cli compile --fqbn esp32:esp32:esp32s3:PartitionScheme=default_8MB,Flash
 
 ---
 
-## ⛔ KẾT LUẬN TRƯỚC: bus đang chạy ở CHẾ ĐỘ KÝ SINH — phải sửa phần cứng
+## Tóm tắt — ba kết luận
 
-```
-[INFO] Che do nguon: KY SINH (2 day) - canh giac
-```
-
-Đây là nguyên nhân gốc của mọi thứ bất thường bên dưới, và nó làm **toàn bộ
-số đo về sai lệch giữa các cảm biến trở nên không tin được**.
-
-Chế độ ký sinh (parasite power) là khi chân VDD của DS18B20 không được cấp
-nguồn riêng — cảm biến phải **hút điện từ chính dây dữ liệu** trong lúc chuyển
-đổi. Với 1–2 cảm biến thì thường sống. Với **8 cảm biến cùng chuyển đổi một
-lúc**, điện trở kéo lên không cấp đủ dòng → cảm biến sụt áp giữa chừng → đọc ra
-rác hoặc mất hẳn.
-
-**Việc phải làm: nối chân VDD của cả 8 con lên 3,3 V (đấu 3 dây).** Chạy lại
-sketch, dòng trên **phải** in ra `CAP NGUON RIENG (3 day)` thì mới đi tiếp
-được. Nếu đã nối VDD rồi mà vẫn báo ký sinh thì là mất tiếp xúc ở đường VDD
-trên breadboard.
+1. **Cảm biến và cách đấu dây đều đúng.** 8/8 con có nguồn riêng, nhiễu nền
+   0,02–0,05 °C, 25/25 lần khởi động sạch.
+2. **Đã gặp lỗi bus 31–35 %, nhưng hiện KHÔNG tái hiện được.** Lỗi chập chờn —
+   loại khó nhất. Không được coi là đã sửa xong.
+3. **Chưa đo được sai lệch giữa các cảm biến, và cũng chưa biết nó có tồn tại
+   hay không.** Vì đầu dò để rời mỗi cái một chỗ nên số đo hiện tại là chênh
+   lệch nhiệt độ thật giữa các vị trí, không phải sai số cảm biến.
 
 ---
 
 ## KQ-01 · Cả 8 con lên bus, địa chỉ ROM ổn định — ĐẠT
 
 ```
-[INFO] GPIO 4 — tim thay 8 thiet bi
 const uint8_t PROBE_01[8] = { 0x28, 0x30, 0xF1, 0x01, 0x00, 0x00, 0x00, 0x17 };
 const uint8_t PROBE_02[8] = { 0x28, 0xB8, 0xC8, 0x01, 0x00, 0x00, 0x00, 0x2B };
 const uint8_t PROBE_03[8] = { 0x28, 0xFA, 0x81, 0x02, 0x00, 0x00, 0x00, 0xA2 };
@@ -51,121 +44,174 @@ const uint8_t PROBE_07[8] = { 0x28, 0x4D, 0x49, 0x04, 0x00, 0x00, 0x00, 0x35 };
 const uint8_t PROBE_08[8] = { 0x28, 0x7F, 0xCD, 0x01, 0x00, 0x00, 0x00, 0xE3 };
 ```
 
-Giống hệt nhau qua cả 4 lần chạy. Đây là những con số cần **dán nhãn lên từng
-sợi dây** ngay bây giờ, trước khi dán đầu dò lên pin.
+Giống hệt nhau qua mọi lần chạy. **Dán nhãn lên từng sợi dây theo bảng này ngay
+bây giờ**, trước khi dán đầu dò lên pack — vì đọc theo index sẽ hoán vị dữ liệu
+8 cell mà không có lỗi nào báo.
 
-Bước 12 bit = 0,0625 °C, **khớp đúng** mức lượng tử hoá mà `ai/prepare_data.py`
-áp lên dữ liệu huấn luyện.
+Bước 12 bit = 0,0625 °C, khớp đúng mức lượng tử hoá của `ai/prepare_data.py`.
 
-## KQ-02 · Nhiễu nền rất nhỏ — ĐẠT (ở những lần bus còn tốt)
+## KQ-02 · Nhiễu nền — ĐẠT
 
-Lần chạy sạch (272 s, 315 vòng đọc): độ lệch chuẩn mỗi kênh **0,019–0,033 °C**.
-Không kênh nào nhảy quá 1 °C giữa hai lần đọc liền.
+Độ lệch chuẩn mỗi kênh **0,019–0,048 °C** qua mọi lần chạy sạch. Nhỏ hơn một
+bậc so với mọi thứ Lớp 1 cần phát hiện.
 
-Nhiễu này nhỏ hơn một bậc so với mọi thứ Lớp 1 cần phát hiện. Cảm biến tốt.
+## KQ-03 · Nguồn cấp: ĐÚNG. Giả thuyết "quên nối VDD" của tớ là SAI
 
-## KQ-03 · ĐỘ BỀN BUS — ⛔ KHÔNG ĐẠT, và đây là phát hiện quan trọng nhất
+`test/ds18b20_power_diag` hỏi riêng từng con 200 lần:
 
-Bốn lần chạy liên tiếp, **cùng một sketch, không ai động vào phần cứng**:
+```
+[INFO] Co chung cua ca bus: CAP NGUON RIENG
+P01 2830F10100000017   0.0%   OK - co nguon rieng
+...   (ca 8 con deu 0.0%)
+P08 287FCD01000000E3   0.0%   OK - co nguon rieng
+
+CHAN      : 320 tot, 0 loi (0.00%)
+KHONG CHAN: 320 tot, 0 loi (0.00%)
+```
+
+**1 600 lần hỏi, không một lần nào báo ký sinh.** Cách đấu dây 3 hàng +
+điện trở 4,7 kΩ là đúng.
+
+> ⚠️ **Đính chính.** Bản trước của tài liệu này kết luận "chân VDD không được
+> cấp nguồn, phải đấu lại 3 dây". Kết luận đó **sai**. Nó dựa trên đúng một
+> dòng `isParasitePowerMode() = true` mà không kiểm chứng thêm gì. Bài học:
+> một cờ tổng hợp của cả bus không đủ để kết luận về phần cứng — phải hỏi được
+> từng con thì mới biết con nào.
+
+## KQ-04 · Vì sao cờ ký sinh bật nhầm — lỗi chốt trong thư viện
+
+Đọc mã nguồn DallasTemperature 4.0.6 thì thấy `parasite = false` **chỉ** nằm
+trong `setOneWire()`. Còn `begin()` thì:
+
+```cpp
+if (!parasite && readPowerSupply(deviceAddress)) parasite = true;
+```
+
+Cờ **chỉ có chiều bật, không có chiều tắt**, và được quyết định bằng **một lần
+hỏi duy nhất** cho mỗi con, ngay lúc quét bus lúc khởi động.
+
+Hệ quả: chỉ cần một lần nhiễu thoáng qua đúng khoảnh khắc quét bus là cờ bật và
+**giữ nguyên suốt cả phiên**. Từ đó thư viện xử lý cả 8 con theo kiểu ký sinh
+dù dây nối hoàn toàn đúng.
+
+Điều này giải thích hình dạng kỳ lạ của lỗi ở KQ-05: không phải suy giảm dần,
+mà là một cái **chốt** — hoặc 0 % hoặc ~33 %, không có ở giữa.
+
+`test/ds18b20_boot_latch` khởi động lại board 25 lần liên tiếp:
+
+```
+25/25 lan: BOOT N=8 PARA=0 POLL=0 BAD=0/24
+co PARA=1 (co ky sinh bi bat): 0
+```
+
+Hiện tại cờ không bị bật nhầm lần nào.
+
+## KQ-05 · ĐỘ BỀN BUS — ⚠️ đã từng hỏng 35 %, hiện không tái hiện được
+
+Năm lần chạy `ds18b20_stress_test`, **cùng sketch, cùng phần cứng**:
 
 | Lần | Thời lượng | Đọc tốt | Lỗi | Tỉ lệ lỗi |
 |---|---|---|---|---|
-| 2 | 272 s | 2 520 | 0 | **0,00 %** |
+| 2 | 272 s | 2 520 | 0 | 0,00 % |
 | 3 | 182 s | 1 172 | 548 | **31,86 %** |
 | 4 | 150 s | 744 | 408 | **35,42 %** |
+| 5 *(sau chẩn đoán)* | 272 s | 2 520 | 0 | 0,00 % |
 
-Lần 2 sạch tuyệt đối. Hai lần sau hỏng 1/3. Đây **không phải** cảm biến hỏng —
-đây đúng là chữ ký của nguồn ký sinh: nó nằm ngay ranh giới hoạt động được,
-nên lúc chạy lúc không tuỳ nhiệt độ, tiếp xúc và điện áp.
+Lúc hỏng thì cả 8 kênh mất cùng lúc (đúng 51 lần `DISC` mỗi kênh), và P08 đọc
+ra **−20,31 °C rồi +43,06 °C trong phòng 28 °C**.
 
-Hai dấu hiệu xác nhận:
+**Không tái hiện được nữa.** 25 lần khởi động + 2 lần chạy 5 phút đều sạch,
+không ai sửa gì phần cứng ở giữa.
 
-**(a) Cả 8 kênh mất cùng lúc.** Lần 4: mọi kênh đều đúng 51 lần `DISC`. Nếu là
-một con cảm biến hỏng thì chỉ một kênh chết. Cả bus cùng chết nghĩa là vấn đề
-ở **nguồn hoặc đường dây chung**.
+Đây là **lỗi chập chờn** — loại nguy hiểm nhất, vì nó tự khỏi rồi lại tự quay
+lại. Nghi phạm số một là tiếp xúc trên breadboard: chân cắm long, khe kẹp mòn,
+hoặc mối nối ở dây đầu dò. Nhiệt độ phòng và rung động nhẹ đủ làm nó đổi trạng
+thái.
 
-**(b) P08 đọc ra số vô lý nhưng qua được CRC:**
-```
-P08  trung binh 28.56  nhieu(std) 7.3057   min -20.31   max 32.12   | 72 lan nhay >1C
-```
-−20 °C và +43 °C trong phòng 28 °C. Cảm biến bị sụt áp giữa lúc chuyển đổi thì
-thanh ghi ra giá trị rác.
+> **KHÔNG được coi là đã sửa xong.** Chưa tìm ra nguyên nhân thì nó sẽ quay lại,
+> và lần quay lại tệ nhất là lúc đang demo. Với hệ giám sát an toàn thì đọc sai
+> 1/3 số lần mà **không báo gì cả** là chế độ hỏng tệ nhất có thể có.
 
-> ⚠️ **Nếu không đếm lỗi thì không bao giờ thấy chuyện này.** Sketch bench đầu
-> tiên in số ra màn hình trông rất đẹp, và lần chạy thứ hai cho 0 lỗi. Chỉ khi
-> chạy nhiều lần và **đếm** mới lộ ra. Một hệ an toàn mà cứ 3 lần đọc sai 1 lần
-> là hệ vô dụng — mà nó sẽ không báo lỗi gì cả, chỉ âm thầm cho số sai.
+## KQ-06 · Sai lệch giữa các cảm biến — CHƯA ĐO ĐƯỢC, và đây là câu trả lời
 
-## KQ-04 · Lệch giữa các cảm biến — CHƯA KẾT LUẬN ĐƯỢC
+Bảng `T_OFFSET` sinh ra ở các lần chạy sạch khác nhau:
 
-Đây là chỗ tớ phải **rút lại kết luận trước đó**. Bản đầu của tài liệu này viết
-"sai lệch 0,575 °C, bắt buộc hiệu chỉnh". Con số đó không đứng vững:
+| Kênh | Lần 2 | Lần 5 | Chênh |
+|---|---|---|---|
+| P01 | −0,101 | −0,070 | 0,031 |
+| P02 | −0,075 | −0,280 | **0,205** |
+| P03 | +0,152 | −0,007 | 0,159 |
+| P04 | −0,109 | **+0,250** | **0,359** |
+| P05 | +0,275 | +0,150 | 0,125 |
+| P06 | +0,103 | +0,045 | 0,058 |
+| P07 | −0,077 | +0,134 | **0,211** |
+| P08 | −0,169 | −0,224 | 0,055 |
 
-| Lần chạy | Độ rộng lệch | P03 | P05 | P06 |
-|---|---|---|---|---|
-| 1 (bench, 60 s) | 0,575 °C | +0,275 | +0,412 | −0,049 |
-| 2 (sạch, 272 s) | 0,443 °C | +0,152 | +0,275 | +0,103 |
-| 4 (bus hỏng) | 0,645 °C | −0,027 | +0,469 | −0,035 |
+**P04 đổi 0,359 °C giữa hai lần chạy sạch.** Sai số chế tạo của một con cảm
+biến là **hằng số vật lý** — nó không thể đổi. Nhiễu đọc chỉ 0,03 °C, nên cũng
+không phải nhiễu.
 
-Trong **một** lần chạy, offset rất ổn định (P05 đi +0,2741 → +0,2749 → +0,2791
-qua ba lần báo cáo, tức ±0,005 °C). Nhưng **giữa các lần chạy thì lệch tới
-0,15 °C** — gấp 5 lần nhiễu đọc.
+→ Kết luận: **cái đang đo được KHÔNG PHẢI sai số cảm biến.** Nó là chênh lệch
+nhiệt độ **thật** giữa các vị trí mà đầu dò đang nằm. Tám đầu dò vứt mỗi cái
+một chỗ thì mỗi cái ở trong một luồng không khí khác nhau, gần board ấm hoặc xa
+board, gần cửa sổ hoặc không. Chênh 0,3 °C giữa hai điểm cách nhau 20 cm trong
+phòng là chuyện hoàn toàn bình thường.
 
-Sai số chế tạo của cảm biến là hằng số, nó không thể tự đổi. Nên phần chênh
-giữa các lần chạy phải đến từ chỗ khác. Hai khả năng, và nhiều khả năng là cả hai:
+Trong **một** lần chạy thì offset lại rất ổn định (P05 đi +0,2741 → +0,2749 →
++0,2791 qua ba lần báo cáo, tức ±0,005 °C) — đúng như kỳ vọng, vì trong vài
+phút thì bố trí không khí không đổi.
 
-1. **Nguồn ký sinh làm sai cả giá trị đọc**, không chỉ làm mất gói.
-2. **8 đầu dò để rời ngoài không khí thì KHÔNG cùng một nhiệt độ.** Chỉ cần
-   luồng gió nhẹ hay một con nằm gần board ấm hơn là chênh 0,1–0,2 °C. Cái ta
-   đo được là *(sai số cảm biến) + (chênh nhiệt độ thật giữa các vị trí)*, và
-   không tách được hai phần đó.
+> ⚠️ **Đính chính lần hai.** Bản trước khẳng định "sai lệch 0,575 °C, **bắt
+> buộc** hiệu chỉnh". Cả con số lẫn kết luận đều chưa có cơ sở. Đúng ra phải
+> nói: **chưa biết 8 con này lệch nhau bao nhiêu, vì phép đo bị nhiễu môi
+> trường lấn át hoàn toàn.** Có thể chúng rất đều, cũng có thể không.
 
-→ **Không khí không phải môi trường hiệu chuẩn hợp lệ.** Mọi bảng `T_OFFSET`
-sinh ra cho tới giờ đều phải vứt.
+### Cách đo cho đúng
 
-**Nhưng câu hỏi "có cần hiệu chỉnh không" thì đã trả lời được: CÓ.** Kể cả lần
-chạy sạch nhất cũng cho độ rộng 0,443 °C. Lớp 1 nhìn **chênh lệch tương đối
-giữa các cell** (QĐ-012), nên lệch cố định trông y hệt "cell này lúc nào cũng
-nóng hơn". Tra `models/eval_results.npz`: autoencoder bắt lỗi offset 0,5 °C với
-tỉ lệ **41,7 %** — tức là cắm thẳng vào thì có ~4/10 khả năng một kênh bị báo
-động giả vĩnh viễn, và nó sẽ không bao giờ tự tắt.
+Muốn tách sai số cảm biến ra khỏi chênh lệch môi trường thì phải ép cả 8 con về
+**cùng một nhiệt độ thật**:
 
-## KQ-05 · Đọc không chặn — chạy được, nhưng chưa đo được thời gian thật
+1. **Bó cả 8 đầu dò lại thành một cụm**, đầu kim loại chụm sát nhau, buộc dây
+   rút hoặc quấn băng dính.
+2. **Nhúng cụm đó vào cốc nước ở nhiệt độ phòng**, ngập hết phần kim loại. Nước
+   dẫn nhiệt tốt hơn không khí hàng trăm lần nên ép được cả 8 con về cùng một
+   nhiệt độ — bó khô trong không khí vẫn còn chênh, nhưng đỡ hơn nhiều.
+3. **Khuấy, rồi đợi 10 phút** cho ổn định mới bắt đầu đo.
+4. Chạy `ds18b20_stress_test` **5 phút**, lấy bảng `T_OFFSET`.
+5. **Làm lại toàn bộ lần hai.** Hai bảng phải khớp nhau trong ~0,05 °C thì mới
+   tin được. Không khớp nghĩa là chưa đẳng nhiệt, làm lại.
 
-Mẫu code không chặn (`setWaitForConversion(false)` + quay lại lấy kết quả ở
-vòng sau) hoạt động: không có lần nào đọc phải giá trị reset 85,0 °C.
+Lúc đó mới trả lời được câu "có cần hiệu chỉnh không". Nếu độ rộng < 0,1 °C thì
+**bỏ qua hiệu chỉnh**, không cần làm gì thêm.
+
+*Vì sao vẫn phải quan tâm:* Lớp 1 nhìn chênh lệch tương đối giữa các cell
+(QĐ-012), nên một sai lệch cố định trông y hệt "cell này lúc nào cũng nóng hơn".
+Tra `models/eval_results.npz`, autoencoder bắt lỗi offset 0,5 °C ở tỉ lệ 41,7 %.
+Nên *nếu* lệch thật sự cỡ 0,5 °C thì phải hiệu chỉnh. Chỉ là ta **chưa biết**.
+
+## KQ-07 · Đọc không chặn — chạy được
+
+Không lần nào đọc phải giá trị reset 85,0 °C. Đọc chặn và không chặn cho tỉ lệ
+lỗi như nhau (0,00 % cả hai) khi bus khoẻ.
 
 *Nói cho đúng:* cột "thời gian chuyển đổi TB 760 ms" trong log **không phải số
-đo** — nó chính là ngưỡng chờ tớ đặt cứng trong sketch. Thử nghiệm này chỉ
-chứng minh **760 ms là đủ**, không đo được thực tế cần bao nhiêu. Datasheet ghi
-≤750 ms cho 12 bit.
-
-⚠️ Lưu ý cho lúc tích hợp: ở **chế độ ký sinh**, thư viện phải giữ dây dữ liệu
-ở mức cao suốt quá trình chuyển đổi, nên kiểu đọc không chặn về nguyên tắc
-không tương thích với ký sinh. Sau khi đấu lại 3 dây thì vấn đề này tự hết.
+đo** — nó chính là ngưỡng chờ đặt cứng trong sketch. Thử nghiệm chỉ chứng minh
+760 ms là đủ. Datasheet ghi ≤750 ms cho 12 bit.
 
 ---
 
-## Việc phải làm, theo đúng thứ tự
+## Việc phải làm, theo thứ tự
 
-Không được đảo thứ tự — mỗi bước sau chỉ có nghĩa khi bước trước đã xong.
+1. **Đo lại offset bằng cách bó cụm + nhúng nước** (quy trình ở KQ-06). Đây là
+   việc rẻ nhất và nó quyết định có cần bước hiệu chỉnh hay không.
+2. **Firmware phải ĐẾM và BÁO lỗi cảm biến lúc chạy** — xem QĐ-024. Đây là việc
+   quan trọng hơn cả việc truy cho ra nguyên nhân lỗi chập chờn, vì trên xe thật
+   có rung động thì dây **chắc chắn** sẽ có lúc tiếp xúc kém.
+3. **Kiểm lại cờ ký sinh bằng `readPowerSupply()` từng con**, không tin cờ tổng
+   của `isParasitePowerMode()` (QĐ-024).
+4. **Bỏ breadboard trước khi gắn lên pack** — hàn thẳng hoặc dùng terminal block
+   bắt vít. Breadboard không chịu được rung.
+5. Dán nhãn ROM lên từng dây, dán đầu dò lên pack, rồi **đo offset lần cuối lúc
+   pack nghỉ** (không sạc, không xả). Bảng đó mới là bảng nạp vào firmware.
 
-1. **Đấu VDD của cả 8 con lên 3,3 V.** Chạy lại `ds18b20_stress_test`, xác nhận
-   in ra `CAP NGUON RIENG (3 day)`.
-2. **Chạy lại ít nhất 3 lần, mỗi lần ≥5 phút, đòi tỉ lệ lỗi 0,00 % cả 3 lần.**
-   Một lần sạch không chứng minh được gì — lần 2 ở trên đã sạch rồi mà vẫn hỏng.
-   Nếu còn lỗi: hạ điện trở kéo lên từ 4,7 kΩ xuống 2,2 kΩ (8 cảm biến + dây
-   dài thì 4,7 k hay yếu), rút ngắn dây, kiểm tra mass chung.
-3. **Dán nhãn ROM lên từng sợi dây** theo bảng KQ-01, rồi dán đầu dò lên pack.
-4. **Hiệu chuẩn offset trong môi trường đẳng nhiệt thật** — không phải không
-   khí. Cách làm được: bó cả 8 đầu dò lại, nhúng trong cốc nước ở nhiệt độ
-   phòng, khuấy đều, đợi 10 phút cho ổn định rồi mới đo 5 phút. Nước dẫn nhiệt
-   tốt hơn không khí hàng trăm lần nên đảm bảo cả 8 con thật sự cùng nhiệt độ.
-   Lặp lại 2 lần; hai bảng offset phải khớp nhau trong ~0,05 °C thì mới tin.
-5. Sau khi dán lên pack thì **đo lại lần nữa lúc pack nghỉ** (không sạc, không
-   xả, cả 8 cell cùng nhiệt độ). Lúc này sai số còn gồm tiếp xúc nhiệt của từng
-   mối dán — và đó mới là bảng thật sự nạp vào firmware.
-
-Chỉ sau khi xong bước 5 mới được cho Lớp 1 ăn nhiệt độ thật.
-
-Xem QĐ-021, QĐ-022, QĐ-023 trong `DECISION_LOG.md`.
+Xem QĐ-022, QĐ-023, QĐ-024 trong `DECISION_LOG.md`.

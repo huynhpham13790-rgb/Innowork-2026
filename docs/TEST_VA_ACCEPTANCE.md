@@ -73,11 +73,13 @@ Ký hiệu: ✅ đã kiểm chứng · ⬜ chưa làm · 🔶 làm rồi nhưng 
 | 6.9 | Ngưỡng cứng 60°C vẫn chạy song song | `runAI()` kiểm độc lập | ✅ 11/09 |
 | 6.10 | 8 cảm biến DS18B20 lên bus, ROM ổn định | 8/8 con, ROM giống nhau qua 4 lần chạy | ✅ 14/09 |
 | 6.11 | Nhiễu nền nhỏ hơn tín hiệu cần bắt | std 0,019–0,033 °C | ✅ 14/09 |
-| 6.12 | **Cảm biến cấp nguồn riêng, không ký sinh** | `isParasitePowerMode()` = true | ⛔ **HỎNG** — QĐ-023 |
-| 6.13 | **Bus sạch: 3 lần × ≥5 phút, lỗi 0,00 %** | 0,00 % → 31,86 % → 35,42 % | ⛔ **HỎNG** — chặn bởi 6.12 |
-| 6.14 | Bảng offset đo lại được (2 lần khớp ~0,05 °C) | lệch tới 0,15 °C giữa các lần | ⬜ chặn bởi 6.12 + 6.13 |
-| 6.15 | Đọc cảm biến không chặn vòng lặp 1 Hz | mẫu code chạy, chưa hợp lệ ở chế độ ký sinh | ⬜ chặn bởi 6.12 |
-| 6.16 | Lớp 1 chạy trên nhiệt độ THẬT (không mô phỏng) | — | ⬜ chặn bởi 6.12–6.15 |
+| 6.12 | Cả 8 con có nguồn riêng (hỏi từng ROM) | 1 600 lần hỏi, 0 lần ký sinh | ✅ 14/09 |
+| 6.13 | Đọc không chặn vòng lặp 1 Hz | chặn và không chặn đều 0,00 % lỗi | ✅ 14/09 |
+| 6.14 | **Bus sạch: 3 lần × ≥5 phút liên tiếp, lỗi 0,00 %** | đã gặp 31,86 % và 35,42 %, nay không tái hiện | ⚠️ **CHẬP CHỜN** — QĐ-024 |
+| 6.15 | Firmware đếm + báo lỗi cảm biến theo từng kênh | — | ⬜ **chưa làm** — QĐ-024 |
+| 6.16 | Bảng offset đo trong nước, 2 lần khớp ~0,05 °C | đo trong không khí: xáo trộn 0,36 °C | ⬜ **chưa làm** — QĐ-022 |
+| 6.17 | Bỏ breadboard, hàn/terminal block trước khi gắn pack | — | ⬜ chưa làm |
+| 6.18 | Lớp 1 chạy trên nhiệt độ THẬT (không mô phỏng) | — | ⬜ chặn bởi 6.14–6.17 |
 
 ## AC-07 — Lớp 2: Dự báo tuổi thọ (RUL/SOH) trên cloud
 
