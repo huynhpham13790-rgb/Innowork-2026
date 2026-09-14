@@ -79,6 +79,8 @@ Ký hiệu: ✅ đã kiểm chứng · ⬜ chưa làm · 🔶 làm rồi nhưng 
 | 6.15 | Firmware đếm + báo lỗi cảm biến theo từng kênh | `cell_temp.cpp` + tag `Sensor_*` lên cloud | ✅ 14/09 |
 | 6.16 | Bảng offset đo trong nước, 2 lần khớp ~0,05 °C | 2 lần khớp 0,025 °C; lệch thật 0,3665 °C | ✅ 14/09 — `ds18b20_offsets.h` |
 | 6.17 | Bỏ breadboard, hàn/terminal block trước khi gắn pack | — | ⬜ chưa làm |
+| 6.22 | **Còi + LED cảnh báo tại chỗ** (không cần mạng) | — | ⬜ **chưa làm** — hệ mới chỉ cảnh báo qua log/dashboard |
+| 6.23 | Rơ-le/MOSFET ngắt đường sạc khi báo động | — | ⬜ chưa làm, cần cân nhắc rủi ro ngắt sai |
 | 6.18 | Lớp 1 chạy trên nhiệt độ THẬT (không mô phỏng) | bench `cell_temp_ai_bench`, `USE_REAL_TEMP 1` | ✅ 14/09 (chưa chạy toàn tuyến, thiếu WiFi) |
 | 6.19 | Hiệu chỉnh offset thu hẹp độ rộng trên board thật | thô 0,375 → 0,030 °C (12,4 lần) | ✅ 14/09 |
 | 6.20 | Lớp 1 im lặng khi 8 cell cùng nhiệt độ | 0/251 mẫu báo động; điểm 0,32 vs ngưỡng 1,85 | ✅ 14/09 |
