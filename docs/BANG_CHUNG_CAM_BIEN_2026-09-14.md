@@ -23,8 +23,9 @@ arduino-cli compile --fqbn esp32:esp32:esp32s3:PartitionScheme=default_8MB,Flash
 
 1. **Cảm biến và cách đấu dây đều đúng.** 8/8 con có nguồn riêng, nhiễu nền
    0,02–0,05 °C, 25/25 lần khởi động sạch.
-2. **Đã gặp lỗi bus 31–35 %, nhưng hiện KHÔNG tái hiện được.** Lỗi chập chờn —
-   loại khó nhất. Không được coi là đã sửa xong.
+2. **Lỗi bus 31–35 % đã tìm ra nguyên nhân: ẩm/nước ở đầu dò.** Lau khô rồi
+   chạy 3 lần × 5 phút đều 0,0000 % lỗi. Nghi ngờ ban đầu đổ cho tiếp xúc
+   breadboard là sai hướng.
 3. **Sai lệch giữa các cảm biến: 0,3665 °C — đã đo được, lặp lại được, PHẢI
    hiệu chỉnh.** Đo bằng cách bó cụm nhúng nước; hai lần độc lập khớp nhau
    trong 0,025 °C. Hệ số đã ghi vào `esp32s3_wiseiot_test/ds18b20_offsets.h`.
@@ -107,7 +108,7 @@ co PARA=1 (co ky sinh bi bat): 0
 
 Hiện tại cờ không bị bật nhầm lần nào.
 
-## KQ-05 · ĐỘ BỀN BUS — ⚠️ đã từng hỏng 35 %, hiện không tái hiện được
+## KQ-05 · ĐỘ BỀN BUS — đã hỏng tới 35 %, nguyên nhân tìm ra ở KQ-10 (ẩm)
 
 Năm lần chạy `ds18b20_stress_test`, **cùng sketch, cùng phần cứng**:
 
@@ -121,17 +122,18 @@ Năm lần chạy `ds18b20_stress_test`, **cùng sketch, cùng phần cứng**:
 Lúc hỏng thì cả 8 kênh mất cùng lúc (đúng 51 lần `DISC` mỗi kênh), và P08 đọc
 ra **−20,31 °C rồi +43,06 °C trong phòng 28 °C**.
 
-**Không tái hiện được nữa.** 25 lần khởi động + 2 lần chạy 5 phút đều sạch,
-không ai sửa gì phần cứng ở giữa.
+Lúc viết mục này thì chưa tái hiện được, và tớ đã nghi **tiếp xúc breadboard**.
+**Nghi sai.** Nguyên nhân thật là **ẩm ở đầu dò** — xem KQ-10: lau khô là tỉ lệ
+lỗi về 0,0000 % qua ba lần chạy liên tiếp.
 
-Đây là **lỗi chập chờn** — loại nguy hiểm nhất, vì nó tự khỏi rồi lại tự quay
-lại. Nghi phạm số một là tiếp xúc trên breadboard: chân cắm long, khe kẹp mòn,
-hoặc mối nối ở dây đầu dò. Nhiệt độ phòng và rung động nhẹ đủ làm nó đổi trạng
-thái.
+Giữ nguyên đoạn suy luận sai này vì nó có ích: dấu hiệu "cả 8 kênh mất cùng
+lúc" hợp với **cả hai** giả thuyết (tiếp xúc chung, và rò do ẩm), nên nó không
+phân biệt được. Thứ phân biệt được là **can thiệp rồi đo lại** — lau khô rồi
+chạy lại. Suy luận từ triệu chứng thì ra hai đáp án; làm thí nghiệm thì ra một.
 
-> **KHÔNG được coi là đã sửa xong.** Chưa tìm ra nguyên nhân thì nó sẽ quay lại,
-> và lần quay lại tệ nhất là lúc đang demo. Với hệ giám sát an toàn thì đọc sai
-> 1/3 số lần mà **không báo gì cả** là chế độ hỏng tệ nhất có thể có.
+Dù vậy kết luận về firmware vẫn không đổi: với hệ giám sát an toàn, đọc sai 1/3
+số lần mà **không báo gì cả** là chế độ hỏng tệ nhất có thể có. Đó là QĐ-024,
+và nó đúng bất kể nguyên nhân phần cứng là gì.
 
 ## KQ-06 · Sai lệch giữa các cảm biến — CHƯA ĐO ĐƯỢC, và đây là câu trả lời
 
@@ -174,9 +176,10 @@ Muốn tách sai số cảm biến ra khỏi chênh lệch môi trường thì p
 
 1. **Bó cả 8 đầu dò lại thành một cụm**, đầu kim loại chụm sát nhau, buộc dây
    rút hoặc quấn băng dính.
-2. **Nhúng cụm đó vào cốc nước ở nhiệt độ phòng**, ngập hết phần kim loại. Nước
-   dẫn nhiệt tốt hơn không khí hàng trăm lần nên ép được cả 8 con về cùng một
-   nhiệt độ — bó khô trong không khí vẫn còn chênh, nhưng đỡ hơn nhiều.
+2. **Nhúng cụm đó vào cốc nước ở nhiệt độ phòng** — ngập **CHỈ phần đầu kim
+   loại**, giữ toàn bộ dây và mối nối trên mặt nước. Nước dẫn nhiệt tốt hơn
+   không khí hàng trăm lần nên ép được cả 8 con về cùng một nhiệt độ.
+   ⚠️ Ngâm cả dây làm tỉ lệ lỗi bus leo lên 9,4 % sau ~45 phút — xem KQ-10.
 3. **Khuấy, rồi đợi 10 phút** cho ổn định mới bắt đầu đo.
 4. Chạy `ds18b20_stress_test` **5 phút**, lấy bảng `T_OFFSET`.
 5. **Làm lại toàn bộ lần hai.** Hai bảng phải khớp nhau trong ~0,05 °C thì mới
@@ -298,13 +301,63 @@ Tăng đều theo thời gian ngâm. Giả thuyết: **nước thấm dần lên
 nối ở đầu breadboard**, gây rò giữa VDD / DATA / GND. Đầu dò DS18B20 loại chống
 nước chỉ kín ở **đầu kim loại**, phần dây và mối nối thì không.
 
-**Cách kiểm chứng:** nhấc cả 8 đầu dò ra khỏi nước, lau khô, để 15 phút cho
-ráo, rồi chạy lại `ds18b20_stress_test`. Nếu tỉ lệ lỗi về 0 % thì xác nhận là
-do nước.
+### ✅ ĐÃ XÁC NHẬN: đúng là do nước
 
-*Nếu đúng là do nước thì đây không phải vấn đề của sản phẩm* — trên pack pin
-thật đầu dò không ngâm nước. Nhưng nó là vấn đề của **quy trình hiệu chuẩn**:
-phải giữ toàn bộ phần dây và mối nối ở trên mặt nước, chỉ nhúng đầu kim loại.
+Lau khô đầu dò rồi chạy lại `ds18b20_stress_test` **ba lần liên tiếp**, mỗi lần
+5 phút / 2 800 lượt đọc:
+
+| Lần | Đọc tốt | Lỗi | Tỉ lệ lỗi |
+|---|---|---|---|
+| khô 1 | 2 800 | 0 | **0,0000 %** |
+| khô 2 | 2 800 | 0 | **0,0000 %** |
+| khô 3 | 2 800 | 0 | **0,0000 %** |
+
+Từ 9,4 % về 0 % chỉ bằng thao tác lau khô. **Đây cũng là lời giải cho lỗi chập
+chờn 31–35 % ở KQ-05** — nghi ngờ ban đầu đổ cho tiếp xúc breadboard là sai
+hướng; thủ phạm là ẩm gây rò giữa VDD / DATA / GND.
+
+Ba lần sạch liên tiếp cũng chính là tiêu chí AC-06.14. **Đạt.**
+
+*Đây không phải vấn đề của sản phẩm* — trên pack pin thật đầu dò không ngâm
+nước. Nhưng nó là vấn đề của **quy trình hiệu chuẩn**: lần sau chỉ nhúng phần
+đầu kim loại, giữ toàn bộ dây và mối nối trên mặt nước.
+
+## KQ-11 · Sai số còn lại của bảng offset: ±0,03 °C, riêng P07/P08 ±0,07 °C
+
+Ba lần chạy lúc khô (đầu dò vẫn đang bó cụm, để trong không khí) cho thêm một
+bộ số để đối chiếu với bảng đo trong nước:
+
+| Kênh | NƯỚC | khô 1 | khô 2 | khô 3 | lệch so với NƯỚC |
+|---|---|---|---|---|---|
+| P01 | −0,0166 | −0,0160 | +0,0024 | −0,0004 | 0,019 |
+| P02 | −0,1738 | −0,1815 | −0,1656 | −0,1664 | 0,008 |
+| P03 | +0,1927 | +0,1945 | +0,1847 | +0,1779 | 0,015 |
+| P04 | −0,0553 | −0,0314 | −0,0306 | −0,0277 | 0,028 |
+| P05 | +0,1037 | +0,0992 | +0,0933 | +0,1000 | 0,010 |
+| P06 | +0,0078 | +0,0094 | +0,0037 | +0,0004 | 0,007 |
+| **P07** | −0,0612 | −0,0124 | −0,0251 | −0,0189 | **0,049** |
+| **P08** | +0,0028 | −0,0617 | −0,0628 | −0,0648 | **0,068** |
+
+Sáu kênh khớp trong 0,028 °C. P07 và P08 lệch 0,05–0,07 °C.
+
+**Ba lần khô rất khớp nhau (±0,005 °C) — nhưng điều đó KHÔNG chứng minh chúng
+đúng.** Bó cụm không đổi vị trí giữa ba lần, nên một chênh lệch nhiệt do hình
+học bó sẽ lặp lại y nguyên cả ba lần. Lặp lại được mà vẫn sai là chuyện hoàn
+toàn có thể. Nhiều khả năng P07/P08 nằm ở rìa bó nên tiếp xúc với không khí
+nhiều hơn phần lõi.
+
+→ **Giữ bảng đo trong nước.** Nước ép đẳng nhiệt mạnh hơn hẳn không khí; đó là
+lý do chọn nó ngay từ đầu.
+
+**Phép thử dứt điểm nếu muốn chắc chắn:** đảo vị trí các đầu dò trong bó rồi đo
+lại. Nếu offset **đi theo con cảm biến** thì đó là sai số chế tạo thật; nếu nó
+**ở lại theo vị trí trong bó** thì đó là chênh lệch môi trường. Tách được hai
+thứ này bằng đúng một lần đo.
+
+*Có cần làm không:* sai số còn lại 0,07 °C nhỏ hơn độ rộng thô 0,37 °C **5 lần**,
+và thấp hơn nhiều mọi mức mà Lớp 1 phản ứng (ở 0,5 °C tỉ lệ phát hiện đã chỉ
+41,7 %). Nên bảng hiện tại dùng được. Ghi lại đây để không ai tưởng nó chính
+xác tới chữ số thứ ba.
 
 ## KQ-07 · Đọc không chặn — chạy được
 

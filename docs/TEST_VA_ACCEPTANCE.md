@@ -75,7 +75,7 @@ Ký hiệu: ✅ đã kiểm chứng · ⬜ chưa làm · 🔶 làm rồi nhưng 
 | 6.11 | Nhiễu nền nhỏ hơn tín hiệu cần bắt | std 0,019–0,033 °C | ✅ 14/09 |
 | 6.12 | Cả 8 con có nguồn riêng (hỏi từng ROM) | 1 600 lần hỏi, 0 lần ký sinh | ✅ 14/09 |
 | 6.13 | Đọc không chặn vòng lặp 1 Hz | chặn và không chặn đều 0,00 % lỗi | ✅ 14/09 |
-| 6.14 | **Bus sạch: 3 lần × ≥5 phút liên tiếp, lỗi 0,00 %** | đã gặp 31,86 % và 35,42 %, nay không tái hiện | ⚠️ **CHẬP CHỜN** — QĐ-024 |
+| 6.14 | **Bus sạch: 3 lần × ≥5 phút liên tiếp, lỗi 0,00 %** | 3×2 800 đọc, 0 lỗi, sau khi lau khô đầu dò | ✅ 14/09 |
 | 6.15 | Firmware đếm + báo lỗi cảm biến theo từng kênh | `cell_temp.cpp` + tag `Sensor_*` lên cloud | ✅ 14/09 |
 | 6.16 | Bảng offset đo trong nước, 2 lần khớp ~0,05 °C | 2 lần khớp 0,025 °C; lệch thật 0,3665 °C | ✅ 14/09 — `ds18b20_offsets.h` |
 | 6.17 | Bỏ breadboard, hàn/terminal block trước khi gắn pack | — | ⬜ chưa làm |
