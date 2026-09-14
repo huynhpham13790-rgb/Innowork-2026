@@ -217,6 +217,57 @@ không phải do sức khoẻ pin. Lấy tới 0,02 A là nhét đặc tính thi
 nhưng lý do chọn là khả dụng ngoài đời — nếu chọn vì điểm thì đó là tinh chỉnh
 trên tập test.
 
+### QĐ-021 · 14/09/2026 · Đã chốt
+**Giữ Wi-Fi làm kênh chính lên cloud. BLE là kênh BỔ SUNG, làm sau Bán kết.**
+
+Cô gợi ý ESP32 chạy BLE bắn thẳng lên điện thoại thay vì qua Wi-Fi/gateway.
+Hai điều cần tách:
+
+- *Về gateway:* kiến trúc hiện tại **không có gateway** — Pi đã bỏ từ §1. Đường
+  đi là ESP32 → Wi-Fi → cloud, một chặng.
+- *Về tiết kiệm điện:* BLE tiết kiệm thật (~10 mA so với ~100 mA), nhưng trên
+  pack 86 Wh thì Wi-Fi liên tục vẫn trụ ~11 ngày, trong khi xe được sạc mỗi
+  1–3 ngày. **Điện không phải ràng buộc quyết định** — đừng lấy nó làm lý do
+  chính trên sân khấu, sẽ bị hỏi ngược.
+
+Lý do thật sự để không đổi:
+1. BLE chỉ chạy khi có người cầm điện thoại đứng gần — mà lúc nguy hiểm nhất
+   là **sạc qua đêm không ai trông**.
+2. BLE không thay được cloud, chỉ đổi người đưa thư; quản lý đội xe vẫn cần
+   dashboard.
+3. Điểm Bán kết phụ thuộc lớn vào mức độ dùng WISE-IoT. Làm dữ liệu lên cloud
+   đứt quãng là tự bỏ điểm.
+4. BLE hợp nhất với người dùng cá nhân — mà §5 xếp hạng 3 và khuyến nghị không
+   làm khách hàng chính. Chọn BLE làm trung tâm là âm thầm đổi khách mục tiêu.
+
+Còn 1 ngày tới Bán kết: đổi kiến trúc truyền dữ liệu lúc này là rủi ro lớn
+nhất có thể tự chuốc, không đổi lại điểm nào. Phân tích đầy đủ và phân vai 3
+nhóm người dùng: `docs/NGUOI_DUNG_VA_KICH_BAN.md`.
+
+### QĐ-022 · 14/09/2026 · Đã chốt
+**Phải hiệu chỉnh offset 8 cảm biến DS18B20 trước khi cho Lớp 1 ăn số thật.**
+
+Đo 60 s với cả 8 đầu dò trong cùng khối không khí: nhiễu mỗi kênh chỉ
+0,00–0,03 °C, nhưng **sai lệch giữa các kênh là 0,575 °C** (P05 cao nhất
++0,41 °C). Nằm trong dải ±0,5 °C của datasheet nên cảm biến không hỏng.
+
+Vấn đề: Lớp 1 nhìn **chênh lệch tương đối giữa cell** (QĐ-012), nên một sai
+lệch cố định trông y hệt "cell này lúc nào cũng nóng hơn". Theo chính
+`models/eval_results.npz`, AE phát hiện lỗi offset 0,5 °C với tỉ lệ **41,7 %**
+→ cắm thẳng vào là có ~4/10 khả năng P05 báo động giả vĩnh viễn.
+
+Cách làm: đo trung bình mỗi kênh ~60 s trong môi trường cân bằng, lưu
+`offset[i] = mean[i] − mean(all)` vào firmware, trừ đi khi đọc.
+**Phải đo lại SAU khi dán đầu dò lên pin** — lúc đó sai số còn gồm tiếp xúc
+nhiệt của từng mối dán, và đó mới là phần lớn. Bảng đo hiện tại (đầu dò để rời
+ngoài không khí) chỉ dùng để chứng minh vấn đề tồn tại, không dùng để nạp.
+
+Kèm theo: đọc cảm biến phải **không chặn**
+(`setWaitForConversion(false)`) — chuyển đổi 12 bit tốn ~750 ms, chặn từng ấy
+mỗi giây thì `mqtt.loop()` rớt keep-alive.
+
+Bằng chứng: `docs/BANG_CHUNG_CAM_BIEN_2026-09-14.md`.
+
 ---
 
 ## Ẩn số còn treo

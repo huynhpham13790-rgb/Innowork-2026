@@ -21,6 +21,7 @@ Bán kết: **15/09/2026**. Mọi quyết định kỹ thuật đều bị chi p
 | Code nằm ở đâu | `docs/MODULE_MAP.md` |
 | Thế nào là "chạy đúng" | `docs/TEST_VA_ACCEPTANCE.md` |
 | Vì sao chọn hướng hiện tại | `docs/DECISION_LOG.md` |
+| Ai dùng, dùng lúc nào, chọn kênh truyền nào | `docs/NGUOI_DUNG_VA_KICH_BAN.md` |
 | Requirement nối tới code/test ở đâu | `docs/RTM.md` |
 | Phương án cloud dự phòng | `VEDCaPhenika/PLAN_B_CLOUD.md` |
 

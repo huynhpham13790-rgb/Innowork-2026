@@ -45,3 +45,6 @@ __pycache__/
 ai/data/nasa_raw/
 ai/data/nasa_battery.zip
 ai/data/nasa_cycles.csv
+
+# file tạm của Claude Code, không phải tài sản dự án
+.claude/settings.local.json*

@@ -71,6 +71,11 @@ Ký hiệu: ✅ đã kiểm chứng · ⬜ chưa làm · 🔶 làm rồi nhưng 
 | 6.7 | Kết quả AI lên tới dashboard, không đổi data contract | query InfluxDB thấy `AI_*` | ✅ 11/09 |
 | 6.8 | Kiểm chứng trên mất cân bằng THẬT (Stanford/Warwick) | — | ⬜ **chưa làm** |
 | 6.9 | Ngưỡng cứng 60°C vẫn chạy song song | `runAI()` kiểm độc lập | ✅ 11/09 |
+| 6.10 | 8 cảm biến DS18B20 thật lên bus, đọc được | `test/ds18b20_bench_test/`, 8/8 con | ✅ 14/09 |
+| 6.11 | Nhiễu đọc nhỏ hơn tín hiệu cần bắt | std 0,00–0,03 °C | ✅ 14/09 |
+| 6.12 | **Sai lệch giữa cảm biến đã được hiệu chỉnh** | đo được 0,575 °C, chưa trừ offset | ⬜ **CHẶN** — xem QĐ-022 |
+| 6.13 | Đọc cảm biến không chặn vòng lặp 1 Hz | chuyển đổi 750 ms, còn chặn | ⬜ **chưa làm** |
+| 6.14 | Lớp 1 chạy trên nhiệt độ THẬT (không mô phỏng) | — | ⬜ chặn bởi 6.12 + 6.13 |
 
 ## AC-07 — Lớp 2: Dự báo tuổi thọ (RUL/SOH) trên cloud
 
