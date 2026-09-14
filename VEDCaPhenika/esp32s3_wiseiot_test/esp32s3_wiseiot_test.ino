@@ -29,6 +29,13 @@
 #include <time.h>
 #include "cell_ai.h"
 #include "charge_cycle.h"
+#include "cell_temp.h"
+
+// ---------------------------------------------------------------- Nguồn nhiệt độ
+// 1 = đọc 8 con DS18B20 thật · 0 = quay lại giả lập (khi tháo cảm biến ra)
+// Giữ đường lùi này vì ngày thi mà dây tuột thì vẫn còn cái để diễn.
+#define USE_REAL_TEMP 1
+#define TEMP_PIN      4      // bus 1-Wire, khớp với các sketch trong test/
 
 // ---------------------------------------------------------------- WiFi
 const char* WIFI_SSID = "TEN_WIFI_CUA_BAN";
@@ -123,6 +130,37 @@ unsigned long lastSimCharge = 0;
 float  gCellTemp[AI_N_CELLS];     // nhiệt 8 cell của bước hiện tại
 bool   gAlarmLatched = false;     // đã báo động rồi thì không spam lại
 int    gAlarmCell    = -1;
+
+// ---------------------------------------------------------------- Cảm biến thật
+CellTemp gTemp;
+bool     gTempOk = false;         // begin() có đủ 8 cảm biến không
+unsigned long lastTempPrint = 0;
+const long TEMP_PRINT_MS = 30000;
+void publishSensorHealth();
+
+/* Nạp gCellTemp[] cho bước hiện tại. Tách riêng để runAI() và publishData()
+   dùng CHUNG một bộ số — bản cũ mỗi hàm tự sinh số ngẫu nhiên riêng, nên nhiệt
+   độ đẩy lên dashboard không phải nhiệt độ mà AI nhìn thấy. Với dữ liệu giả
+   thì không ai để ý; với dữ liệu thật thì đó là hai sự thật mâu thuẫn nhau. */
+void sampleCellTemps() {
+#if USE_REAL_TEMP
+  if (gTemp.status().ready) {
+    const float* t = gTemp.temps();
+    for (int i = 0; i < AI_N_CELLS; i++) gCellTemp[i] = t[i];
+    return;
+  }
+  // Chưa có lượt đọc nào (vài giây đầu) — để nguyên, runAI() sẽ tự bỏ qua.
+  for (int i = 0; i < AI_N_CELLS; i++) gCellTemp[i] = NAN;
+#else
+  faultRise += 0.05f;
+  if (faultRise > 18.0f) faultRise = 0.0f;   // reset để demo lặp lại
+  for (int i = 0; i < AI_N_CELLS; i++) {
+    float v = 30.0f + cellBias[i] + random(-30, 31) / 100.0f;
+    if (i + 1 == FAULT_CELL) v += faultRise;
+    gCellTemp[i] = roundf(v * 16.0f) / 16.0f;   // bước 0,0625 °C như DS18B20
+  }
+#endif
+}
 
 // ============================================================ Tiện ích thời gian
 // EdgeHub yêu cầu ISO-8601 UTC, đúng format "%Y-%m-%dT%H:%M:%S.%fZ" (6 số lẻ giây).
@@ -383,15 +421,19 @@ void publishHeartbeat() {
 // báo cháy nổ. Nó bỏ sót kiểu trôi nhiệt rất chậm (xem ai/README.md), nên
 // ngưỡng cứng 60 °C bên dưới PHẢI giữ, không được bỏ đi vì "đã có AI".
 void runAI() {
-  // Nhiệt độ cell: hiện lấy từ phần giả lập, sau này là 8 con DS18B20.
-  for (int i = 0; i < AI_N_CELLS; i++) {
-    float v = 30.0f + cellBias[i] + random(-30, 31) / 100.0f;
-    if (i + 1 == FAULT_CELL) v += faultRise;
-    gCellTemp[i] = roundf(v * 16.0f) / 16.0f;   // bước 0,0625 °C như DS18B20
-  }
-  const float ambient = 28.0f;    // sẽ là con DS18B20 đo môi trường
-  const float current = 0.0f;     // sẽ là INA228
-  const float soc     = 80.0f;    // sẽ tính từ điện áp pack
+  sampleCellTemps();
+  // Chưa có số đọc hợp lệ (vài giây đầu, hoặc mất cả bus) thì không cho AI ăn
+  // số rác. Thà không có kết quả còn hơn có kết quả sai.
+  if (isnan(gCellTemp[0])) return;
+
+  // ⚠️ Ba con số dưới đây VẪN LÀ GIẢ ĐỊNH — chưa có phần cứng đo.
+  // ambient: cần một con DS18B20 thứ 9 đo môi trường (8 con hiện có đều dán
+  //   lên cell). Lấy hằng số là chấp nhận được vì đặc trưng Lớp 1 chủ yếu là
+  //   tương đối giữa các cell, nhưng phải nói rõ khi trình bày.
+  // current/soc: cần INA228 + đo điện áp pack.
+  const float ambient = 28.0f;
+  const float current = 0.0f;
+  const float soc     = 80.0f;
 
   CellAIResult r = gAI.update(gCellTemp, ambient, current, soc);
   if (!r.valid) return;           // còn trong giai đoạn khởi động
@@ -464,6 +506,34 @@ void publishCycleSummary(const ChargeSummary& s) {
                 gSimCycle, s.duration_s, CC_N_FEATURES);
 }
 
+/* Đẩy sức khoẻ cảm biến lên cloud (QĐ-024).
+   Vẫn đúng data contract: {"d":{"<device>":{...}},"ts":...}, chỉ thêm tag mới,
+   giá trị đều là số. Node-RED/WISE-IoT không phải sửa gì.
+
+   Vì sao đáng một gói riêng: đã đo được bus lỗi 35 % mà không có dấu hiệu nào,
+   và đã gặp cảnh tuột một dây mà chương trình vẫn chạy với 6 cảm biến. Nếu
+   dashboard chỉ có 8 đường nhiệt độ thì không ai nhận ra — các đường vẫn đẹp,
+   chỉ là chúng không còn là sự thật. */
+void publishSensorHealth() {
+  if (!timeIsValid()) return;
+  JsonDocument doc;
+  JsonObject dev = doc["d"][DEVICE_ID].to<JsonObject>();
+
+  const CellTempStatus& s = gTemp.status();
+  dev["Sensor_Healthy"]   = s.n_healthy;          // phải luôn bằng 8
+  dev["Sensor_Found"]     = s.n_found;
+  dev["Sensor_ErrPct"]    = round(gTemp.errorRate() * 1000) / 1000.0;
+  // Bitmask kênh hỏng: 0 là mọi thứ bình thường, khác 0 là có vấn đề.
+  uint8_t mask = 0;
+  for (int i = 0; i < CT_N; i++) if (!s.healthy[i]) mask |= (1 << i);
+  dev["Sensor_FaultMask"] = mask;
+
+  doc["ts"] = isoTimestampUtc();
+  String out; serializeJson(doc, out);
+  bool linkReady = mqtt.connected() && millis() >= linkTrustedAt;
+  if (!(linkReady && mqtt.publish(topicData, out.c_str()))) spoolAppend(out);
+}
+
 // ------------------------------------------------------------ MÔ PHỎNG SẠC
 // TẠM THỜI: chưa có mạch sạc thật nên sinh một chu kỳ CC-CV tổng hợp, chạy ở
 // "thời gian ảo" (mỗi vòng lặp = 1 giây ảo) để một chu kỳ 3 tiếng gói gọn
@@ -514,17 +584,17 @@ void publishData() {
   // Chưa có giờ chuẩn thì gói nào gửi lên cũng bị cloud vứt. Bỏ qua lượt này.
   if (!timeIsValid()) { Serial.println("[DATA] bo qua - NTP chua dong bo"); return; }
 
+  // Chưa có số đọc thật thì không gửi gì. Gửi số bịa lên dashboard rồi sau đó
+  // giải thích "lúc đó cảm biến chưa sẵn sàng" là cách nhanh nhất để mất tin.
+  if (isnan(gCellTemp[0])) { Serial.println("[DATA] bo qua - cam bien chua san sang"); return; }
+
   JsonDocument doc;
   JsonObject dev = doc["d"][DEVICE_ID].to<JsonObject>();
 
-  faultRise += 0.05f;
-  if (faultRise > 18.0f) faultRise = 0.0f;    // reset để demo lặp lại
-
+  // Dùng đúng bộ số mà runAI() vừa nhìn thấy — xem sampleCellTemps().
   for (int i = 1; i <= NUM_CELLS; i++) {
-    float v = 30.0f + cellBias[i - 1] + random(-30, 31) / 100.0f;
-    if (i == FAULT_CELL) v += faultRise;
     char name[16]; snprintf(name, sizeof(name), "Cell%02d_Temp", i);
-    dev[name] = round(v * 100) / 100.0;
+    dev[name] = round(gCellTemp[i - 1] * 100) / 100.0;
   }
   doc["ts"] = isoTimestampUtc();
 
@@ -609,6 +679,16 @@ void setup() {
   spoolBegin();
   gAI.begin();
   gCharge.begin();
+
+#if USE_REAL_TEMP
+  gTempOk = gTemp.begin(TEMP_PIN);
+  if (!gTempOk) {
+    // KHÔNG dừng máy: an toàn tại chỗ vẫn phải chạy với số cảm biến còn lại.
+    // Nhưng phải kêu to, vì đây đúng là chế độ hỏng im lặng đã dính lúc đo
+    // hiệu chuẩn — chương trình chạy ngon lành với 6 cảm biến, không báo gì.
+    Serial.println("[TEMP] *** THIEU CAM BIEN - so lieu KHONG day du ***");
+  }
+#endif
   Serial.print("[WiFi] noi toi "); Serial.println(WIFI_SSID);
   WiFi.mode(WIFI_STA);
   WiFi.begin(WIFI_SSID, WIFI_PASS);
@@ -662,6 +742,18 @@ void loop() {
     mqtt.loop();
     spoolFlush();   // đẩy bù tối đa FLUSH_BATCH gói mỗi vòng
   }
+
+#if USE_REAL_TEMP
+  // Máy trạng thái đọc cảm biến: gọi mỗi vòng, không chặn. Tự lo việc phát
+  // lệnh chuyển đổi rồi quay lại lấy kết quả sau ~760 ms.
+  gTemp.update();
+
+  if (now - lastTempPrint >= TEMP_PRINT_MS) {
+    lastTempPrint = now;
+    gTemp.printStatus();
+    publishSensorHealth();
+  }
+#endif
 
   // AI chạy 1 Hz, độc lập với nhịp gửi dữ liệu. Chạy cả khi MẤT MẠNG —
   // đây là lý do đặt AI on-device: an toàn không được phụ thuộc đường truyền.

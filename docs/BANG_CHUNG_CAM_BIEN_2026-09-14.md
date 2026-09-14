@@ -237,6 +237,75 @@ biến, sketch vẫn chạy bình thường, vẫn in ra bảng đẹp, chỉ l�
 thay vì 8. Không có cảnh báo nào. Firmware chính **phải kiểm số cảm biến đếm
 được đúng bằng 8 lúc khởi động**, thiếu là báo lỗi ngay — xem QĐ-024.
 
+## KQ-09 · Lớp 1 chạy trên cảm biến THẬT — ✅ ĐẠT
+
+Bench `test/cell_temp_ai_bench/` dùng **đúng** `cell_temp.*` và `cell_ai.*` của
+firmware chính (symlink, không phải bản sao — sửa firmware là bench đổi theo).
+Chạy khi 8 đầu dò đang bó cụm trong nước, tức cả 8 cell "khoẻ" như nhau.
+
+**A. Bảng offset có tác dụng thật:**
+
+```
+do rong THO          : 0.3750 C   (neu KHONG hieu chinh)
+do rong DA HIEU CHINH: 0.0303 C   <- AI nhin thay cai nay
+  -> hieu chinh thu hep 12.38 lan
+```
+
+Đây là kiểm chứng **đầu-cuối**: không chỉ bảng số đúng, mà ánh xạ ROM → kênh
+trong firmware cũng đúng. Nếu ánh xạ lệch thì phép trừ offset sẽ làm độ rộng
+**rộng ra**, không hẹp lại.
+
+**B. Lớp 1 im lặng khi mọi thứ bình thường:**
+
+```
+diem cao nhat: cell 8 = 0.3183 (nguong 1.8474)
+bao dong: 0/251 mau (0.00%)  <- tot, im lang
+```
+
+Điểm cao nhất chỉ bằng **17 %** ngưỡng. Đây là phép thử báo động giả rẻ nhất và
+thật nhất có thể dựng: 8 cell cùng nhiệt độ là trạng thái khoẻ rõ ràng nhất.
+AI mà kêu ở đây thì ngoài đời nó sẽ kêu suốt ngày.
+
+*Ghi chú:* lần chạy đầu có **1 báo động trên 381 mẫu**, ngay sau giai đoạn khởi
+động — lúc đó độ lệch chuẩn trượt còn rất nhỏ nên đặc trưng tương đối bị thổi
+phồng. Sau khi sửa logic phục hồi kênh (mục C) thì lần chạy sau ra 0/251. Vẫn
+nên thêm thời gian ủ dài hơn trước khi cho phép báo động — ghi vào việc cần làm.
+
+**C. Một lỗi logic tự tìm ra và đã sửa:** bản đầu của `cell_temp.cpp` cho kênh
+sống lại chỉ sau **một** lần đọc tốt. Với kênh chập chờn thì nó nhấp nháy
+sống–chết liên tục: log spam, dashboard lúc báo 8/8 lúc 7/8, người trực mất
+lòng tin. Đã thêm ngưỡng kép — phải đọc tốt **10 lần liên tiếp** mới cho sống
+lại. Sau khi sửa: chỉ còn **2 lần đổi trạng thái** trong cả lần chạy.
+
+**D. Và đây là chỗ thiết kế QĐ-024 trả công:** trong lần chạy này bus lỗi tới
+**9,4 %**, kênh 5 có lúc bị loại — nhưng Lớp 1 vẫn cho ra **0 báo động giả** và
+nhiệt độ vẫn đúng. Nếu không đếm lỗi và không loại kênh hỏng thì số rác đã lọt
+thẳng vào AI. Đây là lý do bỏ công viết phần đếm lỗi thay vì gọi thẳng
+`getTempCByIndex()`.
+
+## KQ-10 · ⚠️ Tỉ lệ lỗi bus tăng dần khi ngâm nước lâu — cần thử thêm
+
+Diễn biến trong ngày, cùng phần cứng:
+
+| Thời điểm | Tình trạng đầu dò | Tỉ lệ lỗi |
+|---|---|---|
+| Đo hiệu chuẩn lần A | mới nhúng nước | 0,14 % |
+| Đo hiệu chuẩn lần B | trong nước | **0,00 %** |
+| Bench Lớp 1 lần 1 | trong nước, ~30 phút sau | 7,6 % |
+| Bench Lớp 1 lần 2 | trong nước, ~45 phút sau | **9,4 %** |
+
+Tăng đều theo thời gian ngâm. Giả thuyết: **nước thấm dần lên dây hoặc lên mối
+nối ở đầu breadboard**, gây rò giữa VDD / DATA / GND. Đầu dò DS18B20 loại chống
+nước chỉ kín ở **đầu kim loại**, phần dây và mối nối thì không.
+
+**Cách kiểm chứng:** nhấc cả 8 đầu dò ra khỏi nước, lau khô, để 15 phút cho
+ráo, rồi chạy lại `ds18b20_stress_test`. Nếu tỉ lệ lỗi về 0 % thì xác nhận là
+do nước.
+
+*Nếu đúng là do nước thì đây không phải vấn đề của sản phẩm* — trên pack pin
+thật đầu dò không ngâm nước. Nhưng nó là vấn đề của **quy trình hiệu chuẩn**:
+phải giữ toàn bộ phần dây và mối nối ở trên mặt nước, chỉ nhúng đầu kim loại.
+
 ## KQ-07 · Đọc không chặn — chạy được
 
 Không lần nào đọc phải giá trị reset 85,0 °C. Đọc chặn và không chặn cho tỉ lệ
