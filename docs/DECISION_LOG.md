@@ -272,6 +272,40 @@ mỗi giây thì `mqtt.loop()` rớt keep-alive.
 
 Bằng chứng: `docs/BANG_CHUNG_CAM_BIEN_2026-09-14.md`.
 
+*Đính chính 14/09 (cùng ngày):* con số 0,575 °C trong bản đầu **không dùng
+được** — đo trên bus chạy nguồn ký sinh (QĐ-023), và đo trong không khí là môi
+trường không đẳng nhiệt. Kết luận "phải hiệu chỉnh" vẫn đúng, nhưng **bảng
+offset thì phải đo lại** trong nước khuấy đều, sau khi đã sửa nguồn.
+
+### QĐ-023 · 14/09/2026 · Đã chốt
+**8 cảm biến DS18B20 phải đấu 3 dây (cấp nguồn VDD riêng), không dùng nguồn ký sinh.**
+
+`sensors.isParasitePowerMode()` báo `true` → cả 8 con đang hút điện từ chính
+dây dữ liệu lúc chuyển đổi. Hậu quả đo được: chạy 4 lần cùng một sketch, không
+ai động vào phần cứng, mà tỉ lệ lỗi đọc là **0,00 % → 31,86 % → 35,42 %**.
+
+Đây là chữ ký kinh điển của nguồn ký sinh quá tải: nằm ngay ranh giới hoạt
+động được nên lúc chạy lúc không. Hai bằng chứng xác nhận không phải cảm biến
+hỏng:
+- **Cả 8 kênh mất cùng lúc** (đúng 51 lần `DISC` mỗi kênh) → lỗi ở nguồn/dây
+  chung, không phải ở một con.
+- **P08 đọc ra −20 °C và +43 °C trong phòng 28 °C** → sụt áp giữa lúc chuyển
+  đổi làm thanh ghi ra rác.
+
+Với 1–2 cảm biến thì ký sinh thường sống. Với 8 con cùng chuyển đổi một lúc thì
+điện trở kéo lên không cấp nổi dòng. Đây cũng là lý do thư viện yêu cầu giữ dây
+dữ liệu ở mức cao suốt quá trình chuyển đổi ở chế độ ký sinh — tức là **không
+tương thích với kiểu đọc không chặn** mà QĐ-022 đòi hỏi. Đấu 3 dây giải quyết
+cả hai vấn đề cùng lúc.
+
+Tiêu chí nghiệm thu: chạy `ds18b20_stress_test` **3 lần, mỗi lần ≥5 phút, tỉ lệ
+lỗi 0,00 % cả 3 lần**. Một lần sạch không đủ — lần chạy thứ 2 ở trên đã sạch
+tuyệt đối rồi mà hai lần sau vẫn hỏng.
+
+*Bài học phương pháp:* sketch chỉ in số ra màn hình thì không phát hiện được
+chuyện này — nhìn log chạy thấy toàn số đẹp. Phải **đếm lỗi** mới thấy. Mọi
+sketch kiểm tra phần cứng từ nay đều phải có bộ đếm lỗi, không chỉ có `print`.
+
 ---
 
 ## Ẩn số còn treo

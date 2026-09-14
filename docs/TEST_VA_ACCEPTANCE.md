@@ -71,11 +71,13 @@ Ký hiệu: ✅ đã kiểm chứng · ⬜ chưa làm · 🔶 làm rồi nhưng 
 | 6.7 | Kết quả AI lên tới dashboard, không đổi data contract | query InfluxDB thấy `AI_*` | ✅ 11/09 |
 | 6.8 | Kiểm chứng trên mất cân bằng THẬT (Stanford/Warwick) | — | ⬜ **chưa làm** |
 | 6.9 | Ngưỡng cứng 60°C vẫn chạy song song | `runAI()` kiểm độc lập | ✅ 11/09 |
-| 6.10 | 8 cảm biến DS18B20 thật lên bus, đọc được | `test/ds18b20_bench_test/`, 8/8 con | ✅ 14/09 |
-| 6.11 | Nhiễu đọc nhỏ hơn tín hiệu cần bắt | std 0,00–0,03 °C | ✅ 14/09 |
-| 6.12 | **Sai lệch giữa cảm biến đã được hiệu chỉnh** | đo được 0,575 °C, chưa trừ offset | ⬜ **CHẶN** — xem QĐ-022 |
-| 6.13 | Đọc cảm biến không chặn vòng lặp 1 Hz | chuyển đổi 750 ms, còn chặn | ⬜ **chưa làm** |
-| 6.14 | Lớp 1 chạy trên nhiệt độ THẬT (không mô phỏng) | — | ⬜ chặn bởi 6.12 + 6.13 |
+| 6.10 | 8 cảm biến DS18B20 lên bus, ROM ổn định | 8/8 con, ROM giống nhau qua 4 lần chạy | ✅ 14/09 |
+| 6.11 | Nhiễu nền nhỏ hơn tín hiệu cần bắt | std 0,019–0,033 °C | ✅ 14/09 |
+| 6.12 | **Cảm biến cấp nguồn riêng, không ký sinh** | `isParasitePowerMode()` = true | ⛔ **HỎNG** — QĐ-023 |
+| 6.13 | **Bus sạch: 3 lần × ≥5 phút, lỗi 0,00 %** | 0,00 % → 31,86 % → 35,42 % | ⛔ **HỎNG** — chặn bởi 6.12 |
+| 6.14 | Bảng offset đo lại được (2 lần khớp ~0,05 °C) | lệch tới 0,15 °C giữa các lần | ⬜ chặn bởi 6.12 + 6.13 |
+| 6.15 | Đọc cảm biến không chặn vòng lặp 1 Hz | mẫu code chạy, chưa hợp lệ ở chế độ ký sinh | ⬜ chặn bởi 6.12 |
+| 6.16 | Lớp 1 chạy trên nhiệt độ THẬT (không mô phỏng) | — | ⬜ chặn bởi 6.12–6.15 |
 
 ## AC-07 — Lớp 2: Dự báo tuổi thọ (RUL/SOH) trên cloud
 
