@@ -452,6 +452,85 @@ suy xu hướng SOH. Kiểm được SOH trên pin thật là đã kiểm đư�
    SoC đứng yên ở 99 %; tích phân ra 0,008 Ah, vô lý với pack EV. Bộ này vẫn
    tốt cho Lớp 1 — và đó đúng là việc đã dùng nó.
 
+### QĐ-027 · 14/09/2026 · Đã chốt — trả lời phản biện "đo từng cell để làm gì?"
+**Lớp 1 đo từng cell vì AN TOÀN và CHẨN ĐOÁN, không phải để thay lẻ từng cell.
+Lớp 2 vốn đã là mức PACK, không phải mức cell.**
+
+Phản biện từ thành viên trong đội, và nó đúng chỗ: *"phát hiện được một cell
+nóng thì thay mỗi cell đó à hay thay cả cục? Nếu 7 cell 85 % mà 1 cell 80 %,
+thay mỗi cell 80 % thì vài hôm nữa 7 cell kia cũng phải thay."*
+
+#### Đính chính sự thật: Lớp 2 KHÔNG đo từng cell
+
+`charge_cycle.cpp` nhận **điện áp PACK** rồi chia cho 8 để quy về điện áp trung
+bình mỗi cell (`pack_voltage / CC_N_CELLS`). Đầu ra là **một** `RUL_Cycles` và
+**một** `SOH_Percent` cho cả pack. Không có RUL theo từng cell, chưa bao giờ có.
+
+Nên kịch bản "7 cell 85 %, 1 cell 80 %" không phải thứ hệ thống hiện tại sinh
+ra. Phản biện đúng về nguyên tắc nhưng nhắm sai đối tượng.
+
+*Vì sao mức pack là đúng:* pack nối tiếp có dung lượng dùng được **bằng dung
+lượng của cell yếu nhất** — cell yếu chạm ngưỡng cắt trước, cả pack dừng theo.
+Nên SOH pack đã tự động phản ánh cell yếu nhất. Đo riêng từng cell rồi báo cáo
+8 con số RUL là vừa thừa vừa gây hiểu nhầm.
+
+#### Lớp 1: hành động KHÔNG phải "thay cell đó"
+
+Khi Lớp 1 báo một cell nóng bất thường, việc phải làm là **ngắt sạc, cách ly
+pack, đưa ra xa người** — ngay lập tức, và hoàn toàn không liên quan tới bài
+toán kinh tế thay thế. Đây là lý do tồn tại số một, và nó đứng vững bất kể sau
+đó thay cell hay thay pack.
+
+Vì sao phải đo từng cell mới làm được: một cell trong tám nóng lên chỉ kéo
+**trung bình pack** lên khoảng 1/8 mức bất thường. Cảm biến đo trung bình sẽ
+thấy tín hiệu bị pha loãng 8 lần — đúng lúc cần nhạy nhất.
+
+#### Giá trị thứ hai: phân biệt hai kiểu hỏng khác nhau
+
+| Dấu hiệu | Nguyên nhân | Việc phải làm |
+|---|---|---|
+| **Một** cell lệch hẳn | lỗi sản xuất, mối hàn xấu, hỏng cục bộ | bảo hành / sửa cell đó / phản hồi nhà cung cấp |
+| **Cả tám** cùng xuống đều | lão hoá bình thường | hết đời, thay pack |
+
+Hai tình huống này cần hai hành động hoàn toàn khác nhau, và **không thể phân
+biệt nếu chỉ đo pack**. Đây là giá trị chẩn đoán, độc lập với giá trị an toàn.
+
+#### Còn chuyện thay lẻ thì sao — tài liệu đã nói hớ
+
+Bạn trong đội đúng ở chỗ: **cắm một cell MỚI TINH vào pack đã chai là sai.**
+Cell mới dung lượng cao hơn, 7 cell cũ vẫn là nút thắt, và chênh lệch còn làm
+mất cân bằng nặng thêm.
+
+Nhưng kết luận "vậy phải thay cả pack" cũng không đúng. Tài liệu nghiên cứu về
+sửa chữa pack nói rõ hai điều:
+
+1. Thay toàn bộ cell vì **một** cell hỏng sớm là **không khả thi về kinh tế**
+   với pack lớn — nên phải có phương án khác.
+2. Phương án đúng là **giữ kho cell đã lão hoá ở nhiều mức khác nhau, rồi chọn
+   cell có độ chai KHỚP với pack** để thay.
+
+Chiếu vào kịch bản 7 cell 85 % + 1 cell 80 %: không thay bằng cell 100 %, mà
+thay bằng cell **~85 %**. Pack từ 80 % (bị cell yếu nhất chặn) lên 85 %. Rẻ,
+và có thật.
+
+Mà muốn làm được việc đó thì **bắt buộc phải biết sức khoẻ từng cell** — cả
+của pack đang sửa lẫn của kho cell dự trữ. Đây chính là đầu vào mà Lớp 1 tạo ra.
+
+*Ai làm được việc này:* đúng khách hàng số 1 ở §5 — đơn vị vận hành đội xe và
+trạm đổi pin. Họ sở hữu hàng trăm pack, có đồ nghề, và tân trang tập trung.
+Người dùng cá nhân thì không, và đó là một lý do nữa để không chọn B2C.
+
+*Nguồn:* Journal of Remanufacturing (2020), "Battery pack remanufacturing
+process up to cell level"; Batteries 6(3):39, "Cell Replacement Strategies for
+Lithium Ion Battery Packs".
+
+#### Hệ quả cho cách trình bày
+
+Câu **sai**: *"AI của chúng em chỉ ra cell nào cần thay."*
+Câu **đúng**: *"Lớp 1 phát hiện cell bất thường để NGẮT SẠC kịp thời, và để
+phân biệt lỗi một cell với lão hoá toàn pack. Lớp 2 báo sức khoẻ ở mức PACK,
+vì pack nối tiếp sống chết theo cell yếu nhất."*
+
 ---
 
 ## Ẩn số còn treo
