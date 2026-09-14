@@ -48,3 +48,6 @@ ai/data/nasa_cycles.csv
 
 # file tạm của Claude Code, không phải tài sản dự án
 .claude/settings.local.json*
+
+# Bí mật của firmware — mật khẩu MQTT. Chỉ commit bản .example.h
+VEDCaPhenika/esp32s3_wiseiot_test/arduino_secrets.h

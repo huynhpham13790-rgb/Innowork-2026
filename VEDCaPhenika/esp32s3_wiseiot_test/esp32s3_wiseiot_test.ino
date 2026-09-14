@@ -72,10 +72,16 @@ const char* DEVICE_ID = "BatteryPack01";
 // PLAN B: đổi TEST_HOST thành IP server của đội + điền TEST_USER/TEST_PASS.
 //   ví dụ: TEST_HOST = "203.0.113.45";  TEST_USER = "hutieu";  TEST_PASS = "matkhau";
 // Để TEST_USER = "" thì nối ẩn danh (dùng cho HiveMQ công cộng).
-const char* TEST_HOST = "broker.hivemq.com";
+// Broker của đội (Plan B). IP phải khớp LAN_IP trong planb_cloud/.env — ĐỔI
+// MỖI KHI ĐỔI MẠNG. Xem IP máy chủ bằng: hostname -I
+const char* TEST_HOST = "172.172.3.174";
 const int   TEST_PORT = 1883;
-const char* TEST_USER = "";
-const char* TEST_PASS = "";
+
+// Mật khẩu KHÔNG nằm trong file này — nó bị commit lên GitHub.
+// Xem arduino_secrets.example.h để biết cách tạo arduino_secrets.h.
+#include "arduino_secrets.h"
+const char* TEST_USER = SECRET_MQTT_USER;
+const char* TEST_PASS = SECRET_MQTT_PASS;
 
 // ---------------------------------------------------------------- Cấu hình chung
 const int   NUM_CELLS      = 8;
