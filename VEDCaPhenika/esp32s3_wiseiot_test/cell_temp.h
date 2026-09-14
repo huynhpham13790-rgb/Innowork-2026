@@ -26,6 +26,7 @@
  * ========================================================================== */
 #pragma once
 #include <stdint.h>
+#include <math.h>
 #include "ds18b20_offsets.h"
 
 #define CT_N              DS_N_PROBES
@@ -68,6 +69,12 @@ class CellTemp {
 
   const CellTempStatus& status() const { return st_; }
 
+  /* Nhiệt độ môi trường từ cảm biến thứ 9. Trả về NAN nếu con đó không có
+     trên bus — lúc đó bên gọi phải tự quyết dùng giá trị dự phòng, chứ module
+     này KHÔNG bịa ra một con số trông hợp lý. */
+  float ambient() const { return amb_; }
+  bool  ambientOk() const { return !isnan(amb_); }
+
   /* Tỉ lệ lỗi của toàn bus, để đẩy lên dashboard. */
   float errorRate() const;
 
@@ -77,6 +84,8 @@ class CellTemp {
  private:
   float  t_[CT_N];
   CellTempStatus st_ = {};
+  float    amb_ = NAN;
+  bool     amb_present_ = false;
   bool     converting_ = false;
   uint32_t convStart_ = 0;
   uint8_t  pin_ = 0;

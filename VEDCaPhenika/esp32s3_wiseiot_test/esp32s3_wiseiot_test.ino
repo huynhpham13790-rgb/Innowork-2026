@@ -440,12 +440,13 @@ void runAI() {
   // số rác. Thà không có kết quả còn hơn có kết quả sai.
   if (isnan(gCellTemp[0])) return;
 
-  // ⚠️ Ba con số dưới đây VẪN LÀ GIẢ ĐỊNH — chưa có phần cứng đo.
-  // ambient: cần một con DS18B20 thứ 9 đo môi trường (8 con hiện có đều dán
-  //   lên cell). Lấy hằng số là chấp nhận được vì đặc trưng Lớp 1 chủ yếu là
-  //   tương đối giữa các cell, nhưng phải nói rõ khi trình bày.
-  // current/soc: cần INA228 + đo điện áp pack.
-  const float ambient = 28.0f;
+  // Nhiệt độ môi trường: cảm biến thứ 9 nếu có. Không có thì lùi về hằng số —
+  // và mã hoá chuyện đó thành tag riêng lên dashboard, chứ không im lặng dùng
+  // số giả định như thể nó là số đo.
+  const bool  ambOk   = gTemp.ambientOk();
+  const float ambient = ambOk ? gTemp.ambient() : 28.0f;
+
+  // ⚠️ Hai con số này VẪN LÀ GIẢ ĐỊNH — cần INA228 + đo điện áp pack.
   const float current = 0.0f;
   const float soc     = 80.0f;
 
@@ -541,6 +542,8 @@ void publishSensorHealth() {
   uint8_t mask = 0;
   for (int i = 0; i < CT_N; i++) if (!s.healthy[i]) mask |= (1 << i);
   dev["Sensor_FaultMask"] = mask;
+  dev["Ambient_Temp"]     = gTemp.ambientOk() ? round(gTemp.ambient()*100)/100.0 : -99.0;
+  dev["Ambient_IsReal"]   = gTemp.ambientOk() ? 1 : 0;   // 0 = đang dùng hằng số
 
   doc["ts"] = isoTimestampUtc();
   String out; serializeJson(doc, out);

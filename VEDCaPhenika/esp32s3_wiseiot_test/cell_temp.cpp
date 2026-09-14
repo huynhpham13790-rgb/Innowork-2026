@@ -43,11 +43,33 @@ bool CellTemp::begin(uint8_t pin) {
     t_[i] = NAN;
   }
 
+  // Cảm biến môi trường (con thứ 9). Không có nó thì vẫn chạy được — Lớp 1
+  // chủ yếu dùng đặc trưng tương đối giữa các cell — nhưng phải báo, vì thiếu
+  // nó nghĩa là quay về dùng hằng số giả định.
+  amb_present_ = s_dallas.isConnected(DS_ROM_AMBIENT);
+  if (amb_present_) {
+    s_dallas.setResolution(DS_ROM_AMBIENT, 12);
+    Serial.println("[TEMP] co cam bien moi truong (con thu 9)");
+#if !DS_AMBIENT_CALIBRATED
+    Serial.println("[TEMP] CANH BAO: offset cam bien moi truong CHUA HIEU CHUAN");
+#endif
+  } else {
+    Serial.println("[TEMP] KHONG co cam bien moi truong - se dung gia tri du phong");
+  }
+
   s_dallas.setWaitForConversion(false);   // bắt buộc: xem chú thích ở cell_temp.h
 
-  Serial.printf("[TEMP] tim thay %u/%u cam bien, %u kenh khoe\n",
-                st_.n_found, CT_N, st_.n_healthy);
-  return all && st_.n_found == CT_N;
+  // Số cảm biến MONG ĐỢI = 8 cell + 1 môi trường (nếu có mặt). So với CT_N
+  // là sai: cắm thêm con thứ 9 thành ra báo "thiếu cảm biến". Điều thật sự
+  // cần kiểm là từng ROM trong bảng có mặt hay không (biến `all`), còn tổng
+  // số chỉ dùng để phát hiện có con LẠ trên bus.
+  const uint8_t expect = CT_N + (amb_present_ ? 1 : 0);
+  Serial.printf("[TEMP] tim thay %u cam bien (mong doi %u), %u/%u kenh cell khoe\n",
+                st_.n_found, expect, st_.n_healthy, CT_N);
+  if (st_.n_found > expect)
+    Serial.printf("[TEMP] CANH BAO: co %u con LA tren bus, khong nam trong bang ROM\n",
+                  st_.n_found - expect);
+  return all && st_.n_found >= expect;
 }
 
 bool CellTemp::update() {
@@ -114,6 +136,13 @@ bool CellTemp::update() {
   // healthy[] và publishSensorHealth() lo.
   for (uint8_t i = 0; i < CT_N; i++) t_[i] = good[i] ? raw[i] : mean;
 
+  if (amb_present_) {
+    float a = s_dallas.getTempC(DS_ROM_AMBIENT);
+    bool ok = !(a == DEVICE_DISCONNECTED_C || a == 85.0f ||
+                a < CT_T_MIN || a > CT_T_MAX);
+    amb_ = ok ? (a - DS_AMBIENT_OFFSET) : NAN;
+  }
+
   st_.ready = true;
   return true;
 }
@@ -129,5 +158,6 @@ void CellTemp::printStatus() const {
                 st_.n_healthy, CT_N, errorRate(), st_.n_flap);
   for (uint8_t i = 0; i < CT_N; i++)
     Serial.printf(" %.2f%s", t_[i], st_.healthy[i] ? "" : "(X)");
+  if (amb_present_) Serial.printf("  moi truong %.2f", amb_);
   Serial.println();
 }

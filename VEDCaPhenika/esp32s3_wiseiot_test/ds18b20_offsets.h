@@ -67,3 +67,23 @@ const float DS_OFFSET[DS_N_PROBES] = {
 // ai/models/eval_results.npz: autoencoder bắt lỗi offset 0,5 °C ở tỉ lệ 41,7%
 // => không hiệu chỉnh là rước báo động giả vĩnh viễn.
 #define DS_OFFSET_SPREAD_C  0.3665f
+
+/* ---------------------------------------------------------------------------
+ *  Cảm biến thứ 9 — ĐO NHIỆT ĐỘ MÔI TRƯỜNG, không dán lên cell.
+ *
+ *  Vì sao cần: đặc trưng của Lớp 1 có phần so cell với môi trường. Trước đây
+ *  chỗ này là hằng số 28 °C, tức là một giả định được nhét vào giữa đường dữ
+ *  liệu thật. Pack nóng lên 10 °C vì trời nắng sẽ bị đọc nhầm thành pack tự
+ *  sinh nhiệt.
+ *
+ *  ⚠️ OFFSET CHƯA HIỆU CHUẨN — đang để 0.
+ *  Con này cắm sau khi đã hiệu chuẩn 8 con kia, nên chưa có số. Phải nhúng
+ *  nước CẢ 9 con một lượt rồi lấy lại bảng: offset của nó chỉ có nghĩa khi đo
+ *  CÙNG mẻ với 8 con cell, vì thứ cần đúng là chênh lệch GIỮA nó và các cell.
+ *  Hiệu chuẩn riêng lẻ là vô nghĩa.
+ * ------------------------------------------------------------------------- */
+const uint8_t DS_ROM_AMBIENT[8] =
+  { 0x28, 0x73, 0x4C, 0x04, 0x00, 0x00, 0x00, 0x19 };
+
+#define DS_AMBIENT_OFFSET   0.0f      // <-- thay bằng số đo được
+#define DS_AMBIENT_CALIBRATED 0       // <-- đổi thành 1 sau khi hiệu chuẩn
