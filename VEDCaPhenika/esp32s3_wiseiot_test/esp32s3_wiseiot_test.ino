@@ -40,16 +40,37 @@
 #define USE_REAL_TEMP 1
 #define TEMP_PIN      4      // bus 1-Wire, khớp với các sketch trong test/
 
-// ---------------------------------------------------------------- WiFi
-const char* WIFI_SSID = "ICTU";
-const char* WIFI_PASS = "";        // mạng mở, không mật khẩu
+// Bí mật (mật khẩu WiFi + MQTT). Phải include TRƯỚC khối WiFi bên dưới vì
+// danh sách mạng lấy từ SECRET_WIFI_LIST trong file này.
+#include "arduino_secrets.h"
 
-// Mạng mở thì phải gọi WiFi.begin(ssid) một tham số. Truyền chuỗi rỗng làm
+// ---------------------------------------------------------------- WiFi
+// Danh sách mạng nằm trong arduino_secrets.h (không commit), thử theo thứ tự
+// ưu tiên. Board chạy lúc ở trường, lúc ở nhà, lúc qua hotspot điện thoại —
+// ghim một SSID nghĩa là mỗi lần đổi chỗ phải sửa code rồi nạp lại.
+struct WifiCred { const char* ssid; const char* pass; };
+static const WifiCred WIFI_LIST[] = { SECRET_WIFI_LIST };
+static const int WIFI_N = sizeof(WIFI_LIST) / sizeof(WIFI_LIST[0]);
+static int gWifiIdx = 0;            // mạng đang thử
+
+const char* WIFI_SSID = WIFI_LIST[0].ssid;   // chỉ để in log cho quen mắt
+
+// Mạng mở thì phải gọi WiFi.begin(ssid) MỘT tham số. Truyền chuỗi rỗng làm
 // tham số mật khẩu khiến driver vẫn thương lượng theo kiểu có mã hoá và hỏng
 // im lặng — nối mãi không được mà không báo lỗi gì.
 static inline void wifiStart() {
-  if (WIFI_PASS && WIFI_PASS[0]) WiFi.begin(WIFI_SSID, WIFI_PASS);
-  else                           WiFi.begin(WIFI_SSID);
+  const WifiCred& c = WIFI_LIST[gWifiIdx];
+  Serial.printf("[WiFi] thu mang %d/%d: %s\n", gWifiIdx + 1, WIFI_N, c.ssid);
+  WiFi.disconnect(true);            // bỏ phiên cũ, nếu không thì đổi SSID không ăn
+  if (c.pass && c.pass[0]) WiFi.begin(c.ssid, c.pass);
+  else                     WiFi.begin(c.ssid);
+}
+
+// Chuyển sang mạng kế tiếp trong danh sách, quay vòng. Gọi khi một mạng thử
+// mãi không được — thà quay vòng còn hơn kẹt vĩnh viễn ở mạng đầu tiên khi
+// mang board tới chỗ khác.
+static inline void wifiNext() {
+  gWifiIdx = (gWifiIdx + 1) % WIFI_N;
 }
 // LƯU Ý: ESP32-S3 chỉ bắt WiFi 2.4GHz. Wifi 5GHz sẽ không hiện/không nối được.
 
@@ -82,7 +103,6 @@ const int   TEST_PORT = 1883;
 
 // Mật khẩu KHÔNG nằm trong file này — nó bị commit lên GitHub.
 // Xem arduino_secrets.example.h để biết cách tạo arduino_secrets.h.
-#include "arduino_secrets.h"
 const char* TEST_USER = SECRET_MQTT_USER;
 const char* TEST_PASS = SECRET_MQTT_PASS;
 
@@ -340,8 +360,11 @@ void ensureWifi() {
   static unsigned long lastTry = 0;
   if (millis() - lastTry < RECONNECT_MS) return;
   lastTry = millis();
-  Serial.printf("[WiFi] chua co mang, thu noi lai %s ...\n", WIFI_SSID);
-  WiFi.disconnect();
+  // Thử hai lần cùng một mạng rồi mới chuyển sang mạng kế. Chuyển ngay sau
+  // MỘT lần trượt là sai: WiFi trượt một lần vì nhiễu là chuyện thường, và
+  // nhảy mạng liên tục thì không mạng nào kịp bắt tay xong.
+  static int fails = 0;
+  if (++fails >= 2) { fails = 0; wifiNext(); }
   wifiStart();
 }
 
@@ -793,22 +816,27 @@ void setup() {
     Serial.println("[TEMP] *** THIEU CAM BIEN - so lieu KHONG day du ***");
   }
 #endif
-  Serial.print("[WiFi] noi toi "); Serial.println(WIFI_SSID);
   WiFi.mode(WIFI_STA);
   wifiStart();
   // CHỜ CÓ HẠN, không chờ vô hạn. Bản cũ quay vòng mãi trong setup(): mạng
   // hỏng là board treo, Lớp 1 không chạy, còi không kêu — trong khi an toàn
   // tại chỗ đúng ra KHÔNG được phụ thuộc đường truyền. Hết giờ thì đi tiếp,
   // ensureWifi() trong loop() sẽ tự thử lại nền.
-  unsigned long t0 = millis();
-  while (WiFi.status() != WL_CONNECTED && millis() - t0 < 20000) {
-    delay(500); Serial.print(".");
+  // Mỗi mạng được 8 giây; hết thì sang mạng kế. Quét hết danh sách một vòng
+  // rồi thôi — ensureWifi() trong loop() sẽ tiếp tục thử nền.
+  for (int k = 0; k < WIFI_N && WiFi.status() != WL_CONNECTED; k++) {
+    unsigned long t0 = millis();
+    while (WiFi.status() != WL_CONNECTED && millis() - t0 < 8000) {
+      delay(500); Serial.print(".");
+    }
+    Serial.println();
+    if (WiFi.status() != WL_CONNECTED && k + 1 < WIFI_N) { wifiNext(); wifiStart(); }
   }
-  Serial.println();
   if (WiFi.status() != WL_CONNECTED)
     Serial.println("[WiFi] CHUA NOI DUOC - chay tiep offline, se tu thu lai");
   else
-    Serial.printf("[WiFi] OK, IP %s, RSSI %d dBm\n",
+    Serial.printf("[WiFi] OK, mang %s, IP %s, RSSI %d dBm\n",
+                  WIFI_LIST[gWifiIdx].ssid,
                   WiFi.localIP().toString().c_str(), WiFi.RSSI());
   ensureWifi();
   syncTime();

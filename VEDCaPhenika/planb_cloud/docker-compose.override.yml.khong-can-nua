@@ -1,0 +1,16 @@
+# Cấu hình riêng cho máy này, KHÔNG commit (đã có trong .gitignore).
+#
+# Lý do tồn tại: máy này có một mosquitto CỦA HỆ THỐNG đang chiếm
+# 127.0.0.1:1883, nên không dùng được "1883:1883" (0.0.0.0) của compose gốc —
+# bind sẽ đụng nhau. Gán broker Docker vào thẳng IP LAN thì hai bên sống chung.
+#
+# ⚠️ IP LAN đổi theo mạng. Gán cứng IP cũ (192.168.2.16) là container KHÔNG
+# KHỞI ĐỘNG ĐƯỢC khi sang mạng khác — đã dính đúng lỗi này khi chuyển sang
+# mạng trường. Nên IP giờ lấy từ biến LAN_IP trong .env: đổi mạng thì sửa một
+# dòng ở đó rồi `docker compose up -d`.
+#
+# Trên VPS thì XOÁ file này đi, compose gốc dùng 0.0.0.0 mới là đúng.
+services:
+  mosquitto:
+    ports: !override
+      - "${LAN_IP}:1883:1883"

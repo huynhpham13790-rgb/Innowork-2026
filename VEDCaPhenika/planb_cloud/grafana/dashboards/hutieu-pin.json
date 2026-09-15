@@ -1,0 +1,874 @@
+{
+  "uid": "hutieu-pin",
+  "title": "Hủ Tiếu — Giám sát pack pin 8S",
+  "tags": [
+    "hutieu",
+    "pin"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "refresh": "5s",
+  "time": {
+    "from": "now-30m",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "TRẠNG THÁI PACK",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "cfxg34mlaudxce"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 6,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "cfxg34mlaudxce"
+          },
+          "query": "from(bucket: \"battery\")\n  |> range(start: -6h)\n  |> filter(fn: (r) => r._measurement == \"cell\" and r._field == \"value\" and r.tag == \"Alarm_Level\")\n  |> last()",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "text": {
+          "valueSize": 40
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "AN TOÀN",
+                  "color": "green",
+                  "index": 0
+                },
+                "1": {
+                  "text": "THEO DÕI",
+                  "color": "yellow",
+                  "index": 1
+                },
+                "2": {
+                  "text": "BÁO ĐỘNG",
+                  "color": "orange",
+                  "index": 2
+                },
+                "3": {
+                  "text": "NGUY KỊCH",
+                  "color": "red",
+                  "index": 3
+                }
+              }
+            }
+          ],
+          "noValue": "MẤT KẾT NỐI",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "description": "Mức leo thang của alarm.cpp. Không có dữ liệu = ESP32 mất kết nối, KHÔNG phải an toàn."
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Cell đang nghi",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "cfxg34mlaudxce"
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 0,
+        "w": 4,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "cfxg34mlaudxce"
+          },
+          "query": "from(bucket: \"battery\")\n  |> range(start: -6h)\n  |> filter(fn: (r) => r._measurement == \"cell\" and r._field == \"value\" and r.tag == \"AI_WorstCell\")\n  |> last()",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "text": {
+          "valueSize": 48
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "noValue": "—",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "description": "Cell có sai số tái tạo lớn nhất. Chỉ có nghĩa khi TRẠNG THÁI khác AN TOÀN."
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Cell nóng nhất",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "cfxg34mlaudxce"
+      },
+      "gridPos": {
+        "x": 10,
+        "y": 0,
+        "w": 5,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "cfxg34mlaudxce"
+          },
+          "query": "from(bucket: \"battery\")\n  |> range(start: -6h)\n  |> filter(fn: (r) => r._measurement == \"cell\" and r._field == \"value\" and r.tag =~ /^Cell0[1-8]_Temp$/)\n  |> last()\n  |> max()",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "text": {
+          "valueSize": 48
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "celsius",
+          "decimals": 1,
+          "noValue": "—",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 45
+              },
+              {
+                "color": "orange",
+                "value": 55
+              },
+              {
+                "color": "red",
+                "value": 60.0
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "description": "Đỏ từ 60.0 °C — ngưỡng cứng, độc lập hoàn toàn với AI."
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Cảm biến khoẻ",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "cfxg34mlaudxce"
+      },
+      "gridPos": {
+        "x": 15,
+        "y": 0,
+        "w": 4,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "cfxg34mlaudxce"
+          },
+          "query": "from(bucket: \"battery\")\n  |> range(start: -6h)\n  |> filter(fn: (r) => r._measurement == \"cell\" and r._field == \"value\" and r.tag == \"Sensor_Healthy\")\n  |> last()",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "text": {
+          "valueSize": 48
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "max": 8,
+          "noValue": "0",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 6
+              },
+              {
+                "color": "green",
+                "value": 8
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "description": "Trên tổng 8. Dưới 8 nghĩa là số liệu KHÔNG đầy đủ — xem docs/HAI_LOP_AI."
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Dòng/áp: số THẬT?",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "cfxg34mlaudxce"
+      },
+      "gridPos": {
+        "x": 19,
+        "y": 0,
+        "w": 5,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "cfxg34mlaudxce"
+          },
+          "query": "from(bucket: \"battery\")\n  |> range(start: -6h)\n  |> filter(fn: (r) => r._measurement == \"cell\" and r._field == \"value\" and r.tag == \"Meter_IsReal\")\n  |> last()",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "text": {
+          "valueSize": 28
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "1": {
+                  "text": "ĐO THẬT",
+                  "color": "green",
+                  "index": 0
+                },
+                "0": {
+                  "text": "CÒN GIẢ ĐỊNH",
+                  "color": "red",
+                  "index": 1
+                }
+              }
+            }
+          ],
+          "noValue": "CÒN GIẢ ĐỊNH",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "description": "0 = chưa có INA228, dòng và SOC là hằng số giả định. Đừng tin đồ thị Lớp 2."
+    },
+    {
+      "id": 6,
+      "type": "bargauge",
+      "title": "Lớp 1 — Nhiệt độ từng cell ngay lúc này",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "cfxg34mlaudxce"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 5,
+        "w": 10,
+        "h": 9
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "cfxg34mlaudxce"
+          },
+          "query": "from(bucket: \"battery\")\n  |> range(start: -6h)\n  |> filter(fn: (r) => r._measurement == \"cell\" and r._field == \"value\" and r.tag =~ /^Cell0[1-8]_Temp$/)\n  |> last()\n  |> keep(columns: [\"_value\",\"tag\"])",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "displayMode": "gradient",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": true
+        },
+        "showUnfilled": true,
+        "minVizHeight": 16
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "celsius",
+          "decimals": 2,
+          "min": 15,
+          "max": 65,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 45
+              },
+              {
+                "color": "orange",
+                "value": 55
+              },
+              {
+                "color": "red",
+                "value": 60.0
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "description": "So sánh KHÔNG GIAN giữa 8 cell tại một thời điểm — cell nào khác phần còn lại thì thấy ngay, không phải đọc 8 đường chồng nhau."
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Lớp 1 — Điểm bất thường từng cell",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "cfxg34mlaudxce"
+      },
+      "gridPos": {
+        "x": 10,
+        "y": 5,
+        "w": 14,
+        "h": 9
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "cfxg34mlaudxce"
+          },
+          "query": "from(bucket: \"battery\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"cell\" and r._field == \"value\" and r.tag =~ /^AI_Score0[1-8]$/)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> keep(columns: [\"_time\",\"_value\",\"tag\"])",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 3,
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "thresholdsStyle": {
+              "mode": "line"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1.84735274
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "description": "Đường đỏ = ngưỡng 1.84735274. Vượt ngưỡng phải GIỮ LIÊN TỤC 60 giây mới thành báo động — chống báo động giả do nhiễu."
+    },
+    {
+      "id": 8,
+      "type": "gauge",
+      "title": "Lớp 2 — SOH (sức khoẻ pack)",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "cfxg34mlaudxce"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 14,
+        "w": 6,
+        "h": 7
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "cfxg34mlaudxce"
+          },
+          "query": "from(bucket: \"battery\")\n  |> range(start: -6h)\n  |> filter(fn: (r) => r._measurement == \"cell\" and r._field == \"value\" and r.tag == \"SOH_Percent\")\n  |> last()",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 60,
+          "max": 100,
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 80
+              },
+              {
+                "color": "green",
+                "value": 90
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "description": "SOH ở mức PACK, không phải từng cell — pack nối tiếp sống chết theo cell yếu nhất (QĐ-027). 80 % là mốc thường dùng để coi là hết đời xe."
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Lớp 2 — RUL: số chu kỳ còn lại",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "cfxg34mlaudxce"
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 14,
+        "w": 12,
+        "h": 7
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "cfxg34mlaudxce"
+          },
+          "query": "from(bucket: \"battery\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"cell\" and r._field == \"value\" and r.tag =~ /^RUL_Cycles$/)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> keep(columns: [\"_time\",\"_value\",\"tag\"])",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": {
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10
+          }
+        },
+        "overrides": []
+      },
+      "description": "Hồi quy tuyến tính trên t_cv (thời gian ở giai đoạn điện áp không đổi). Nội trở tăng => vào CV sớm hơn => t_cv dài ra."
+    },
+    {
+      "id": 10,
+      "type": "stat",
+      "title": "Mô hình có đang NGOẠI SUY?",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "cfxg34mlaudxce"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 14,
+        "w": 6,
+        "h": 7
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "cfxg34mlaudxce"
+          },
+          "query": "from(bucket: \"battery\")\n  |> range(start: -6h)\n  |> filter(fn: (r) => r._measurement == \"cell\" and r._field == \"value\" and r.tag == \"Extrapolating\")\n  |> last()",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "text": {
+          "valueSize": 24
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "TRONG VÙNG\nĐÃ HUẤN LUYỆN",
+                  "color": "green",
+                  "index": 0
+                },
+                "1": {
+                  "text": "ĐANG NGOẠI SUY\nKHÔNG ĐÁNG TIN",
+                  "color": "red",
+                  "index": 1
+                }
+              }
+            }
+          ],
+          "noValue": "—",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "description": "Mô hình tuyến tính ngoài vùng dữ liệu huấn luyện thì con số RUL vô nghĩa. Thà nói ra còn hơn im lặng đưa số đẹp."
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Nhiệt độ 8 cell theo thời gian",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "cfxg34mlaudxce"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 21,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "cfxg34mlaudxce"
+          },
+          "query": "from(bucket: \"battery\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"cell\" and r._field == \"value\" and r.tag =~ /_Temp$/)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> keep(columns: [\"_time\",\"_value\",\"tag\"])",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "celsius",
+          "decimals": 2,
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "thresholdsStyle": {
+              "mode": "line"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 60.0
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "description": "Gồm cả Ambient_Temp (cảm biến thứ 9, đo môi trường — KHÔNG dán lên cell)."
+    },
+    {
+      "id": 12,
+      "type": "timeseries",
+      "title": "Tỉ lệ lỗi bus 1-Wire (%)",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "cfxg34mlaudxce"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 21,
+        "w": 7,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "cfxg34mlaudxce"
+          },
+          "query": "from(bucket: \"battery\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"cell\" and r._field == \"value\" and r.tag =~ /^Sensor_ErrPct$/)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> keep(columns: [\"_time\",\"_value\",\"tag\"])",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": {
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 3,
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 20
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 5
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "description": "Đã từng đo được 35 % lỗi do ẩm trên đầu dò mà không có dấu hiệu gì khác (QĐ-024). Đây là lý do phải đếm và hiển thị."
+    },
+    {
+      "id": 13,
+      "type": "stat",
+      "title": "Số lần báo động\ntừ lúc bật máy",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "cfxg34mlaudxce"
+      },
+      "gridPos": {
+        "x": 19,
+        "y": 21,
+        "w": 5,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "cfxg34mlaudxce"
+          },
+          "query": "from(bucket: \"battery\")\n  |> range(start: -6h)\n  |> filter(fn: (r) => r._measurement == \"cell\" and r._field == \"value\" and r.tag == \"Alarm_Events\")\n  |> last()",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "text": {
+          "valueSize": 48
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "noValue": "0",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "description": "Cách duy nhất biết đêm qua có chuyện gì xảy ra mà không ai ở đó nghe còi."
+    }
+  ]
+}
