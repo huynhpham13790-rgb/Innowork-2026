@@ -20,7 +20,7 @@ Bản INT8 .tflite vẫn được giữ trong models/ nếu sau này muốn đ�
 
 Chạy: ai/.venv/bin/python ai/export_c_model.py
 """
-import os
+import os, sys
 from pathlib import Path
 
 os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "2")
@@ -53,17 +53,31 @@ def arr(name, a):
 
 
 def main():
-    model = keras.models.load_model(MODELS / "cell_ae.keras", compile=False)
-    sc = np.load(PREP / "scaler.npz")
-    op = np.load(MODELS / "operating_point.npz")
+    # --rel: mô hình 11 đặc trưng thuần tương đối (QĐ-033). Mặc định vẫn là
+    # mô hình 16 đặc trưng để lệnh cũ trong tài liệu không đổi nghĩa.
+    rel = "--rel" in sys.argv
+    if rel:
+        model = keras.models.load_model(MODELS / "cell_ae_rel.keras", compile=False)
+        sc = np.load(MODELS / "scaler_rel.npz")
+        op = np.load(MODELS / "operating_point_rel.npz")
+    else:
+        model = keras.models.load_model(MODELS / "cell_ae.keras", compile=False)
+        sc = np.load(PREP / "scaler.npz")
+        op = np.load(MODELS / "operating_point.npz")
+    n_in = model.layers[0].get_weights()[0].shape[0]
 
     lines = [
         "// Tự sinh bởi ai/export_c_model.py — ĐỪNG sửa tay.",
-        "// Autoencoder phát hiện cell bất thường: 16 -> 8 -> 4 -> 8 -> 16",
+        ("// BẢN 11 ĐẶC TRƯNG THUẦN TƯƠNG ĐỐI (QĐ-033): đã bỏ 5 đặc trưng mang\n"
+         "// giá trị tuyệt đối (T-amb, packT-amb, |I|/scale, soc, (T-25)/25) vì\n"
+         "// chúng gắn chặt với một pack cụ thể và chặn đường sản xuất hàng loạt."
+         if rel else
+         "// Bản 16 đặc trưng (cũ)."),
+        f"// Autoencoder phát hiện cell bất thường: {n_in} -> 8 -> 4 -> 8 -> {n_in}",
         "// Trọng số float32, firmware tự nhân (xem cell_ai.cpp).",
         "#pragma once",
         "",
-        "#define AE_N_IN      16",
+        f"#define AE_N_IN      {n_in}",
         f"#define AE_THRESHOLD {cfloat(op['threshold'])}"
         "   // sai số tái tạo vượt mức này = bất thường",
         f"#define AE_PERSIST_S {int(op['persist_s'])}"

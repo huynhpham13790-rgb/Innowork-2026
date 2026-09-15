@@ -9,11 +9,15 @@ trở nên vô nghĩa. Kiểu lỗi đó không làm firmware crash, không có 
 lặng lẽ làm mô hình sai — đúng loại lỗi tệ nhất.
 
 Cách làm: biên dịch cell_ai.cpp trên PC cùng một chương trình nhỏ, cho cả hai
-bên ăn cùng một chuỗi dữ liệu, rồi so 16 đặc trưng và sai số tái tạo.
+bên ăn cùng một chuỗi dữ liệu, rồi so từng đặc trưng và sai số tái tạo.
+
+Số đặc trưng lấy từ AI_N_FEAT trong cell_ai.h chứ KHÔNG viết cứng 16 — lúc đổi
+sang mô hình 11 đặc trưng (QĐ-033), con số viết cứng làm test vỡ, mà test này
+chính là thứ phải còn chạy được đúng lúc đó nhất.
 
 Chạy: ai/.venv/bin/python ai/test_c_vs_python.py
 """
-import os, subprocess, sys, tempfile
+import os, re, subprocess, sys, tempfile
 from pathlib import Path
 
 os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "2")
@@ -49,7 +53,7 @@ int main(int argc, char** argv) {
 
 
 def main():
-    from features import build_features, DS18B20_STEP
+    from features import build_features, FEATURE_NAMES as FT_NAMES, DS18B20_STEP
     import tensorflow as tf
     from tensorflow import keras
 
@@ -92,24 +96,36 @@ def main():
 
     c = np.array([[float(x) for x in line.split()]
                   for line in out.stdout.strip().splitlines()], dtype=np.float64)
-    c_feat = c[:, :16].reshape(T, N, 16)
-    c_score = c[:, 16].reshape(T, N)
+    # Số đặc trưng do firmware quyết định — đọc thẳng từ cell_ai.h.
+    nf = int(re.search(r"#define\s+AI_N_FEAT\s+(\d+)",
+                       (FW / "cell_ai.h").read_text()).group(1))
+    c_feat = c[:, :nf].reshape(T, N, nf)
+    c_score = c[:, nf].reshape(T, N)
 
     # ---- bản Python ---------------------------------------------------------
-    py_feat = build_features(temps, amb, cur, soc).astype(np.float64)
-
-    model = keras.models.load_model(HERE / "models" / "cell_ae.keras", compile=False)
-    sc = np.load(HERE / "data" / "prepared" / "scaler.npz")
-    z = (py_feat.reshape(-1, 16) - sc["mu"]) / sc["sd"]
+    # build_features luôn sinh đủ 16; mô hình 11 đặc trưng chỉ lấy tập con REL.
+    py_all = build_features(temps, amb, cur, soc).astype(np.float64)
+    rel_mode = nf != py_all.shape[-1]
+    if rel_mode:
+        from train_ae_relative import REL
+        py_feat = py_all[:, :, REL]
+        model = keras.models.load_model(HERE / "models" / "cell_ae_rel.keras", compile=False)
+        sc = np.load(HERE / "models" / "scaler_rel.npz")
+        names = [FT_NAMES[i] for i in REL]
+    else:
+        py_feat = py_all
+        model = keras.models.load_model(HERE / "models" / "cell_ae.keras", compile=False)
+        sc = np.load(HERE / "data" / "prepared" / "scaler.npz")
+        names = FT_NAMES
+    z = (py_feat.reshape(-1, nf) - sc["mu"]) / sc["sd"]
     rec = model.predict(z, batch_size=8192, verbose=0)
     py_score = np.mean((rec - z) ** 2, axis=1).reshape(T, N)
 
     # ---- so sánh ------------------------------------------------------------
-    import features as FT
     fails = 0
     print(f"so {T} bước × {N} cell\n")
     print(f"{'đặc trưng':16} {'lệch tối đa':>14} {'lệch tương đối':>16}")
-    for k, name in enumerate(FT.FEATURE_NAMES):
+    for k, name in enumerate(names):
         a, b = py_feat[:, :, k], c_feat[:, :, k]
         d = np.abs(a - b).max()
         scale = max(np.abs(a).max(), 1e-9)

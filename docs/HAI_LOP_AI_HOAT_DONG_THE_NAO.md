@@ -22,9 +22,9 @@ của pack**, qua 16 con số cho mỗi cell:
 
 Autoencoder học "quan hệ bình thường trông thế nào" từ dữ liệu pack khoẻ. Khi
 một cell có bộ 16 số **không khớp** với những gì nó từng thấy, sai số tái tạo
-tăng vọt. Vượt **1,847** và giữ liên tục **60 giây** thì báo động.
+tăng vọt. Vượt **1,071** và giữ liên tục **30 giây** thì báo động.
 
-*Vì sao phải giữ 60 giây:* nhiễu đọc luôn có. Không có quy tắc này thì báo động
+*Vì sao phải giữ 30 giây:* nhiễu đọc luôn có. Không có quy tắc này thì báo động
 suốt ngày, và báo động mà ai cũng bỏ qua thì bằng không có.
 
 ## Năm trường hợp — nguyên nhân và việc phải làm

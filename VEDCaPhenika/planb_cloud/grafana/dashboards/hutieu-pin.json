@@ -491,14 +491,14 @@
               },
               {
                 "color": "red",
-                "value": 1.84735274
+                "value": 1.0707
               }
             ]
           }
         },
         "overrides": []
       },
-      "description": "Đường đỏ = ngưỡng 1.84735274. Vượt ngưỡng phải GIỮ LIÊN TỤC 60 giây mới thành báo động — chống báo động giả do nhiễu."
+      "description": "Đường đỏ = ngưỡng 1.0707. Vượt ngưỡng phải GIỮ LIÊN TỤC 60 giây mới thành báo động — chống báo động giả do nhiễu."
     },
     {
       "id": 8,

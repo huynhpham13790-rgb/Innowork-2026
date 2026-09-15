@@ -22,7 +22,14 @@ Bộ dữ liệu có pack **36 cell**, phần cứng của đội có **8 cell**
 nhận thẳng "nhiệt độ 36 cell" làm đầu vào thì train xong không deploy được.
 
 Nên mô hình **không nhìn cả pack** — nó nhìn **từng cell một**, qua một vector
-16 đặc trưng mô tả *cell này lệch khỏi phần còn lại của pack như thế nào*.
+11 đặc trưng mô tả *cell này lệch khỏi phần còn lại của pack như thế nào*.
+
+Trước 15/09 là 16 đặc trưng. Đã bỏ 5 đặc trưng mang giá trị TUYỆT ĐỐI
+(`T-amb`, `packT-amb`, `|I|/I_SCALE`, `soc`, `(T-25)/25`) theo QĐ-033: chúng
+giống hệt nhau ở mọi cell nên không giúp phân biệt cell nào, mà lại gắn chặt
+với một pack cụ thể. Bỏ đi thì mô hình **tốt hơn trên mọi phép đo** và dùng
+được cho pack khác. `features.py` vẫn sinh đủ 16; tập con dùng thật nằm ở
+`REL` trong `train_ae_relative.py`.
 
 Hệ quả:
 - Train trên pack 36 cell, chạy trên pack 8 cell, không sửa gì
@@ -48,7 +55,9 @@ chu kỳ. Không lọc thì autoencoder học luôn lỗi cảm biến và coi �
 
 ## Kết quả
 
-Điểm vận hành: ngưỡng p99.9 = 1,8474, phải vượt liên tục **60 giây**.
+Điểm vận hành: ngưỡng p99.9 = **1,0707**, phải vượt liên tục **30 giây**.
+(Bản 16 đặc trưng cũ: 1,8474 và 60 giây — chậm hơn 34 phút ở ca ramp chậm nhất
+và có 1 báo động giả mỗi 1,3 ngày, so với 0 lần trên 6,1 triệu mẫu.)
 
 **Ca an toàn quan trọng nhất — ramp (tiền đề thermal runaway), độ trễ phát hiện:**
 
@@ -97,7 +106,11 @@ là RAM và đọc parquet, không phải phép nhân ma trận.
 
 | File | Vai trò |
 |---|---|
-| `features.py` | 16 đặc trưng — **đây là thứ firmware phải viết lại bằng C** |
+| `features.py` | sinh đủ 16 đặc trưng; mô hình dùng 11 (tập con `REL`) — **đây là thứ firmware phải viết lại bằng C** |
+| `train_ae_relative.py` | huấn luyện bản 11 đặc trưng thuần tương đối (QĐ-033) |
+| `eval_ae_relative.py` | kiểm bản 11 đặc trưng cả hai phía: NASA và pack McMaster |
+| `validate_mcmaster.py` | kiểm chuyển giao trên pack thật có lỗi cố ý |
+| `sensor_count_study.py` | đo mức đánh đổi khi bớt cảm biến (8/4/2) |
 | `test_features.py` | Test đặc trưng, gồm cả kiểm tra tính nhân quả |
 | `download_upc.py` | Tải dataset từ Dataverse |
 | `prepare_data.py` | Parquet → tập train/val/test, giả lập phần cứng |

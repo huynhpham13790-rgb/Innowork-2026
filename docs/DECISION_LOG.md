@@ -742,7 +742,7 @@ Chi tiết: `docs/BANG_CHUNG_KIEM_CHUNG_LOP1_THAT_2026-09-15.md`.
 
 ---
 
-### QĐ-033 · 15/09/2026 · **Đề xuất, CHƯA CHỐT** — autoencoder thuần tương đối
+### QĐ-033 · 15/09/2026 · **ĐÃ CHỐT 15/09** — autoencoder thuần tương đối
 
 **Câu hỏi khởi nguồn.** QĐ-032 kết luận mô hình phải hiệu chỉnh riêng cho từng
 pack. Vậy **sản xuất hàng loạt kiểu gì?**
@@ -786,9 +786,34 @@ hiệu chỉnh ngưỡng tại chỗ bằng vài giờ vận hành bình thườ
 cần nhãn nên tự động hoàn toàn. ⚠️ Chỉ làm trên pack đã biết là tốt, nếu không
 thì lỗi sẵn có bị ghi thành "bình thường" vĩnh viễn (cùng bẫy với QĐ-025).
 
-**TRẠNG THÁI: đề xuất.** Đây là thay đổi kiến trúc so với QĐ-012 nên theo
-CLAUDE.md phải có người chốt. Chi tiết và việc phải làm nếu chốt:
-`docs/BANG_CHUNG_AE_TUONG_DOI_2026-09-15.md`.
+**ĐÃ CHỐT và ĐÃ CHUYỂN.** Người phụ trách duyệt 15/09.
+
+**Điểm vận hành mới, dò bằng `tune_threshold.py --rel` — cùng script, cùng dữ
+liệu val, cùng tiêu chí chọn với bản cũ, nên so được trực tiếp:**
+
+| | 16 đặc trưng | 11 thuần tương đối |
+|---|---|---|
+| Ngưỡng p99.9 | 1,8474 | **1,0707** |
+| Phải giữ liên tục | 60 s | **30 s** |
+| Trễ ở ramp chậm nhất (0,05 °C/phút) | 138 phút | **104 phút** |
+| Báo động giả | 0,0329/giờ = 1 lần/1,3 ngày | **0 lần trên 6 123 080 mẫu-cell** |
+
+Số 0 báo động giả KHÔNG được nói thành "không bao giờ báo oan". Với 0 sự kiện
+trên n mẫu, chặn trên 95 % là 3/n (quy tắc số 3) → hiếm hơn 1 lần mỗi 3 ngày.
+
+**Đã làm:** `cell_ae_weights.h` xuất lại (271 tham số, 1,1 KB — nhỏ hơn bản cũ),
+`AI_N_FEAT` 16→11, `cell_ai.cpp` bỏ 5 đặc trưng, dashboard Grafana sửa ngưỡng
+và mô tả, `ai/README.md` + `HAI_LOP_AI_HOAT_DONG_THE_NAO.md` cập nhật.
+
+**Kiểm:** `test_c_vs_python.py` — C khớp Python trên cả 11 đặc trưng, lệch tối
+đa 3,6e-07, sai số tái tạo lệch 1,8e-06, cùng cell tệ nhất 100 %. Test này đã
+được sửa để đọc số đặc trưng từ `AI_N_FEAT` thay vì viết cứng 16 — con số viết
+cứng làm test vỡ đúng lúc nó cần chạy nhất.
+
+**Chưa kiểm được:** chạy thật trên pack của đội, vì đầu dò còn chưa dán lên pin.
+Mọi con số ở trên đều đo trên dữ liệu NASA.
+
+Chi tiết: `docs/BANG_CHUNG_AE_TUONG_DOI_2026-09-15.md`.
 
 ---
 
@@ -817,3 +842,27 @@ chỉ đã lưu, `[MQTT] KET NOI OK`.
 sửa tay. Lời giải sạch hơn là `sudo systemctl disable --now mosquitto` rồi xoá
 `docker-compose.override.yml`, khi đó compose gốc bind `0.0.0.0:1883` và không
 còn phụ thuộc IP; nhưng việc đó cần quyền sudo của người dùng.
+
+---
+
+### QĐ-035 · 15/09/2026 · Đã xác minh — mạng trường ICTU có client isolation
+
+Máy chủ `172.172.5.2` **không ping được** ESP32 `172.172.3.18` (100 % mất gói),
+dù hai bên cùng subnet `/19`. Cùng lúc đó máy chủ tự nối được `172.172.5.2:1883`
+bình thường, và avahi xác nhận đang quảng bá đúng (trả lời truy vấn mDNS 197
+byte). Nên broker không hỏng, cấu hình không sai — **AP của trường chặn thiết
+bị nói chuyện trực tiếp với nhau.**
+
+Điều này cũng giải thích luôn vì sao mDNS im: cùng một cơ chế chặn.
+
+Không sửa được bằng code — đó là chính sách của thiết bị mạng. Đội đã chốt từ
+trước là **ngày thi phát WiFi từ điện thoại**; chuyện này là bằng chứng thực tế
+cho quyết định đó chứ không phải sự cố mới.
+
+Lưu ý: AP khác trong cùng trường (dải `172.172.10.x`) thì KHÔNG chặn — đã nối
+MQTT thành công từ đó. Nên hành vi phụ thuộc từng AP, đừng kết luận "mạng
+trường luôn hỏng" hay "mạng trường dùng được".
+
+**Việc phải nhớ:** `arduino_secrets.h` hiện để ICTU ở đầu danh sách cho tiện
+phát triển. **Trước ngày thi phải đảo `Huynh` lên đầu** — đã ghi cảnh báo ngay
+trong file.

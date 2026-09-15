@@ -80,6 +80,9 @@ Ký hiệu: ✅ đã kiểm chứng · ⬜ chưa làm · 🔶 làm rồi nhưng 
 | 6.16 | Bảng offset đo trong nước, 2 lần khớp ~0,05 °C | 2 lần khớp 0,025 °C; lệch thật 0,3665 °C | ✅ 14/09 — `ds18b20_offsets.h` |
 | 6.17 | Bỏ breadboard, hàn/terminal block trước khi gắn pack | — | ⬜ chưa làm |
 | 6.8b | **Kiểm chứng Lớp 1 trên pack THẬT có lỗi cố ý (McMaster)** | `ai/validate_mcmaster.py` | ❌ **15/09 — TRƯỢT**, không chuyển giao zero-shot |
+| 6.40 | **Chuyển Lớp 1 sang 11 đặc trưng thuần tương đối** | ngưỡng 1,0707 giữ 30 s; C khớp Python 11/11 | ✅ 15/09 — QĐ-033 |
+| 6.41 | `test_c_vs_python.py` không viết cứng số đặc trưng | đọc từ `AI_N_FEAT` trong `cell_ai.h` | ✅ 15/09 |
+| 6.42 | Lớp 1 (11 đặc trưng) chạy thật trên pack của đội | — | ⬜ chờ dán đầu dò lên pin |
 | 6.37 | **AE thuần tương đối: giữ được khả năng phát hiện?** | tốt hơn toàn diện trên NASA; drift 46%→88% | ✅ 15/09 |
 | 6.38 | **AE thuần tương đối: chuyển giao sang pack lạ?** | lỗi 0,36–1,26% vs bình thường ≤0,065% — tách ~19 lần | ⚠️ 15/09 dùng được, còn 1 ca trượt |
 | 6.39 | ESP32 tự tìm broker, không ghim IP | `broker_find.cpp` 3 đường lùi, chạy thật OK | ✅ 15/09 |

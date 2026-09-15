@@ -20,7 +20,15 @@
 #include <stdint.h>
 
 #define AI_N_CELLS   8
-#define AI_N_FEAT    16
+// 11 đặc trưng THUẦN TƯƠNG ĐỐI (QĐ-033). Trước đây là 16; đã bỏ 5 đặc trưng
+// mang giá trị tuyệt đối (T-amb, packT-amb, |I|/I_SCALE, soc, (T-25)/25).
+// Lý do: chúng giống hệt nhau ở mọi cell nên không mang thông tin phân biệt
+// cell nào, mà lại gắn chặt với một pack cụ thể — đo được là chúng lệch tới
+// 8,6 sd khi sang pack khác, trong khi đặc trưng tương đối chỉ lệch ≤1,6 sd.
+// Bỏ đi thì nút thắt 4 chiều được dành trọn cho cấu trúc tương đối, và kết
+// quả TỐT HƠN trên mọi phép đo: giữ 30s thay vì 60s, trễ 104 phút thay vì
+// 138 phút, 0 báo động giả trên 6,1 triệu mẫu thay vì 1 lần/1,3 ngày.
+#define AI_N_FEAT    11
 #define AI_DT_WIN    10     // cửa sổ tính tốc độ đổi nhiệt (giây)
 #define AI_STD_WIN   60     // cửa sổ tính độ dao động (giây)
 #define AI_EMA_TAU   300    // hằng số thời gian EMA chậm (giây)

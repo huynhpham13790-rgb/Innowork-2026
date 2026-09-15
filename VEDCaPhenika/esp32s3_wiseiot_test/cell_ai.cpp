@@ -140,22 +140,26 @@ CellAIResult CellAI::update(const float* temps, float ambient,
     const float t_std = (float)sqrt(v > 0.0 ? v : 0.0);
 
     float* f = feat_[i];
-    f[0]  = dev;
-    f[1]  = temps[i] - pack_med;
-    f[2]  = dev / (pack_std + 1e-6f);
-    f[3]  = rank;
-    f[4]  = temps[i] - ambient;
-    f[5]  = pack_mean - ambient;
-    f[6]  = spread;
-    f[7]  = dT_cell;
-    f[8]  = dT_pack;
-    f[9]  = dT_cell - dT_pack;
-    f[10] = dev_ema_[i];
-    f[11] = dev - dev_ema_[i];
-    f[12] = t_std;
-    f[13] = fabsf(current) / AI_I_SCALE;
-    f[14] = soc / 100.0f;
-    f[15] = (temps[i] - 25.0f) / 25.0f;
+    // 11 đặc trưng THUẦN TƯƠNG ĐỐI — thứ tự PHẢI khớp REL trong
+    // ai/train_ae_relative.py, nếu không thì mô hình ăn sai đầu vào mà vẫn
+    // chạy ra số trông hợp lý. test_c_vs_python.py kiểm đúng chỗ này.
+    f[0]  = dev;                        // lệch so với trung bình pack
+    f[1]  = temps[i] - pack_med;        // lệch so với trung vị pack
+    f[2]  = dev / (pack_std + 1e-6f);   // lệch đã chuẩn hoá
+    f[3]  = rank;                       // thứ hạng nhiệt trong pack, 0..1
+    f[4]  = spread;                     // độ rộng nhiệt của cả pack
+    f[5]  = dT_cell;                    // tốc độ đổi nhiệt của cell
+    f[6]  = dT_pack;                    // tốc độ đổi nhiệt của pack
+    f[7]  = dT_cell - dT_pack;          // cell nóng lên NHANH HƠN pack bao nhiêu
+    f[8]  = dev_ema_[i];                // lệch trung bình trượt chậm
+    f[9]  = dev - dev_ema_[i];          // lệch đột ngột so với nền
+    f[10] = t_std;                      // độ dao động trượt
+
+    // ĐÃ BỎ (QĐ-033): temps[i]-ambient, pack_mean-ambient, |current|/I_SCALE,
+    // soc/100, (temps[i]-25)/25. Cả năm đều mang giá trị TUYỆT ĐỐI và giống
+    // hệt nhau ở mọi cell, nên không giúp phân biệt cell nào — nhưng lại làm
+    // mô hình không dùng được cho pack khác. `ambient`, `current`, `soc` vẫn
+    // được nhận vào hàm này vì chúng đi lên dashboard và vào Lớp 2.
   }
   ema_init_ = true;
   n_++;

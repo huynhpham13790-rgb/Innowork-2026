@@ -26,7 +26,7 @@ NGUYÊN TẮC THIẾT KẾ — đối tượng là GIÁM KHẢO trong 5 PHÚT, k
     thời gian vẫn giữ, nhưng đẩy xuống dưới vì nó trả lời câu hỏi khác.
 
  4. NGƯỠNG VẼ THÀNH ĐƯỜNG, KHÔNG ĐỂ NGƯỜI XEM TỰ NHỚ.
-    Điểm bất thường 1,847 và ngưỡng cứng 60 °C đều vẽ lên biểu đồ.
+    Điểm bất thường 1,071 và ngưỡng cứng 60 °C đều vẽ lên biểu đồ.
 
 Chạy: VEDCaPhenika/planb_cloud/grafana/make_dashboard.py
 """
@@ -38,7 +38,7 @@ ENV = HERE.parent / ".env"
 DS = {"type": "influxdb", "uid": "cfxg34mlaudxce"}
 BUCKET = "battery"
 
-AE_TH = 1.84735274      # khớp AE_THRESHOLD trong cell_ai.h
+AE_TH = 1.0707          # khớp AE_THRESHOLD trong cell_ae_weights.h (QĐ-033)
 T_CRIT = 60.0           # khớp AL_T_CRIT trong alarm.h
 
 

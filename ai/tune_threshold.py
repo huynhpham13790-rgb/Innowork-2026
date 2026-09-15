@@ -49,13 +49,30 @@ def persist_mask(flag, k):
 
 def main():
     from tensorflow import keras
-    ae = keras.models.load_model(MODELS / "cell_ae.keras", compile=False)
-    sc = np.load(PREP / "scaler.npz")
-    mu, sd = sc["mu"], sc["sd"]
+    # --rel: dùng mô hình 11 đặc trưng thuần tương đối (QĐ-033). Cùng một
+    # script cho cả hai mô hình để điểm vận hành được chọn theo ĐÚNG một tiêu
+    # chí — so sánh hai mô hình mà mỗi cái dò ngưỡng bằng một cách khác nhau
+    # thì kết quả không so được.
+    rel = "--rel" in sys.argv
+    if rel:
+        ae = keras.models.load_model(MODELS / "cell_ae_rel.keras", compile=False)
+        s_ = np.load(MODELS / "scaler_rel.npz")
+        mu, sd, feat_idx = s_["mu"], s_["sd"], s_["idx"].astype(int)
+        out_name = "operating_point_rel.npz"
+        print("mo hinh: 11 dac trung thuan tuong doi")
+    else:
+        ae = keras.models.load_model(MODELS / "cell_ae.keras", compile=False)
+        sc = np.load(PREP / "scaler.npz")
+        mu, sd, feat_idx = sc["mu"], sc["sd"], None
+        out_name = "operating_point.npz"
+        print("mo hinh: 16 dac trung (hien tai)")
 
     def score(feats):
         T, N, F = feats.shape
-        z = (feats.reshape(-1, F) - mu) / sd
+        z = feats.reshape(-1, F)
+        if feat_idx is not None:   # tên riêng: `idx` bị dùng lại làm dict bên dưới,
+            z = z[:, feat_idx]     # mà closure bắt BIẾN chứ không bắt giá trị
+        z = (z - mu) / sd
         r = ae.predict(z, batch_size=8192, verbose=0)
         return np.mean((r - z) ** 2, axis=1).reshape(T, N).astype(np.float32)
 
@@ -153,9 +170,9 @@ def main():
             print(f"  -> KHÔNG có báo động giả nào trên {n_clean:,} mẫu-cell")
             print(f"     chặn trên 95% (quy tắc số 3): < {ub:.4f}/giờ "
                   f"= hiếm hơn 1 lần mỗi {1/ub/24:.1f} ngày")
-        np.savez(MODELS / "operating_point.npz",
+        np.savez(MODELS / out_name,
                  threshold=th, persist_s=k, pct=pct, fp_per_hour=fp_hr)
-        print(f"  -> đã lưu {MODELS/'operating_point.npz'}")
+        print(f"  -> đã lưu {MODELS/out_name}")
     else:
         print("\nKHÔNG cặp nào đạt mục tiêu (<1 báo động giả/ngày + bắt 100% ramp).")
         print("Phải nới mục tiêu, hoặc thêm đặc trưng, hoặc dùng mô hình khác.")
