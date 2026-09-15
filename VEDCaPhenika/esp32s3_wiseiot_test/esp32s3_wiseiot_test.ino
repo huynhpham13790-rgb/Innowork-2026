@@ -32,6 +32,7 @@
 #include "cell_temp.h"
 #include "alarm.h"
 #include "pack_meter.h"
+#include "broker_find.h"
 
 // ---------------------------------------------------------------- Nguồn nhiệt độ
 // 1 = đọc 8 con DS18B20 thật · 0 = quay lại giả lập (khi tháo cảm biến ra)
@@ -732,6 +733,9 @@ bool mqttTryConnect() {
 #endif
     if (ok) {
       Serial.println("[MQTT] KET NOI OK");
+      // Nối được rồi mới nhớ — nhớ một địa chỉ chưa kiểm chứng là tự đặt bẫy
+      // cho lần khởi động sau.
+      brokerRemember(gHost.c_str(), gPort);
       mqtt.subscribe(topicCmd);
       mqtt.subscribe(topicAck);
       publishConnState(1);
@@ -822,7 +826,14 @@ void setup() {
                                         // Xong rồi hãy nạp CA thật (xem file .md).
   mqtt.setClient(netTls);
 #else
-  gHost = TEST_HOST; gPort = TEST_PORT;
+  // Tự tìm broker thay vì tin IP biên dịch sẵn. IP máy chủ đổi liên tục vì
+  // máy chạy lúc ở trường, lúc ở nhà, lúc qua hotspot điện thoại — ghim IP
+  // nghĩa là mỗi lần đổi mạng phải nạp lại firmware. Xem broker_find.h.
+  {
+    BrokerAddr b = brokerFind(TEST_HOST, TEST_PORT);
+    gHost = b.host; gPort = b.port;
+    Serial.printf("[BRK ] broker = %s:%u (tim bang: %s)\n", b.host, b.port, b.how);
+  }
   mqtt.setClient(netPlain);
   Serial.println("[i] Mo https://www.hivemq.com/demos/websocket-client/ ,");
   Serial.printf ("    Connect roi Subscribe topic:  /wisepaas/scada/%s/#\n", NODE_ID);

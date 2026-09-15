@@ -1,0 +1,27 @@
+<?xml version="1.0" standalone='no'?>
+<!DOCTYPE service-group SYSTEM "avahi-service.dtd">
+<!--
+  Quảng bá broker MQTT qua mDNS để ESP32 TỰ TÌM, không cần biết IP.
+
+  VÌ SAO: máy chủ chạy lúc ở trường, lúc ở nhà, lúc qua hotspot điện thoại —
+  IP đổi liên tục. Ghim IP vào firmware nghĩa là mỗi lần đổi mạng phải nạp lại
+  firmware, và nếu quên thì tới ngày thi mới phát hiện.
+
+  Avahi tự cập nhật địa chỉ quảng bá khi IP đổi, nên file này viết một lần là
+  xong vĩnh viễn.
+
+  Cài:  sudo cp avahi/hutieu-mqtt.service /etc/avahi/services/
+        sudo systemctl reload avahi-daemon
+
+  ⚠️ Nhiều mạng WiFi công cộng CHẶN multicast, nên mDNS có thể không tới được.
+  Firmware vì vậy không tin mDNS một mình — xem broker_find.cpp: mDNS trước,
+  rồi tới IP lần trước dùng được, rồi mới tới IP biên dịch sẵn.
+-->
+<service-group>
+  <name>Hu Tieu MQTT broker</name>
+  <service>
+    <type>_mqtt._tcp</type>
+    <port>1883</port>
+    <txt-record>node=hutieu</txt-record>
+  </service>
+</service-group>

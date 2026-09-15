@@ -739,3 +739,81 @@ thì giới hạn này không chặn đường — hệ giám sát chính pack c
 quảng cáo phải khớp với thứ đã chứng minh được.
 
 Chi tiết: `docs/BANG_CHUNG_KIEM_CHUNG_LOP1_THAT_2026-09-15.md`.
+
+---
+
+### QĐ-033 · 15/09/2026 · **Đề xuất, CHƯA CHỐT** — autoencoder thuần tương đối
+
+**Câu hỏi khởi nguồn.** QĐ-032 kết luận mô hình phải hiệu chỉnh riêng cho từng
+pack. Vậy **sản xuất hàng loạt kiểu gì?**
+
+**Ý tưởng.** Vấn đề không phải "mỗi pack một khác", mà là đang **trộn hai loại
+thông tin có tính chất khác hẳn nhau vào cùng một mô hình**. Đặc trưng tương đối
+giữa cell là phổ quát ("cell này nóng hơn phần còn lại 2 °C" có nghĩa như nhau
+trên mọi pack). Đặc trưng bối cảnh tuyệt đối thì gắn chặt với thiết kế tản
+nhiệt — và cũng **không cần học**, vì "pack nóng hơn môi trường 25 °C" là một
+ngưỡng, không phải một mẫu.
+
+Bỏ 5 đặc trưng tuyệt đối (`T-amb`, `packT-amb`, `|I|/I_SCALE`, `soc`,
+`(T-25)/25`), giữ 11 đặc trưng thuần tương đối.
+
+**Dự đoán ghi trước khi chạy: báo oan sẽ tăng, phát hiện sẽ giảm một ít.**
+**Dự đoán này SAI.** Kết quả ngược lại hoàn toàn.
+
+**Kết quả trên chính dữ liệu NASA — tốt hơn toàn diện:**
+- Báo oan 0,0360 % → **0,0106 %** (thấp hơn 3,4 lần)
+- `offset` 2,0 °C: 79 % → **100 %**
+- `ramp` 2,0 °C trễ: 1 142 s → **844 s**
+- `drift` 5,0 °C: 46 % → **88 %** — điểm yếu nặng nhất, cải thiện gần gấp đôi
+
+Giải thích: nút thắt chỉ 4 chiều. Với 16 đặc trưng, mô hình phải tiêu dung
+lượng ít ỏi đó để tái tạo 5 đặc trưng **giống hệt nhau ở mọi cell**, tức không
+mang thông tin phân biệt cell nào. Bỏ đi thì cả 4 chiều dành trọn cho cấu trúc
+tương đối.
+
+**Kết quả chuyển giao sang pack McMaster:** file lỗi 0,360–1,262 % thời gian,
+file bình thường tệ nhất 0,065 % — **tách biệt ~19 lần**, đã dùng được. Cả 5
+file bình thường ở 25 °C: đúng 0 %. (So với mô hình cũ: file bình thường
+US06_15C bị báo 98,7 %, cao hơn cả file lỗi.)
+
+**Vẫn còn một ca trượt:** `UDDS_Blocked_25C` im lặng hoàn toàn. File đó chỉ làm
+độ rộng nhiệt tăng 3→4 °C, đúng một bước lượng tử của Orion BMS.
+
+**Kiến trúc ba tầng cho bản thương mại:** (1) ngưỡng cứng 60 °C, không học, y
+hệt mọi máy; (2) autoencoder thuần tương đối, nạp giống hệt nhau khi xuất
+xưởng; (3) bối cảnh tuyệt đối xử lý bằng luật vật lý viết tay. Muốn thêm thì
+hiệu chỉnh ngưỡng tại chỗ bằng vài giờ vận hành bình thường — autoencoder không
+cần nhãn nên tự động hoàn toàn. ⚠️ Chỉ làm trên pack đã biết là tốt, nếu không
+thì lỗi sẵn có bị ghi thành "bình thường" vĩnh viễn (cùng bẫy với QĐ-025).
+
+**TRẠNG THÁI: đề xuất.** Đây là thay đổi kiến trúc so với QĐ-012 nên theo
+CLAUDE.md phải có người chốt. Chi tiết và việc phải làm nếu chốt:
+`docs/BANG_CHUNG_AE_TUONG_DOI_2026-09-15.md`.
+
+---
+
+### QĐ-034 · 15/09/2026 · Đã chốt — ESP32 tự tìm broker, thôi ghim IP (khép QĐ-029)
+
+Máy chủ chạy lúc ở trường, lúc ở nhà, lúc qua hotspot điện thoại. Ghim IP nghĩa
+là mỗi lần đổi mạng phải nạp lại firmware, và quên đúng hôm thi thì mất demo.
+
+**Ba đường, thử theo thứ tự** (`broker_find.cpp`) — vì không đường nào tin được
+một mình:
+1. **mDNS** hỏi dịch vụ `_mqtt._tcp`; avahi tự cập nhật địa chỉ khi IP đổi nên
+   viết một lần là xong. Nhưng **nhiều WiFi công cộng chặn multicast**, và hội
+   trường thi rất có thể là một trong số đó.
+2. **IP lần trước nối được**, lưu trong LittleFS — sống sót qua khởi động lại
+   khi mDNS bị chặn.
+3. **IP biên dịch sẵn** — đường duy nhất chắc chắn có khi tới mạng mới lần đầu.
+
+Chỉ ghi nhớ địa chỉ **sau khi đã nối thành công** (nhớ địa chỉ chưa kiểm chứng
+là tự đặt bẫy cho lần sau), và chỉ ghi khi **khác** giá trị đang lưu (flash có
+số lần ghi hữu hạn; nối lại MQTT xảy ra hàng chục lần mỗi giờ khi sóng yếu).
+
+Đã chạy thật: mDNS không thấy (chưa cài file avahi service), tự lùi sang địa
+chỉ đã lưu, `[MQTT] KET NOI OK`.
+
+**Phía máy chủ:** `planb_cloud/start.sh` tự dò IP LAN rồi ghi vào `.env` — thôi
+sửa tay. Lời giải sạch hơn là `sudo systemctl disable --now mosquitto` rồi xoá
+`docker-compose.override.yml`, khi đó compose gốc bind `0.0.0.0:1883` và không
+còn phụ thuộc IP; nhưng việc đó cần quyền sudo của người dùng.
