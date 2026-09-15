@@ -79,6 +79,7 @@ Ký hiệu: ✅ đã kiểm chứng · ⬜ chưa làm · 🔶 làm rồi nhưng 
 | 6.15 | Firmware đếm + báo lỗi cảm biến theo từng kênh | `cell_temp.cpp` + tag `Sensor_*` lên cloud | ✅ 14/09 |
 | 6.16 | Bảng offset đo trong nước, 2 lần khớp ~0,05 °C | 2 lần khớp 0,025 °C; lệch thật 0,3665 °C | ✅ 14/09 — `ds18b20_offsets.h` |
 | 6.17 | Bỏ breadboard, hàn/terminal block trước khi gắn pack | — | ⬜ chưa làm |
+| 6.30 | **Đo mức đánh đổi khi bớt cảm biến (8/4/2)** | `ai/sensor_count_study.py` — ramp trễ ×2,6 và ×7; offset N=2 bằng 0 % | ✅ 15/09 |
 | 6.22 | **Còi + LED cảnh báo tại chỗ** (không cần mạng) | `alarm.cpp`, bench 11/11 đạt, LED RGB trên board | ✅ 15/09 — logic xong, còi rời chưa về (`AL_PIN_BUZZER -1`) |
 | 6.24 | Báo động có 4 mức, phân biệt được bằng nhịp lẫn màu | `test/alarm_bench` TH-A…TH-D | ✅ 15/09 |
 | 6.25 | Ngưỡng cứng 60 °C kích được KỂ CẢ khi AI im hoàn toàn | TH-E: `ai_alarm=false`, vẫn NGUY KỊCH | ✅ 15/09 |

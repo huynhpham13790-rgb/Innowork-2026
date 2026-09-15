@@ -614,3 +614,43 @@ dựng lại container mosquitto, kết nối lại OK.
 Ngày thi đã quyết phát WiFi từ điện thoại (xem phần Ẩn số), lúc đó IP do điện
 thoại cấp và ổn định hơn — nên rủi ro này chủ yếu ảnh hưởng giai đoạn phát
 triển. Cần người chốt.
+
+---
+
+### QĐ-030 · 15/09/2026 · Đã chốt — giữ 8 cảm biến ở bản lab; 4 là mức rút tối đa
+
+**Bối cảnh.** Đội tranh luận: 8 cảm biến vướng và không kinh tế, chia mỗi cảm
+biến cho 2–4 cell có được không? Cả hai phía đều chưa có số.
+
+**Đã đo** (`ai/sensor_count_study.py`, 24 đoạn pack-ảo, chu kỳ 349–356). Lỗi
+tiêm vào MỘT CELL THẬT rồi mới lấy trung bình nhóm — đúng thứ tự vật lý.
+
+**Quyết định.** Bản lab giữ **8 cảm biến**. Bản thương mại có thể rút về **4**
+nếu nói rõ mất gì. **2 cảm biến bị loại.**
+
+**Ba con số quyết định:**
+
+1. **Trễ phát hiện `ramp` (tiền đề thermal runaway) ở 2 °C/10 phút:**
+   8 cảm biến 1 142 s · 4 cảm biến 2 993 s (×2,6) · 2 cảm biến 8 063 s (×7).
+   Với sự cố đang leo thang, hơn 100 phút chênh lệch là khoảng cách giữa ngắt
+   sạc kịp và ngắt sạc khi đã quá muộn.
+
+2. **`offset` 5 °C:** 8 cảm biến 100 %, 4 cảm biến 96 %, **2 cảm biến 0 %.**
+   Cấu hình 2 cảm biến không phát hiện được lỗi tiếp xúc ở bất kỳ độ lớn nào
+   đã thử. Đó là hiệu ứng pha loãng: 5 °C trên một cell chia cho 4 còn 1,25 °C.
+
+3. **Chỉ đích danh:** 8 → đúng 1 cell; 4 → 2 cell; 2 → 4 cell. Chiến lược thay
+   cell cùng tuổi ở QĐ-027 phụ thuộc vào việc biết cell nào.
+
+**Cái bẫy phải ghi lại.** Tỉ lệ báo oan GIẢM khi bớt cảm biến: 0,0360 % (8) →
+0,0005 % (4) → 0,0001 % (2). Nhìn qua tưởng ít cảm biến là tốt hơn. Sai — đó là
+triệu chứng của sự mù, không phải của độ chính xác. Cùng phép pha loãng làm nó
+không thấy lỗi thật cũng làm nó không thấy nhiễu. Một hệ không bao giờ báo động
+có tỉ lệ báo oan 0 % hoàn hảo. **Không bao giờ đọc tỉ lệ báo oan tách rời khỏi
+tỉ lệ phát hiện.**
+
+**Nghiên cứu này còn lạc quan ở ba chỗ** (trung bình nhóm là trường hợp tốt; AE
+huấn luyện trên 8 kênh nên số N=2 là giới hạn trên; bỏ qua dẫn nhiệt giữa cell)
+— cả ba đều nghiêng về làm cấu hình ít cảm biến trông đẹp hơn thực tế, nên kết
+luận loại bỏ N=2 càng vững. Chi tiết:
+`docs/BANG_CHUNG_SO_CAM_BIEN_2026-09-15.md`.
