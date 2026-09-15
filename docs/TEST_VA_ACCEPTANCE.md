@@ -79,7 +79,13 @@ Ký hiệu: ✅ đã kiểm chứng · ⬜ chưa làm · 🔶 làm rồi nhưng 
 | 6.15 | Firmware đếm + báo lỗi cảm biến theo từng kênh | `cell_temp.cpp` + tag `Sensor_*` lên cloud | ✅ 14/09 |
 | 6.16 | Bảng offset đo trong nước, 2 lần khớp ~0,05 °C | 2 lần khớp 0,025 °C; lệch thật 0,3665 °C | ✅ 14/09 — `ds18b20_offsets.h` |
 | 6.17 | Bỏ breadboard, hàn/terminal block trước khi gắn pack | — | ⬜ chưa làm |
-| 6.22 | **Còi + LED cảnh báo tại chỗ** (không cần mạng) | — | ⬜ **chưa làm** — hệ mới chỉ cảnh báo qua log/dashboard |
+| 6.22 | **Còi + LED cảnh báo tại chỗ** (không cần mạng) | `alarm.cpp`, bench 11/11 đạt, LED RGB trên board | ✅ 15/09 — logic xong, còi rời chưa về (`AL_PIN_BUZZER -1`) |
+| 6.24 | Báo động có 4 mức, phân biệt được bằng nhịp lẫn màu | `test/alarm_bench` TH-A…TH-D | ✅ 15/09 |
+| 6.25 | Ngưỡng cứng 60 °C kích được KỂ CẢ khi AI im hoàn toàn | TH-E: `ai_alarm=false`, vẫn NGUY KỊCH | ✅ 15/09 |
+| 6.26 | Trễ 5 °C chống còi kêu ngắt quãng quanh ngưỡng | TH-F: 57 °C vẫn kêu, 54,5 °C mới nhả | ✅ 15/09 |
+| 6.27 | Mất cảm biến báo màu RIÊNG, không trộn vào màu đỏ | TH-G xanh dương; TH-H không xoá báo động đang có | ✅ 15/09 |
+| 6.28 | Mất cả bus không làm đèn đứng hình | nhánh `isnan` vẫn gọi `gAlarm.update(...,true)` | ✅ 15/09 |
+| 6.29 | Tắt tiếng được, và tắt tiếng tự huỷ khi leo thang | nút BOOT; `if (lvl_ > prev) muted_ = false` | ✅ 15/09 (logic; chờ còi để nghe thật) |
 | 6.23 | Rơ-le/MOSFET ngắt đường sạc khi báo động | — | ⬜ chưa làm, cần cân nhắc rủi ro ngắt sai |
 | 6.18 | Lớp 1 chạy trên nhiệt độ THẬT (không mô phỏng) | bench `cell_temp_ai_bench`, `USE_REAL_TEMP 1` | ✅ 14/09 (chưa chạy toàn tuyến, thiếu WiFi) |
 | 6.19 | Hiệu chỉnh offset thu hẹp độ rộng trên board thật | thô 0,375 → 0,030 °C (12,4 lần) | ✅ 14/09 |

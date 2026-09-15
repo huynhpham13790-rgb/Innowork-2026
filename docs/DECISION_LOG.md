@@ -541,3 +541,76 @@ vì pack nối tiếp sống chết theo cell yếu nhất."*
 | WiFi hội trường có chặn/NAT cổng 1883 không? | Kịch bản ngày thi | Đã quyết: phát WiFi từ điện thoại, không dùng mạng hội trường. |
 | ~~Store-and-forward chạy thật trên board ra sao?~~ | **Đã gỡ 06/09** — chạy thật thành công, xem `BANG_CHUNG_PHAN_CUNG_2026-09-06.md`. Tìm ra thêm QĐ-010. | |
 | Mạng 4G / WiFi phát từ điện thoại có ổn không? | Kịch bản ngày thi | Thử trước, cùng lúc với AC-04.6 trên VPS. |
+
+---
+
+### QĐ-028 · 15/09/2026 · Đã chốt — báo động tại chỗ có 4 mức, không phải một cờ bật/tắt
+
+**Bối cảnh.** Trước hôm nay hệ chỉ cảnh báo qua Serial và dashboard. Cả hai đều
+giả định có người đang nhìn màn hình. Kịch bản nguy hiểm nhất của pack pin lại
+là lúc sạc qua đêm trong nhà xe — không ai nhìn màn hình, và mạng thì đúng lúc
+đó cũng có thể mất.
+
+**Quyết định.** `alarm.cpp` với 4 mức leo thang (OK / THEO DÕI / BÁO ĐỘNG /
+NGUY KỊCH) cộng một trạng thái riêng cho MẤT CẢM BIẾN.
+
+**Bốn điểm đáng ghi lại, vì mỗi cái đều là một chỗ dễ làm sai:**
+
+1. **Không gộp ba mức vào một cái còi kêu/không kêu.** "Đang theo dõi" khác
+   "đã báo động" khác "cắt ngay" — gộp lại là ném đi đúng thứ người dùng cần để
+   quyết định làm gì.
+
+2. **Ngưỡng cứng 60 °C đi đường RIÊNG, không qua AI.** `Alarm::update()` nhận
+   `t_max` như một tham số độc lập với `ai_alarm`. Nhờ vậy autoencoder sai hoàn
+   toàn thì ngưỡng cứng vẫn kêu. Đã kiểm: TH-E cho `ai_alarm=false` mà vẫn lên
+   NGUY KỊCH.
+
+3. **Trễ 5 °C (60 lên / 55 xuống).** Cùng bài học với `CT_MIN_CONSEC_OK` ở
+   `cell_temp.h`: ngưỡng đơn luôn sinh nhấp nháy. Nhiệt độ dao động quanh đúng
+   60 °C sẽ làm còi kêu ngắt quãng, và người nghe sẽ tưởng lỗi vặt rồi rút điện
+   cho đỡ ồn — tức là ngưỡng đơn tự phá hoại chính nó.
+
+4. **Có nút tắt tiếng, và tắt tiếng KHÔNG tắt đèn.** Một cái còi không tắt được
+   sẽ bị rút dây, và lần sau nó không bảo vệ được ai nữa. Tắt tiếng tự huỷ khi
+   mức leo lên cao hơn: người dùng tắt tiếng cảnh báo AI không có nghĩa là họ
+   đồng ý im lặng khi sau đó pin vượt 60 °C.
+
+**MẤT CẢM BIẾN báo màu xanh dương, không phải đỏ.** "Tôi không còn biết pin thế
+nào" là trạng thái khác hẳn "pin đang nguy hiểm" — hai thứ đòi hỏi hành động
+khác nhau. Trộn vào cùng màu đỏ sẽ dạy người dùng bỏ qua màu đỏ.
+
+**Bằng chứng.** `test/alarm_bench` — 11/11 phép kiểm đạt, xem
+`docs/BANG_CHUNG_BAO_DONG_2026-09-15.md`. alarm.cpp/h trong bench là **symlink**
+tới file firmware thật, không phải bản sao, nên bench không thể phân kỳ.
+
+**Chỗ tớ suýt làm sai.** Bản đầu gọi `gAlarm.update()` sau hai nhánh thoát sớm
+của `runAI()`. Nghĩa là mất cả bus cảm biến → `runAI()` return → đèn ĐỨNG HÌNH
+ở trạng thái cũ → mất hết cảm biến trông y hệt mọi thứ bình thường. Đúng kiểu
+hỏng âm thầm mà QĐ-024 được viết ra để chống. Đã sửa: mọi nhánh thoát đều phải
+nuôi `gAlarm.update()`.
+
+**Phần cứng.** Còi và LED rời đang đặt mua. `AL_PIN_BUZZER -1` nghĩa là "chưa
+có, bỏ qua", nên cùng một firmware chạy được cả trên bàn lẫn trên pack. Logic
+đã được thử trước hàng giờ bằng LED RGB sẵn trên DevKitC-1; linh kiện về chỉ
+sửa số chân.
+
+---
+
+### QĐ-029 · 15/09/2026 · Rủi ro — IP máy chủ đổi theo DHCP của trường
+
+Hôm nay IP máy chủ nhảy từ `172.172.3.174` sang `172.172.5.2`, làm ESP32 mất
+MQTT với `rc=-2`. Đã sửa `LAN_IP` trong `.env` và `TEST_HOST` trong firmware,
+dựng lại container mosquitto, kết nối lại OK.
+
+Đây là chuyện sẽ lặp lại, và nếu lặp vào ngày thi thì mất luôn màn demo. Ba
+đường xử lý, **chưa chốt cái nào** vì đụng tới thế trận bảo mật:
+- Mở `0.0.0.0:1883` thay vì ghim IP — ràng buộc 4 trong CLAUDE.md cho phép
+  (1883 có auth), và miễn nhiễm hoàn toàn với DHCP. Đổi lại là mở ra mọi giao
+  diện, kể cả các mạng Docker.
+- Dùng mDNS (`hutieu.local`) — không phải sửa gì khi IP đổi, nhưng nhiều WiFi
+  công cộng chặn multicast.
+- Giữ nguyên, và đưa "kiểm IP" thành một bước trong checklist ngày thi.
+
+Ngày thi đã quyết phát WiFi từ điện thoại (xem phần Ẩn số), lúc đó IP do điện
+thoại cấp và ổn định hơn — nên rủi ro này chủ yếu ảnh hưởng giai đoạn phát
+triển. Cần người chốt.

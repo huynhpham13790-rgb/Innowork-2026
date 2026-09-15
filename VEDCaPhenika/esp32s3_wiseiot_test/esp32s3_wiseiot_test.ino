@@ -30,6 +30,7 @@
 #include "cell_ai.h"
 #include "charge_cycle.h"
 #include "cell_temp.h"
+#include "alarm.h"
 
 // ---------------------------------------------------------------- Nguồn nhiệt độ
 // 1 = đọc 8 con DS18B20 thật · 0 = quay lại giả lập (khi tháo cảm biến ra)
@@ -74,7 +75,7 @@ const char* DEVICE_ID = "BatteryPack01";
 // Để TEST_USER = "" thì nối ẩn danh (dùng cho HiveMQ công cộng).
 // Broker của đội (Plan B). IP phải khớp LAN_IP trong planb_cloud/.env — ĐỔI
 // MỖI KHI ĐỔI MẠNG. Xem IP máy chủ bằng: hostname -I
-const char* TEST_HOST = "172.172.3.174";
+const char* TEST_HOST = "172.172.5.2";
 const int   TEST_PORT = 1883;
 
 // Mật khẩu KHÔNG nằm trong file này — nó bị commit lên GitHub.
@@ -147,6 +148,7 @@ int    gAlarmCell    = -1;
 
 // ---------------------------------------------------------------- Cảm biến thật
 CellTemp gTemp;
+Alarm    gAlarm;
 bool     gTempOk = false;         // begin() có đủ 8 cảm biến không
 unsigned long lastTempPrint = 0;
 const long TEMP_PRINT_MS = 30000;
@@ -436,9 +438,19 @@ void publishHeartbeat() {
 // ngưỡng cứng 60 °C bên dưới PHẢI giữ, không được bỏ đi vì "đã có AI".
 void runAI() {
   sampleCellTemps();
+
+  // Cảm biến có đủ và khoẻ không — tính một lần, dùng cho cả các nhánh thoát
+  // sớm bên dưới.
+  const bool sensorBad = !gTempOk || gTemp.status().n_healthy < CT_N;
+
   // Chưa có số đọc hợp lệ (vài giây đầu, hoặc mất cả bus) thì không cho AI ăn
   // số rác. Thà không có kết quả còn hơn có kết quả sai.
-  if (isnan(gCellTemp[0])) return;
+  //
+  // NHƯNG vẫn phải nuôi gAlarm.update(). Nếu thoát thẳng ở đây thì mất cả bus
+  // sẽ làm đèn ĐỨNG HÌNH ở trạng thái cũ — nghĩa là mất hết cảm biến trông y
+  // hệt mọi thứ bình thường. Đó đúng là kiểu hỏng âm thầm mà cell_temp.h được
+  // viết ra để chống; đừng mở lại cửa đó ở đây.
+  if (isnan(gCellTemp[0])) { gAlarm.update(false, false, NAN, true); return; }
 
   // Nhiệt độ môi trường: cảm biến thứ 9 nếu có. Không có thì lùi về hằng số —
   // và mã hoá chuyện đó thành tag riêng lên dashboard, chứ không im lặng dùng
@@ -451,14 +463,33 @@ void runAI() {
   const float soc     = 80.0f;
 
   CellAIResult r = gAI.update(gCellTemp, ambient, current, soc);
-  if (!r.valid) return;           // còn trong giai đoạn khởi động
+  if (!r.valid) {                 // còn trong giai đoạn khởi động (AI chưa đủ
+    // cửa sổ lịch sử). AI chưa nói được gì, nhưng ngưỡng cứng 60 °C thì KHÔNG
+    // cần lịch sử — nó phải có hiệu lực ngay từ giây đầu tiên.
+    float t0 = -1000.0f;
+    for (int i = 0; i < AI_N_CELLS; i++) if (gCellTemp[i] > t0) t0 = gCellTemp[i];
+    gAlarm.update(false, false, t0, sensorBad);
+    return;
+  }
 
   // --- lớp an toàn độc lập với AI: ngưỡng cứng, không bao giờ được bỏ ---
+  float tmax = -1000.0f;
   for (int i = 0; i < AI_N_CELLS; i++) {
-    if (gCellTemp[i] >= 60.0f) {
+    if (gCellTemp[i] > tmax) tmax = gCellTemp[i];
+    if (gCellTemp[i] >= AL_T_CRIT) {
       Serial.printf("[SAFE] CELL %d = %.2f degC >= 60 - NGUONG CUNG\n", i + 1, gCellTemp[i]);
     }
   }
+
+  // Mức THEO DOI: có cell đang vượt ngưỡng nhưng chưa giữ đủ lâu để thành báo
+  // động. Đèn vàng ở đây chính là thứ cho người trực thấy AI đang làm việc,
+  // thay vì im lặng rồi hét lên sau 60 giây.
+  bool watch = false;
+  for (int i = 0; i < AI_N_CELLS; i++) if (r.run_s[i] > 0) { watch = true; break; }
+
+  // Đưa vào báo động tại chỗ. Ba đường vào tách biệt nên ngưỡng cứng vẫn kêu
+  // kể cả khi autoencoder sai hoàn toàn.
+  gAlarm.update(r.alarm, watch, tmax, sensorBad);
 
   if (r.alarm && !gAlarmLatched) {
     gAlarmLatched = true;
@@ -544,6 +575,12 @@ void publishSensorHealth() {
   dev["Sensor_FaultMask"] = mask;
   dev["Ambient_Temp"]     = gTemp.ambientOk() ? round(gTemp.ambient()*100)/100.0 : -99.0;
   dev["Ambient_IsReal"]   = gTemp.ambientOk() ? 1 : 0;   // 0 = đang dùng hằng số
+  // Trạng thái báo động tại chỗ — để dashboard và còi luôn kể cùng một câu
+  // chuyện. Alarm_Events đếm số lần leo lên mức báo động kể từ khi bật máy:
+  // đó là cách duy nhất biết đêm qua có gì xảy ra mà không ai ở đó nghe.
+  dev["Alarm_Level"]      = (int)gAlarm.level();
+  dev["Alarm_Muted"]      = gAlarm.muted() ? 1 : 0;
+  dev["Alarm_Events"]     = (int)gAlarm.eventCount();
 
   doc["ts"] = isoTimestampUtc();
   String out; serializeJson(doc, out);
@@ -695,6 +732,7 @@ void setup() {
 
   spoolBegin();
   gAI.begin();
+  gAlarm.begin();
   gCharge.begin();
 
 #if USE_REAL_TEMP
