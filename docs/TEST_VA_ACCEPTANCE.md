@@ -79,6 +79,10 @@ Ký hiệu: ✅ đã kiểm chứng · ⬜ chưa làm · 🔶 làm rồi nhưng 
 | 6.15 | Firmware đếm + báo lỗi cảm biến theo từng kênh | `cell_temp.cpp` + tag `Sensor_*` lên cloud | ✅ 14/09 |
 | 6.16 | Bảng offset đo trong nước, 2 lần khớp ~0,05 °C | 2 lần khớp 0,025 °C; lệch thật 0,3665 °C | ✅ 14/09 — `ds18b20_offsets.h` |
 | 6.17 | Bỏ breadboard, hàn/terminal block trước khi gắn pack | — | ⬜ chưa làm |
+| 6.31 | **Driver INA228 viết sẵn trước khi linh kiện về** | `pack_meter.{h,cpp}`, bench giải mã 14/14 đạt | ✅ 15/09 |
+| 6.32 | Dòng/áp thật thay hằng số bịa `0.0f`/`80.0f` trong `runAI()` | có `Meter_IsReal` lên dashboard khi vẫn là giả định | ✅ 15/09 (mã); ⬜ chờ chip |
+| 6.33 | Đo lại `PM_R_SHUNT` bằng nguồn dòng đã biết | — | ⬜ **bắt buộc trước khi tin số Lớp 2** (~5 % sai số) |
+| 6.34 | SOC thật bằng đếm coulomb thay vì xấp xỉ tuyến tính từ điện áp | — | ⬜ chưa làm; hiện dùng ước lượng thô, sai >20 đ.p.t. ở vùng giữa |
 | 6.30 | **Đo mức đánh đổi khi bớt cảm biến (8/4/2)** | `ai/sensor_count_study.py` — ramp trễ ×2,6 và ×7; offset N=2 bằng 0 % | ✅ 15/09 |
 | 6.22 | **Còi + LED cảnh báo tại chỗ** (không cần mạng) | `alarm.cpp`, bench 11/11 đạt, LED RGB trên board | ✅ 15/09 — logic xong, còi rời chưa về (`AL_PIN_BUZZER -1`) |
 | 6.24 | Báo động có 4 mức, phân biệt được bằng nhịp lẫn màu | `test/alarm_bench` TH-A…TH-D | ✅ 15/09 |

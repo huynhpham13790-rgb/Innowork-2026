@@ -31,6 +31,7 @@
 #include "charge_cycle.h"
 #include "cell_temp.h"
 #include "alarm.h"
+#include "pack_meter.h"
 
 // ---------------------------------------------------------------- Nguồn nhiệt độ
 // 1 = đọc 8 con DS18B20 thật · 0 = quay lại giả lập (khi tháo cảm biến ra)
@@ -149,6 +150,29 @@ int    gAlarmCell    = -1;
 // ---------------------------------------------------------------- Cảm biến thật
 CellTemp gTemp;
 Alarm    gAlarm;
+PackMeter gMeter;
+bool      gMeterOk = false;
+
+// Chân I2C mặc định của ESP32-S3-DevKitC-1.
+#define I2C_SDA 8
+#define I2C_SCL 9
+
+/* SOC thô từ điện áp hở mạch trung bình mỗi cell.
+ *
+ * ⚠️ ĐÂY LÀ PHÉP ƯỚC LƯỢNG THÔ, không phải SOC thật. Đường OCV của lithium
+ * phẳng ở khoảng giữa, nên xấp xỉ tuyến tính sai tới hơn 20 điểm phần trăm ở
+ * vùng 30–70 %. Và khi đang có dòng thì điện áp còn bị sụt trên nội trở nữa.
+ *
+ * Vẫn dùng vì nó THẬT SỰ TỐT HƠN hằng số 80.0f trước đây — ít nhất nó biến
+ * thiên đúng chiều theo trạng thái pin. Đặc trưng số 14 của Lớp 1 chỉ dùng SOC
+ * làm biến ngữ cảnh chứ không dựng quyết định trên nó.
+ *
+ * Làm đúng thì phải đếm coulomb (thanh ghi CHARGE của INA228) hiệu chỉnh lại
+ * bằng OCV lúc pin nghỉ. Chưa làm — xem docs/TEST_VA_ACCEPTANCE.md. */
+static float crudeSocFromVoltage(float cell_v) {
+  const float soc = (cell_v - 3.0f) / (4.2f - 3.0f) * 100.0f;
+  return soc < 0.0f ? 0.0f : (soc > 100.0f ? 100.0f : soc);
+}
 bool     gTempOk = false;         // begin() có đủ 8 cảm biến không
 unsigned long lastTempPrint = 0;
 const long TEMP_PRINT_MS = 30000;
@@ -458,9 +482,12 @@ void runAI() {
   const bool  ambOk   = gTemp.ambientOk();
   const float ambient = ambOk ? gTemp.ambient() : 28.0f;
 
-  // ⚠️ Hai con số này VẪN LÀ GIẢ ĐỊNH — cần INA228 + đo điện áp pack.
-  const float current = 0.0f;
-  const float soc     = 80.0f;
+  // Dòng và áp: số thật nếu có INA228, còn không thì lùi về giả định CŨ và
+  // đánh dấu chuyện đó lên dashboard (Meter_IsReal) — không bao giờ để số giả
+  // định trôi lên cloud mà trông y hệt số đo.
+  const PackMeasurement pm = gMeter.read();
+  const float current = pm.valid ? pm.current : 0.0f;
+  const float soc     = pm.valid ? crudeSocFromVoltage(pm.cell_v) : 80.0f;
 
   CellAIResult r = gAI.update(gCellTemp, ambient, current, soc);
   if (!r.valid) {                 // còn trong giai đoạn khởi động (AI chưa đủ
@@ -581,6 +608,16 @@ void publishSensorHealth() {
   dev["Alarm_Level"]      = (int)gAlarm.level();
   dev["Alarm_Muted"]      = gAlarm.muted() ? 1 : 0;
   dev["Alarm_Events"]     = (int)gAlarm.eventCount();
+
+  // Dòng/áp pack. Meter_IsReal = 0 nghĩa là hai giá trị trên là GIẢ ĐỊNH, đừng
+  // vẽ đồ thị rồi tin.
+  const PackMeasurement pm = gMeter.read();
+  dev["Meter_IsReal"]     = pm.valid ? 1 : 0;
+  dev["Pack_Voltage"]     = pm.valid ? round(pm.voltage * 1000) / 1000.0 : -99.0;
+  dev["Pack_CellV"]       = pm.valid ? round(pm.cell_v  * 1000) / 1000.0 : -99.0;
+  dev["Pack_Current"]     = pm.valid ? round(pm.current * 1000) / 1000.0 : -99.0;
+  dev["Pack_ChargeAh"]    = pm.valid ? round(pm.charge_ah * 10000) / 10000.0 : -99.0;
+  dev["Meter_ErrCount"]   = (int)gMeter.errorCount();
 
   doc["ts"] = isoTimestampUtc();
   String out; serializeJson(doc, out);
@@ -733,6 +770,14 @@ void setup() {
   spoolBegin();
   gAI.begin();
   gAlarm.begin();
+
+  gMeterOk = gMeter.begin(I2C_SDA, I2C_SCL);
+  if (!gMeterOk) {
+    // Không dừng máy: cảnh báo nhiệt độ (Lớp 1) vẫn chạy được mà không cần
+    // dòng/áp. Nhưng phải nói to, vì im lặng ở đây nghĩa là Lớp 2 âm thầm
+    // chạy trên số bịa — đúng cái đang cố sửa.
+    Serial.println("[INA ] *** KHONG CO INA228 - dong va ap VAN LA SO GIA DINH ***");
+  }
   gCharge.begin();
 
 #if USE_REAL_TEMP

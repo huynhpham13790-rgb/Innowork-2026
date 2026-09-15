@@ -654,3 +654,40 @@ huấn luyện trên 8 kênh nên số N=2 là giới hạn trên; bỏ qua dẫ
 — cả ba đều nghiêng về làm cấu hình ít cảm biến trông đẹp hơn thực tế, nên kết
 luận loại bỏ N=2 càng vững. Chi tiết:
 `docs/BANG_CHUNG_SO_CAM_BIEN_2026-09-15.md`.
+
+---
+
+### QĐ-031 · 15/09/2026 · Đã chốt — INA228 đo luôn điện áp pack, không mua gì thêm
+
+**Câu hỏi.** Mua gì để đo điện áp pack?
+
+**Trả lời: không cần mua gì.** INA228 đo điện áp bus tới 85 V bằng ADC 20 bit;
+pack 8S tối đa 33,6 V nằm gọn trong dải. Cầu chia áp thì phi tuyến theo nhiệt
+độ và làm hỏng độ chính xác; ADS1115 là thừa. Suýt khuyên mua ADS1115 vì ADC
+của ESP32 phi tuyến và nhiễu — nhưng INA228 làm tốt hơn hẳn và đã đặt rồi.
+
+**Tiện thể:** thanh ghi CHARGE của INA228 tự tích phân dòng theo thời gian —
+đúng phép đếm coulomb cần để đo dung lượng THẬT làm đáp án chấm điểm Lớp 2
+(QĐ-026). Một con chip giải cả hai việc.
+
+**Chọn dải shunt RỘNG (ADCRANGE=0, ±163,84 mV), không phải dải hẹp.** Dải hẹp
+cho độ phân giải gấp 4 nhưng với shunt 0,015 Ω chỉ đo tới 2,73 A — sạc 1,9 A
+thì vừa, nhưng xả sẽ TRÀN, và số tràn là một con số sai trông hoàn toàn hợp lý.
+Đổi lại độ phân giải chỉ còn ~21 µA, vẫn thừa thãi.
+
+**Viết driver TRƯỚC khi linh kiện về, và kiểm được luôn.** Phần giải mã thanh
+ghi tách thành hàm thuần (`pm_decode24`, `pm_decode40`), không đụng I2C, nên
+bench chạy được mà không cần chip: 14/14 đạt. Hai lỗi kinh điển của INA228 —
+quên dịch phải 4 bit (mọi số gấp 16 lần) và quên mở rộng dấu 20 bit (dòng xả
+thành số dương khổng lồ) — đều cho ra con số TRÔNG NHƯ SỐ ĐO, không thể phát
+hiện bằng mắt khi nhìn log. Nếu đợi có chip mới thử, ta sẽ mất hàng giờ nghi
+ngờ dây nối và nguồn trước khi nghĩ tới phần mềm.
+
+**Hai chỗ còn nợ, phải nói ra:**
+- `PM_R_SHUNT` chưa đo lại. Mọi giá trị dòng tỉ lệ thẳng với nó; module ghi
+  0,015 Ω nhưng dung sai ±1 % và vết hàn thêm vài mΩ. Chưa đo thì số Lớp 2 chỉ
+  đúng tới ~5 %. (AC-06.33)
+- SOC hiện là xấp xỉ tuyến tính từ điện áp, sai >20 điểm phần trăm ở vùng
+  30–70 % vì đường OCV lithium phẳng ở giữa. Vẫn tốt hơn hằng số 80,0 cũ vì ít
+  nhất nó biến thiên đúng chiều. Làm đúng cần đếm coulomb hiệu chỉnh bằng OCV
+  lúc pin nghỉ. (AC-06.34)
