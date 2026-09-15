@@ -86,6 +86,13 @@ chặt không. Đây cũng là lý do có `Sensor_Healthy` trên dashboard.
 
 **Việc phải làm:** giảm dòng sạc hoặc dừng nghỉ cho nguội.
 
+> **Cập nhật 15/09 — trường hợp này VẪN CHƯA ĐƯỢC KIỂM.** Đã thử kiểm bằng file
+> `Fanoffon` của bộ McMaster (tắt quạt cả pack, tưởng là "nóng đều"), nhưng đó
+> là tắt-rồi-bật-lại nhiều lần: mỗi lần bật, cell gần cửa gió nguội nhanh hơn
+> cell ở xa, tạo ra chênh lệch không gian thật. Nên file đó **không** kiểm được
+> TH-4. Dự đoán ở trên chưa bị bác bỏ, nhưng cũng chưa có bằng chứng ủng hộ.
+> Xem `BANG_CHUNG_KIEM_CHUNG_LOP1_THAT_2026-09-15.md` KQ-04.
+
 ### TH-5 · Bất kỳ cell nào vượt 60 °C 🔴 NGẮT NGAY
 
 Không qua AI. Một vòng `for` so sánh trực tiếp, chạy song song trong `runAI()`.

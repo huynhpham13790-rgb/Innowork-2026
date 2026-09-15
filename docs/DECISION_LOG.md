@@ -691,3 +691,51 @@ ngờ dây nối và nguồn trước khi nghĩ tới phần mềm.
   30–70 % vì đường OCV lithium phẳng ở giữa. Vẫn tốt hơn hằng số 80,0 cũ vì ít
   nhất nó biến thiên đúng chiều. Làm đúng cần đếm coulomb hiệu chỉnh bằng OCV
   lúc pin nghỉ. (AC-06.34)
+
+---
+
+### QĐ-032 · 15/09/2026 · **Kết quả âm tính** — Lớp 1 không chuyển giao sang pack khác
+
+**Đã làm.** Kiểm Lớp 1 trên bộ dữ liệu pack THẬT có lỗi gây ra cố ý: McMaster
+"Battery Pack with Introduced Faults", 72 cell nối tiếp, 1 Hz, CC-BY 4.0,
+doi:10.5683/SP3/THZTJC. Zero-shot: không huấn luyện lại, không chỉnh ngưỡng.
+
+**Kết quả: TRƯỢT.** Mô hình báo động trên gần như mọi file. File BÌNH THƯỜNG
+US06_15C bị báo 98,7 % thời gian — cao hơn cả file LỖI UDDS_Blocked (12,4 %).
+Tỉ lệ báo bám theo mức khắc nghiệt của chu trình lái và nhiệt độ buồng, **không
+bám theo nhãn lỗi**. Đó là dấu vân tay của lệch phân bố, không phải của phát
+hiện.
+
+**Nguyên nhân đã khoanh được — đây là phần có giá trị nhất.** Đo độ lệch của
+từng đặc trưng so với tập huấn luyện:
+- Bốn đặc trưng **bối cảnh toàn pack** (`T-amb`, `packT-amb`, `|I|/I_SCALE`,
+  `soc`) lệch tới **8,6 sd**.
+- Các đặc trưng **tương đối giữa cell** (`dev`, `z`, `rank`, `dev_ema`,
+  `roll_std`) chỉ lệch ≤1,6 sd — **chuyển giao tốt**, dù pack khác hẳn.
+
+Vì bốn đặc trưng bối cảnh **giống hệt nhau ở mọi cell**, khi lệch phân bố chúng
+đẩy sai số tái tạo của TẤT CẢ các cell lên cùng lúc. Đó là cơ chế làm 100 %
+pack-ảo báo động.
+
+**Vô hiệu hoá bốn đặc trưng đó** đưa báo oan ở 25 °C về đúng 0 % — nhưng cũng
+**bỏ sót hoàn toàn** lỗi thật `UDDS_Blocked_25C` (0 %), và ở 15 °C thì mọi file
+vẫn báo bất kể nhãn. Nên phép sửa này không cứu được kết quả; nó chỉ xác nhận
+đúng chỗ hỏng.
+
+**Hai giả thuyết cho ca trượt, CHƯA tách được:** (a) Orion BMS chỉ có độ phân
+giải 1 °C, mà `UDDS_Blocked` chỉ làm độ rộng nhiệt tăng 3→4 °C — tín hiệu bằng
+đúng một bước lượng tử; DS18B20 của đội mịn gấp 16 lần. (b) ngưỡng và bộ chuẩn
+hoá thuộc về pack NASA. Đừng nói đã biết nguyên nhân.
+
+**Một dự đoán của chính mình đã sai.** TH-4 nói pack nóng đều thì Lớp 1 mù;
+`Fanoffon` lại bị báo nhiều nhất. Vì "Fanoffon" là tắt-rồi-bật-lại quạt nhiều
+lần, tạo chênh lệch không gian thật. TH-4 chưa bị bác bỏ nhưng **vẫn chưa được
+kiểm** — đã sửa lại tài liệu cho đúng.
+
+**Ảnh hưởng tới lời nói trước giám khảo.** Không được nói *"AI phát hiện được
+bất thường nhiệt trên pack pin nói chung"*. Được nói *"mô hình phải hiệu chỉnh
+trên chính pack sẽ giám sát; chúng em đã tìm ra lý do cụ thể"*. Với bài dự thi
+thì giới hạn này không chặn đường — hệ giám sát chính pack của đội — nhưng lời
+quảng cáo phải khớp với thứ đã chứng minh được.
+
+Chi tiết: `docs/BANG_CHUNG_KIEM_CHUNG_LOP1_THAT_2026-09-15.md`.
