@@ -51,3 +51,4 @@ ai/data/nasa_cycles.csv
 
 # Bí mật của firmware — mật khẩu MQTT. Chỉ commit bản .example.h
 VEDCaPhenika/esp32s3_wiseiot_test/arduino_secrets.h
+docker-compose.override.yml*
