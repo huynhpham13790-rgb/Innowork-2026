@@ -120,7 +120,14 @@ void Alarm::pollMute() {
      GPIO0 cũng là chân DTR của cổng USB, nên hễ có ai mở Serial Monitor là
      chân bị kéo thấp LIÊN TỤC cho tới lúc đóng cổng — không phải một xung.
      Không bao giờ có cú nhả thì không bao giờ đảo. */
-  if (held < AL_MUTE_HOLD_MS || held > AL_MUTE_MAX_MS) return;
+  /* Nói ra khi TỪ CHỐI một cú nhấn, kèm số đo. Một cái nút im lặng không ăn là
+     thứ không thể gỡ được: người dùng bấm, không có gì xảy ra, và không ai
+     biết là quá ngắn, quá dài, hay chưa tới tay chương trình. */
+  if (held < AL_MUTE_HOLD_MS || held > AL_MUTE_MAX_MS) {
+    Serial.printf("[ALRM] bo qua cu nham %lu ms (chi nhan %u..%u ms)\n",
+                  (unsigned long)held, AL_MUTE_HOLD_MS, AL_MUTE_MAX_MS);
+    return;
+  }
 
   muted_ = !muted_;
   Serial.printf("[ALRM] %s coi (giu nut %lu ms)\n",

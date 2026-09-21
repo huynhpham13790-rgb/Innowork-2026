@@ -1015,6 +1015,11 @@ void loop() {
   gHeater.update(gCellTemp, AI_N_CELLS,
                  gTempOk && gTemp.status().n_healthy >= CT_N);
 
+  /* Nút tắt tiếng cũng phải đọc MỖI VÒNG, cùng lý do với hạn mức sưởi ở trên:
+     cú nhấn tay chỉ vài trăm ms, lấy mẫu 1 Hz là bỏ lọt. Đo 21/09: cú nhấn
+     thứ hai của người dùng biến mất hoàn toàn vì chuyện này. */
+  gAlarm.pollButton();
+
   // Lệnh bằng tay qua Serial. MQTT (phần B) sẽ gọi đúng hai hàm này, không có
   // đường tắt nào khác vào gHeater.
   if (Serial.available()) {

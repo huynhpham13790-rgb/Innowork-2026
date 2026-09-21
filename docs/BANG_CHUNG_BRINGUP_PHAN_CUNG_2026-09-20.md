@@ -700,9 +700,61 @@ qua BLE, là kênh không đụng vào GPIO0:
   3/3 dat. DAT
 ```
 
+### Kiểm nút BOOT thật — và lỗi thứ hai lộ ra ở đây
+
+Ba lần vá trên mới chứng minh *cổng USB không bấm hộ được*. Kiểm vế còn lại —
+*người bấm có ăn không* — thì **trượt**: nhấn hai lần, không lần nào vào.
+
+Bật dòng chẩn đoán rồi bắt tại trận (serial `dtr=False`, không đụng GPIO0):
+
+```
+[  22.9s] [ALRM] TAT TIENG coi (giu nut 199 ms)
+[  23.9s] [ALRM] BAT LAI TIENG coi (giu nut 232 ms)
+[  25.6s] [ALRM] TAT TIENG coi (giu nut 254 ms)
+[  29.4s] [ALRM] bo qua cu nham 1735 ms (chi nhan 120..1500 ms)
+[  30.8s] [ALRM] BAT LAI TIENG coi (giu nut 205 ms)
+[  32.1s] [ALRM] TAT TIENG coi (giu nut 241 ms)
+[  33.5s] [ALRM] BAT LAI TIENG coi (giu nut 259 ms)
+[  34.5s] [ALRM] TAT TIENG coi (giu nut 595 ms)
+```
+
+| Kiểu nhấn | Đo được | Ngưỡng cũ 600–5000 ms |
+|---|---|---|
+| bình thường ×6 | 199–259 ms | **loại sạch** |
+| giữ "khoảng 1 giây" | 1735 ms | ăn |
+| giữ vừa | 595 ms | **loại** |
+
+Hai nguyên nhân, cả hai là chọn số bằng cảm tính:
+
+1. `pollMute()` chạy ở nhịp 1 Hz nên cú nhấn 200 ms lọt giữa hai lần lấy mẫu →
+   tách `Alarm::pollButton()`, gọi **mỗi vòng `loop()`**.
+2. Ngưỡng tối thiểu 600 ms **đã giết nút thật ngay từ lần vá đầu** → chốt
+   **120–2500 ms**, lấy từ số đo trên.
+
+Sau khi sửa: nút thật ăn **7/7** cú nhấn bình thường; `dtr_mute_check.py` vẫn
+**3/3 đạt**.
+
+⚠️ **Tớ đọc nhật ký quá sớm một lần và kết luận nhầm** rằng cú nhấn không tới
+được chương trình. File lúc đó chưa kịp ghi. Kết luận đúng chỉ có sau khi đọc
+lại — ghi ra đây vì suýt nữa đã đi sửa nhầm hướng (nghi chân GPIO0 hỏng).
+
+### INA226 sau khi cắm adapter 12 V
+
+```
+Dien ap / dong / SoC : 12.52 V  0.000 A  SoC ~0%
+```
+
+Chip sống lại ngay — module lấy nguồn từ nhánh adapter, không phải từ ESP.
+Dòng 0,000 A đúng vì sưởi đang tắt.
+
+Hai điều cần biết về con số này:
+
+- `SoC ~0%` **không phải lỗi**: 12,52 V ÷ 6 = 2,09 V/cell, dưới 3,0 V nên hàm
+  kẹp về 0. Đang đo adapter, chưa có pack.
+- **`PACK_V_MIN` của 6S là 11,40 V, nên 12,52 V của adapter LỌT QUA** phép kiểm
+  "điện áp pack hợp lý". Phép kiểm đó không phân biệt được *chưa lắp pack* với
+  *pack gần cạn*. Chưa sửa, nhưng phải biết trước khi tin vào cờ đó.
+
 ### Còn nợ ở mục này
 
-- **Chưa kiểm nút BOOT thật.** Mới chứng minh cổng USB không bấm được hộ; chưa
-  chứng minh người bấm thì vẫn ăn. Phải nhấn giữ ~1 giây rồi đối chiếu
-  `Trang thai` trên BLE.
-- Cắm adapter 12 V rồi đo lại để đặc tính `Dien ap / dong / SoC` có số thật.
+- Dời nút tắt tiếng sang chân không dùng chung với DTR, nếu có board rời.

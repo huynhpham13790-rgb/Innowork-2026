@@ -1324,9 +1324,46 @@ Trạng thái tắt tiếng bây giờ **hiện trên đặc tính `Trang thai` 
 hiểm nhất của cả khối báo động, và người đứng cạnh pack lại chính là người duy
 nhất có cơ hội nhận ra.
 
+### Lần vá thứ tư: nút an toàn trước máy, nhưng chết với người
+
+Ba lần vá trên mới chỉ chứng minh **cổng USB không bấm hộ được**. Chưa ai kiểm
+vế còn lại: *người bấm thì có ăn không?* Đo ra: **không**.
+
+Hai lỗi, cả hai đều do chọn số bằng cảm tính thay vì bằng phép đo:
+
+1. **`pollMute()` chạy ở nhịp 1 Hz** (nó được gọi trong `Alarm::update()`).
+   Cú nhấn tay chỉ kéo dài vài trăm ms nên lọt trọn vào giữa hai lần lấy mẫu và
+   **không bao giờ được nhìn thấy**. → tách ra `Alarm::pollButton()`, gọi **mỗi
+   vòng `loop()`**, cùng lý do với `gHeater.update()` ở QĐ-040.
+2. **Khoảng hợp lệ đặt sai hoàn toàn.** Nhật ký chẩn đoán từ tay người thật:
+
+   | Kiểu nhấn | Đo được | Ngưỡng cũ 600–5000 ms |
+   |---|---|---|
+   | bình thường ×6 | 199, 232, 254, 205, 241, 259 ms | **loại sạch** |
+   | giữ "khoảng 1 giây" | 1735 ms | ăn |
+   | giữ vừa | 595 ms | **loại** |
+
+   Tức ngưỡng tối thiểu 600 ms của lần vá 1 **đã giết nút thật ngay từ đầu**,
+   và chuyện đó bị che suốt ba lần vá vì không ai đo vế người dùng.
+   → chốt **120–2500 ms**, là số đo chứ không phải số đoán.
+
+**Và nút giờ tự khai khi từ chối:** `bo qua cu nham 1735 ms (chi nhan
+120..2500 ms)`. Một cái nút im lặng không ăn là thứ không gỡ được — người bấm,
+không có gì xảy ra, và không có cách nào biết là quá ngắn, quá dài, hay chưa
+tới tay chương trình. Chính vì thiếu dòng này mà mất hai vòng đo.
+
+Kiểm lại sau khi sửa: nút thật ăn 7/7 cú nhấn bình thường, và
+`test/dtr_mute_check.py` vẫn **3/3 đạt** — nới khoảng không mở lại cửa cũ.
+
+### Bài học chung, đáng giá hơn cả cái nút
+
+Một lớp an toàn có **hai vế**: không kích hoạt sai, và **vẫn kích hoạt đúng khi
+cần**. Ba lần vá đầu chỉ kiểm vế thứ nhất, nên tạo ra một cái nút tắt tiếng an
+toàn tuyệt đối trước nhiễu và vô dụng trước người. Cùng dạng với lỗi
+`AL_PIN_BUZZER = -1`: mọi thứ trông đúng, chỉ có chức năng là không tồn tại.
+Mỗi phép vá cho một lớp an toàn phải kèm phép đo cho **cả hai vế**.
+
 ### Còn nợ
 
 - Nút BOOT vẫn là chân chung với DTR. Bản vá phần mềm đã đủ an toàn, nhưng nếu
   có board rời thì **dời nút tắt tiếng sang chân khác** vẫn sạch hơn.
-- `pollMute()` chạy theo nhịp `Alarm::update()`, tức 1 Hz, nên độ phân giải của
-  phép giữ chỉ ~1 giây. Đủ cho nút bấm tay, nhưng là con số cần biết.

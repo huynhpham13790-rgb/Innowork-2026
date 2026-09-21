@@ -78,8 +78,20 @@
  * Lưu ý: pollMute() chạy theo nhịp gAlarm.update(), tức 1 Hz, nên độ phân giải
  * của phép giữ chỉ khoảng 1 giây. Đó là lý do nhật ký in "giu nut 998 ms" chứ
  * không phải 600. Đủ dùng cho một cái nút bấm tay. */
-#define AL_MUTE_HOLD_MS  600     // giữ ít hơn => nhiễu, bỏ qua
-#define AL_MUTE_MAX_MS   5000    // giữ lâu hơn => máy ghì chân, KHÔNG phải người
+/* Khoảng hợp lệ của một cú nhấn tay. Hai mốc này chỉ có nghĩa khi pollButton()
+   được gọi mỗi vòng loop(); ở nhịp 1 Hz thì độ phân giải ~1 s nuốt mất cả
+   khoảng — đó đúng là lý do cú nhấn thứ hai của người dùng biến mất 21/09.
+
+   HAI MỐC NÀY LÀ SỐ ĐO, KHÔNG PHẢI SỐ ĐOÁN (test/dtr_mute_check.py + nhật ký
+   chẩn đoán, 21/09):
+     - nhấn bình thường  : 199, 232, 254, 205, 241, 259 ms  -> đều phải ăn
+     - giữ "khoảng 1 giây": 1735 ms                          -> cũng phải ăn
+   Bản đầu đặt tối thiểu 600 ms đã LOẠI SẠCH mọi cú nhấn bình thường, và trần
+   1500 ms loại nốt cú giữ lâu. Người ta luôn giữ lâu hơn mình nghĩ.
+   120..2500 ms ôm trọn cả hai mà vẫn đủ hẹp: một phiên serial ngắn hơn 2,5 s
+   gần như không xảy ra, và cửa boot đã bị khoá riêng bằng mute_seen_up_. */
+#define AL_MUTE_HOLD_MS  120     // giữ ít hơn => nhiễu, bỏ qua
+#define AL_MUTE_MAX_MS   2500    // giữ lâu hơn => máy ghì chân, KHÔNG phải người
 #define AL_MUTE_ARM_MS   3000    // khoá hẳn nút trong 3 s đầu sau khởi động
 
 /* Còi chủ động (active) chỉ cần cấp điện là kêu. Còi thụ động (passive) phải
@@ -118,6 +130,15 @@ class Alarm {
        sensor_bad — không đủ cảm biến khoẻ
      Tách riêng để đường ngưỡng cứng KHÔNG đi qua AI: AI hỏng thì nó vẫn chạy. */
   void update(bool ai_alarm, bool ai_watch, float t_max, bool sensor_bad);
+
+  /* Đọc nút tắt tiếng. PHẢI gọi MỖI VÒNG loop(), không phải theo nhịp 1 Hz
+     của update().
+     Lý do: một cú nhấn tay chỉ kéo dài vài trăm ms. Lấy mẫu 1 Hz thì cú nhấn
+     có thể lọt trọn vẹn vào giữa hai lần đọc và KHÔNG BAO GIỜ được nhìn thấy —
+     người dùng bấm, không có gì xảy ra, và không có cách nào biết vì sao.
+     Đã xảy ra thật 21/09: cú nhấn thứ nhất (giữ ~1 s) ăn, cú thứ hai bị bỏ
+     lọt hoàn toàn. */
+  void pollButton() { pollMute(); }
 
   AlarmLevel level() const { return lvl_; }
   bool  muted() const { return muted_; }
