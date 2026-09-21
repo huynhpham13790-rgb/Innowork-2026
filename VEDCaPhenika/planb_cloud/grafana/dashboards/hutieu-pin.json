@@ -503,6 +503,282 @@
     },
     {
       "id": 8,
+      "type": "stat",
+      "title": "Lớp 1 — DẠNG bất thường",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "cfxg34mlaudxce"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 14,
+        "w": 9,
+        "h": 6
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "cfxg34mlaudxce"
+          },
+          "query": "from(bucket: \"battery\")\n  |> range(start: -6h)\n  |> filter(fn: (r) => r._measurement == \"cell\" and r._field == \"value\" and r.tag == \"AI_Pattern\")\n  |> last()",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "text": {
+          "valueSize": 22
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "Chưa rõ dạng",
+                  "color": "green",
+                  "index": 0
+                },
+                "1": {
+                  "text": "NÓNG LÊN NHANH (TH-1)",
+                  "color": "red",
+                  "index": 1
+                },
+                "2": {
+                  "text": "Nóng hơn, ổn định (TH-2)",
+                  "color": "orange",
+                  "index": 2
+                },
+                "3": {
+                  "text": "LẠNH bất thường (TH-3)",
+                  "color": "orange",
+                  "index": 3
+                }
+              }
+            }
+          ],
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "description": "Tra bảng TH-1/2/3 từ ba đặc trưng đã tính sẵn (dev_mean, dT_diff, dev_shock). Đây là phân loại DẠNG, KHÔNG phải chẩn đoán nguyên nhân — mô hình chưa bao giờ được dạy tên của bất kỳ lỗi nào. Xem QĐ-042."
+    },
+    {
+      "id": 9,
+      "type": "stat",
+      "title": "Việc phải làm",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "cfxg34mlaudxce"
+      },
+      "gridPos": {
+        "x": 9,
+        "y": 14,
+        "w": 8,
+        "h": 6
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "cfxg34mlaudxce"
+          },
+          "query": "from(bucket: \"battery\")\n  |> range(start: -6h)\n  |> filter(fn: (r) => r._measurement == \"cell\" and r._field == \"value\" and r.tag == \"AI_Pattern\")\n  |> last()",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "text": {
+          "valueSize": 18
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "Theo dõi tiếp",
+                  "color": "green",
+                  "index": 0
+                },
+                "1": {
+                  "text": "NGẮT SẠC · NGẮT TẢI · CÁCH LY PACK",
+                  "color": "red",
+                  "index": 1
+                },
+                "2": {
+                  "text": "Ghi sổ, kiểm lúc bảo dưỡng",
+                  "color": "orange",
+                  "index": 2
+                },
+                "3": {
+                  "text": "Kiểm mối nối cell và cảm biến",
+                  "color": "orange",
+                  "index": 3
+                }
+              }
+            }
+          ],
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "description": "Lấy nguyên từ bảng trong docs/HAI_LOP_AI_HOAT_DONG_THE_NAO.md. Phân biệt TH-1 với TH-2 là khác biệt giữa cách ly pack ngay và ghi sổ để mai xem."
+    },
+    {
+      "id": 10,
+      "type": "stat",
+      "title": "Ba số đã dùng để tra",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "cfxg34mlaudxce"
+      },
+      "gridPos": {
+        "x": 17,
+        "y": 14,
+        "w": 7,
+        "h": 6
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "cfxg34mlaudxce"
+          },
+          "query": "from(bucket: \"battery\")\n  |> range(start: -6h)\n  |> filter(fn: (r) => r._measurement == \"cell\" and r._field == \"value\" and r.tag == \"AI_Dev\")\n  |> last()",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "cfxg34mlaudxce"
+          },
+          "query": "from(bucket: \"battery\")\n  |> range(start: -6h)\n  |> filter(fn: (r) => r._measurement == \"cell\" and r._field == \"value\" and r.tag == \"AI_DtDiff\")\n  |> last()",
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "cfxg34mlaudxce"
+          },
+          "query": "from(bucket: \"battery\")\n  |> range(start: -6h)\n  |> filter(fn: (r) => r._measurement == \"cell\" and r._field == \"value\" and r.tag == \"AI_Shock\")\n  |> last()",
+          "refId": "C"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value_and_name",
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "vertical",
+        "text": {
+          "valueSize": 16,
+          "titleSize": 12
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 2
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "A"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Lệch so với pack (°C)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Nhanh hơn pack (°C/phút)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "C"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Đột ngột so với nền (°C)"
+              }
+            ]
+          }
+        ]
+      },
+      "description": "Đưa số thô ra cạnh lời khuyên để người còn KIỂM được."
+    },
+    {
+      "id": 11,
       "type": "gauge",
       "title": "Lớp 2 — SOH (sức khoẻ pack)",
       "datasource": {
@@ -511,7 +787,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 14,
+        "y": 20,
         "w": 6,
         "h": 7
       },
@@ -565,7 +841,7 @@
       "description": "SOH ở mức PACK, không phải từng cell — pack nối tiếp sống chết theo cell yếu nhất (QĐ-027). 80 % là mốc thường dùng để coi là hết đời xe."
     },
     {
-      "id": 9,
+      "id": 12,
       "type": "timeseries",
       "title": "Lớp 2 — RUL: số chu kỳ còn lại",
       "datasource": {
@@ -574,7 +850,7 @@
       },
       "gridPos": {
         "x": 6,
-        "y": 14,
+        "y": 20,
         "w": 12,
         "h": 7
       },
@@ -610,7 +886,7 @@
       "description": "Hồi quy tuyến tính trên t_cv (thời gian ở giai đoạn điện áp không đổi). Nội trở tăng => vào CV sớm hơn => t_cv dài ra."
     },
     {
-      "id": 10,
+      "id": 13,
       "type": "stat",
       "title": "Mô hình có đang NGOẠI SUY?",
       "datasource": {
@@ -619,7 +895,7 @@
       },
       "gridPos": {
         "x": 18,
-        "y": 14,
+        "y": 20,
         "w": 6,
         "h": 7
       },
@@ -684,7 +960,7 @@
       "description": "Mô hình tuyến tính ngoài vùng dữ liệu huấn luyện thì con số RUL vô nghĩa. Thà nói ra còn hơn im lặng đưa số đẹp."
     },
     {
-      "id": 11,
+      "id": 14,
       "type": "timeseries",
       "title": "Nhiệt độ 6 cell theo thời gian",
       "datasource": {
@@ -693,7 +969,7 @@
       },
       "gridPos": {
         "x": 0,
-        "y": 21,
+        "y": 27,
         "w": 12,
         "h": 8
       },
@@ -748,7 +1024,7 @@
       "description": "Gồm cả Ambient_Temp (cảm biến thứ 9, đo môi trường — KHÔNG dán lên cell)."
     },
     {
-      "id": 12,
+      "id": 15,
       "type": "timeseries",
       "title": "Tỉ lệ lỗi bus 1-Wire (%)",
       "datasource": {
@@ -757,7 +1033,7 @@
       },
       "gridPos": {
         "x": 12,
-        "y": 21,
+        "y": 27,
         "w": 7,
         "h": 8
       },
@@ -810,7 +1086,7 @@
       "description": "Đã từng đo được 35 % lỗi do ẩm trên đầu dò mà không có dấu hiệu gì khác (QĐ-024). Đây là lý do phải đếm và hiển thị."
     },
     {
-      "id": 13,
+      "id": 16,
       "type": "stat",
       "title": "Số lần báo động\ntừ lúc bật máy",
       "datasource": {
@@ -819,7 +1095,7 @@
       },
       "gridPos": {
         "x": 19,
-        "y": 21,
+        "y": 27,
         "w": 5,
         "h": 8
       },

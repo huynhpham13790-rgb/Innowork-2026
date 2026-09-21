@@ -831,6 +831,16 @@ void publishData() {
     dev["AI_Dev"]        = round(gLastAi.dev     * 100) / 100.0;
     dev["AI_DtDiff"]     = round(gLastAi.dt_diff * 100) / 100.0;
     dev["AI_Shock"]      = round(gLastAi.shock   * 100) / 100.0;
+
+    /* Điểm TỪNG CELL cũng đi kèm mọi gói. Trước đây chúng chỉ có trong
+       publishAnomaly(), nên biểu đồ "Điểm bất thường từng cell" trên Grafana
+       TRỐNG RỖNG suốt lúc bình thường — tức trống đúng lúc giám khảo nhìn, và
+       chỉ có dữ liệu ở những khoảnh khắc đã báo động. Đường nền phẳng mới là
+       thứ chứng minh mô hình không báo bừa; không có nó thì mất nửa câu chuyện. */
+    for (int i = 0; i < AI_N_CELLS; i++) {
+      char nm[16]; snprintf(nm, sizeof(nm), "AI_Score%02d", i + 1);
+      dev[nm] = round(gLastAi.score[i] * 1000) / 1000.0;
+    }
   }
 
   doc["ts"] = isoTimestampUtc();

@@ -822,3 +822,42 @@ chạy nghiệm thu TH-1 ngay sau đó có dòng `BAO DONG` nằm cạnh `[COI D
 TIENG]` — **còi im suốt lúc báo động**. Từ QĐ-042, tắt tiếng qua BLE **tự hết
 hạn sau 5 phút**, nhưng tắt tiếng bằng nút BOOT hoặc MQTT thì vẫn giữ nguyên.
 **Kiểm trước mỗi lần diễn.**
+
+---
+
+## 21/09/2026 — Hàng chẩn đoán trên Grafana, và hai lỗ hổng nó phơi ra
+
+Thêm hàng 3: **DẠNG bất thường**, **Việc phải làm**, **Ba số đã dùng để tra**.
+Sinh bằng `grafana/make_dashboard.py` chứ không kéo thả — dashboard kéo thả nằm
+trong database Grafana, dựng lại máy là mất.
+
+⚠️ **Tớ đã vá thẳng vào Grafana đang chạy trước khi nhớ ra điều đó**, nên repo
+và thực tế lệch nhau một lúc. Docstring của chính `make_dashboard.py` đã cảnh
+báo đúng chuyện này. Đã đưa panel vào script và chạy lại; giờ hai bên khớp.
+
+### Lỗ hổng 1 — biểu đồ điểm AI TRỐNG lúc bình thường
+
+`Lớp 1 — Điểm bất thường từng cell` hiện `No data`. Nguyên nhân: `AI_Score01..06`
+chỉ được gửi trong `publishAnomaly()`, tức **chỉ lúc vào/ra báo động**. Nghĩa là
+biểu đồ có dữ liệu đúng những khoảnh khắc đã báo động, và **trống rỗng đúng lúc
+giám khảo nhìn**.
+
+Mất nửa câu chuyện: **đường nền phẳng mới là thứ chứng minh mô hình không báo
+bừa.** Sửa: đưa điểm từng cell vào MỌI gói `publishData()`. Sau khi sửa, 6 đường
+chạy liên tục quanh 0,02–0,14 so với ngưỡng 1,07.
+
+### Lỗ hổng 2 — nhãn dính khoá nhóm Flux
+
+Panel ba con số hiện `{device="BatteryPack01", tag="AI_Dev"} 0.37`. Đổi `_field`
+trong Flux **không đủ** — Grafana vẫn ghép tiền tố `_value`. Phải đặt
+`displayName` bằng **override theo `byFrameRefID`**. Kết quả: `Lệch so với pack
+(°C) 0.29`.
+
+### Lưu ý cho ngày thi
+
+Dashboard mới mở **có thể trắng trơn vài giây** rồi mới vẽ (Grafana chỉ dựng
+panel khi cuộn tới). Gặp 3/3 lần đo. **Mở sẵn và cuộn một lượt trước khi lên
+trình bày**, đừng mở trực tiếp trước mặt giám khảo.
+
+*Tớ cũng đã một lần vội kết luận "dashboard trắng trơn, không có panel nào" —
+sai, nó chỉ đang tải. 13 panel vẫn còn nguyên.*

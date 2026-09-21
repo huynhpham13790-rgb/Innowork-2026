@@ -189,8 +189,68 @@ def main():
         f"Đường đỏ = ngưỡng {AE_TH}. Vượt ngưỡng phải GIỮ LIÊN TỤC 60 giây mới "
         "thành báo động — chống báo động giả do nhiễu."))
 
-    # ===================== HÀNG 3 — Lớp 2 ====================================
-    P.append(panel(nxt(), "gauge", "Lớp 2 — SOH (sức khoẻ pack)", 0, 14, 6, 7,
+    # ============== HÀNG 3 — Lớp 1 nói DẠNG gì, và phải làm gì ===============
+    # VÌ SAO CÓ HÀNG NÀY (QĐ-042): hàng trên đã nói "cell 3, điểm 26,97" — nhưng
+    # một con số điểm không nói cho ai biết phải LÀM GÌ. Bảng tra TH-1/2/3 nằm
+    # trong docs/HAI_LOP_AI_HOAT_DONG_THE_NAO.md, tức là trên máy tính của đội,
+    # không nằm trước mặt người đang đứng cạnh pack.
+    #
+    # PHẢI NÓI RÕ TRƯỚC GIÁM KHẢO: đây là phân loại DẠNG, không phải chẩn đoán
+    # nguyên nhân. Autoencoder chưa bao giờ được dạy tên của bất kỳ lỗi nào.
+    PAT_MAP = [{"type": "value", "options": {
+        "0": {"text": "Chưa rõ dạng",             "color": "green",  "index": 0},
+        "1": {"text": "NÓNG LÊN NHANH (TH-1)",    "color": "red",    "index": 1},
+        "2": {"text": "Nóng hơn, ổn định (TH-2)", "color": "orange", "index": 2},
+        "3": {"text": "LẠNH bất thường (TH-3)",   "color": "orange", "index": 3}}}]
+    ACT_MAP = [{"type": "value", "options": {
+        "0": {"text": "Theo dõi tiếp",                      "color": "green",  "index": 0},
+        "1": {"text": "NGẮT SẠC · NGẮT TẢI · CÁCH LY PACK", "color": "red",    "index": 1},
+        "2": {"text": "Ghi sổ, kiểm lúc bảo dưỡng",         "color": "orange", "index": 2},
+        "3": {"text": "Kiểm mối nối cell và cảm biến",      "color": "orange", "index": 3}}}]
+
+    P.append(panel(nxt(), "stat", "Lớp 1 — DẠNG bất thường", 0, 14, 9, 6,
+                   last("AI_Pattern"), stat_opts(22),
+                   {"defaults": {"mappings": PAT_MAP,
+                                 "color": {"mode": "thresholds"},
+                                 "thresholds": thresholds([{"color": "text", "value": None}])},
+                    "overrides": []},
+                   "Tra bảng TH-1/2/3 từ ba đặc trưng đã tính sẵn (dev_mean, dT_diff, "
+                   "dev_shock). Đây là phân loại DẠNG, KHÔNG phải chẩn đoán nguyên nhân "
+                   "— mô hình chưa bao giờ được dạy tên của bất kỳ lỗi nào. Xem QĐ-042."))
+
+    P.append(panel(nxt(), "stat", "Việc phải làm", 9, 14, 8, 6,
+                   last("AI_Pattern"), stat_opts(18),
+                   {"defaults": {"mappings": ACT_MAP,
+                                 "color": {"mode": "thresholds"},
+                                 "thresholds": thresholds([{"color": "text", "value": None}])},
+                    "overrides": []},
+                   "Lấy nguyên từ bảng trong docs/HAI_LOP_AI_HOAT_DONG_THE_NAO.md. "
+                   "Phân biệt TH-1 với TH-2 là khác biệt giữa cách ly pack ngay và "
+                   "ghi sổ để mai xem."))
+
+    # Ba số thô đứng cạnh lời khuyên, để người còn KIỂM được. Một lời khuyên
+    # không kiểm được thì đến lúc nó sai sẽ không ai phát hiện.
+    NUMS = [("A", "AI_Dev", "Lệch so với pack (°C)"),
+            ("B", "AI_DtDiff", "Nhanh hơn pack (°C/phút)"),
+            ("C", "AI_Shock", "Đột ngột so với nền (°C)")]
+    tg = []
+    for ref, tag, _ in NUMS:
+        t = last(tag)[0].copy(); t["refId"] = ref; tg.append(t)
+    P.append(panel(nxt(), "stat", "Ba số đã dùng để tra", 17, 14, 7, 6, tg,
+                   {"reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": False},
+                    "textMode": "value_and_name", "colorMode": "none", "graphMode": "none",
+                    "justifyMode": "auto", "orientation": "vertical",
+                    "text": {"valueSize": 16, "titleSize": 12}},
+                   {"defaults": {"unit": "none", "decimals": 2},
+                    # Đặt tên bằng OVERRIDE theo refId. Đổi _field trong Flux vẫn bị
+                    # Grafana ghép thêm tiền tố "_value" vào tên chuỗi; override thì thẳng.
+                    "overrides": [{"matcher": {"id": "byFrameRefID", "options": ref},
+                                   "properties": [{"id": "displayName", "value": name}]}
+                                  for ref, _, name in NUMS]},
+                   "Đưa số thô ra cạnh lời khuyên để người còn KIỂM được."))
+
+    # ===================== HÀNG 4 — Lớp 2 ====================================
+    P.append(panel(nxt(), "gauge", "Lớp 2 — SOH (sức khoẻ pack)", 0, 20, 6, 7,
         last("SOH_Percent"),
         {"reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": False},
          "showThresholdLabels": False, "showThresholdMarkers": True},
@@ -203,7 +263,7 @@ def main():
         "SOH ở mức PACK, không phải từng cell — pack nối tiếp sống chết theo "
         "cell yếu nhất (QĐ-027). 80 % là mốc thường dùng để coi là hết đời xe."))
 
-    P.append(panel(nxt(), "timeseries", "Lớp 2 — RUL: số chu kỳ còn lại", 6, 14, 12, 7,
+    P.append(panel(nxt(), "timeseries", "Lớp 2 — RUL: số chu kỳ còn lại", 6, 20, 12, 7,
         series("/^RUL_Cycles$/"),
         {"legend": {"showLegend": False}, "tooltip": {"mode": "single"}},
         {"defaults": {"unit": "none", "decimals": 0,
@@ -212,7 +272,7 @@ def main():
         "Hồi quy tuyến tính trên t_cv (thời gian ở giai đoạn điện áp không đổi). "
         "Nội trở tăng => vào CV sớm hơn => t_cv dài ra."))
 
-    P.append(panel(nxt(), "stat", "Mô hình có đang NGOẠI SUY?", 18, 14, 6, 7,
+    P.append(panel(nxt(), "stat", "Mô hình có đang NGOẠI SUY?", 18, 20, 6, 7,
         last("Extrapolating"), stat_opts(24),
         {"defaults": {
             "mappings": [{"type": "value", "options": {
@@ -224,8 +284,8 @@ def main():
         "Mô hình tuyến tính ngoài vùng dữ liệu huấn luyện thì con số RUL vô "
         "nghĩa. Thà nói ra còn hơn im lặng đưa số đẹp."))
 
-    # ===================== HÀNG 4 — độ tin cậy ===============================
-    P.append(panel(nxt(), "timeseries", "Nhiệt độ 6 cell theo thời gian", 0, 21, 12, 8,
+    # ===================== HÀNG 5 — độ tin cậy ===============================
+    P.append(panel(nxt(), "timeseries", "Nhiệt độ 6 cell theo thời gian", 0, 27, 12, 8,
         series("/_Temp$/"),
         {"legend": {"displayMode": "list", "placement": "bottom", "showLegend": True},
          "tooltip": {"mode": "multi", "sort": "desc"}},
@@ -238,7 +298,7 @@ def main():
          "overrides": []},
         "Gồm cả Ambient_Temp (cảm biến thứ 9, đo môi trường — KHÔNG dán lên cell)."))
 
-    P.append(panel(nxt(), "timeseries", "Tỉ lệ lỗi bus 1-Wire (%)", 12, 21, 7, 8,
+    P.append(panel(nxt(), "timeseries", "Tỉ lệ lỗi bus 1-Wire (%)", 12, 27, 7, 8,
         series("/^Sensor_ErrPct$/"),
         {"legend": {"showLegend": False}, "tooltip": {"mode": "single"}},
         {"defaults": {"unit": "percent", "decimals": 3,
@@ -251,7 +311,7 @@ def main():
         "Đã từng đo được 35 % lỗi do ẩm trên đầu dò mà không có dấu hiệu gì "
         "khác (QĐ-024). Đây là lý do phải đếm và hiển thị."))
 
-    P.append(panel(nxt(), "stat", "Số lần báo động\ntừ lúc bật máy", 19, 21, 5, 8,
+    P.append(panel(nxt(), "stat", "Số lần báo động\ntừ lúc bật máy", 19, 27, 5, 8,
         last("Alarm_Events"), stat_opts(48),
         {"defaults": {"unit": "none", "noValue": "0",
                       "thresholds": thresholds([
