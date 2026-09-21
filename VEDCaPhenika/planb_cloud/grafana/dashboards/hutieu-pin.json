@@ -1,6 +1,6 @@
 {
   "uid": "hutieu-pin",
-  "title": "Hủ Tiếu — Giám sát pack pin 8S",
+  "title": "Hủ Tiếu — Giám sát pack pin 6S",
   "tags": [
     "hutieu",
     "pin"
@@ -175,7 +175,7 @@
             "type": "influxdb",
             "uid": "cfxg34mlaudxce"
           },
-          "query": "from(bucket: \"battery\")\n  |> range(start: -6h)\n  |> filter(fn: (r) => r._measurement == \"cell\" and r._field == \"value\" and r.tag =~ /^Cell0[1-8]_Temp$/)\n  |> last()\n  |> max()",
+          "query": "from(bucket: \"battery\")\n  |> range(start: -6h)\n  |> filter(fn: (r) => r._measurement == \"cell\" and r._field == \"value\" and r.tag =~ /^Cell0[1-6]_Temp$/)\n  |> last()\n  |> group()\n  |> max()",
           "refId": "A"
         }
       ],
@@ -269,7 +269,7 @@
       "fieldConfig": {
         "defaults": {
           "unit": "none",
-          "max": 8,
+          "max": 6,
           "noValue": "0",
           "thresholds": {
             "mode": "absolute",
@@ -280,18 +280,18 @@
               },
               {
                 "color": "orange",
-                "value": 6
+                "value": 5
               },
               {
                 "color": "green",
-                "value": 8
+                "value": 6
               }
             ]
           }
         },
         "overrides": []
       },
-      "description": "Trên tổng 8. Dưới 8 nghĩa là số liệu KHÔNG đầy đủ — xem docs/HAI_LOP_AI."
+      "description": "Trên tổng 6 (QĐ-036). Dưới 6 nghĩa là số liệu KHÔNG đầy đủ — xem docs/HAI_LOP_AI."
     },
     {
       "id": 5,
@@ -387,7 +387,7 @@
             "type": "influxdb",
             "uid": "cfxg34mlaudxce"
           },
-          "query": "from(bucket: \"battery\")\n  |> range(start: -6h)\n  |> filter(fn: (r) => r._measurement == \"cell\" and r._field == \"value\" and r.tag =~ /^Cell0[1-8]_Temp$/)\n  |> last()\n  |> keep(columns: [\"_value\",\"tag\"])",
+          "query": "from(bucket: \"battery\")\n  |> range(start: -6h)\n  |> filter(fn: (r) => r._measurement == \"cell\" and r._field == \"value\" and r.tag =~ /^Cell0[1-6]_Temp$/)\n  |> last()\n  |> keep(columns: [\"_value\",\"tag\"])",
           "refId": "A"
         }
       ],
@@ -410,6 +410,7 @@
           "decimals": 2,
           "min": 15,
           "max": 65,
+          "displayName": "${__field.labels.tag}",
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -434,7 +435,7 @@
         },
         "overrides": []
       },
-      "description": "So sánh KHÔNG GIAN giữa 8 cell tại một thời điểm — cell nào khác phần còn lại thì thấy ngay, không phải đọc 8 đường chồng nhau."
+      "description": "So sánh KHÔNG GIAN giữa 6 cell tại một thời điểm — cell nào khác phần còn lại thì thấy ngay, không phải đọc 6 đường chồng nhau."
     },
     {
       "id": 7,
@@ -456,7 +457,7 @@
             "type": "influxdb",
             "uid": "cfxg34mlaudxce"
           },
-          "query": "from(bucket: \"battery\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"cell\" and r._field == \"value\" and r.tag =~ /^AI_Score0[1-8]$/)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> keep(columns: [\"_time\",\"_value\",\"tag\"])",
+          "query": "from(bucket: \"battery\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"cell\" and r._field == \"value\" and r.tag =~ /^AI_Score0[1-6]$/)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> keep(columns: [\"_time\",\"_value\",\"tag\"])",
           "refId": "A"
         }
       ],
@@ -685,7 +686,7 @@
     {
       "id": 11,
       "type": "timeseries",
-      "title": "Nhiệt độ 8 cell theo thời gian",
+      "title": "Nhiệt độ 6 cell theo thời gian",
       "datasource": {
         "type": "influxdb",
         "uid": "cfxg34mlaudxce"

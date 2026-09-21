@@ -11,8 +11,8 @@ NGUYÊN TẮC THIẾT KẾ — đối tượng là GIÁM KHẢO trong 5 PHÚT, k
 
  1. HÀNG ĐẦU TRẢ LỜI ĐƯỢC MÀ KHÔNG CẦN ĐỌC BIỂU ĐỒ NÀO.
     "Pack có an toàn không? Cell nào? Tin được số này không?" — ba câu đó phải
-    trả lời xong trong 3 giây đầu. Bản cũ đặt biểu đồ 8 đường nhiệt độ lên đầu:
-    muốn biết có an toàn không thì phải đọc và so sánh 8 đường, tức là bắt người
+    trả lời xong trong 3 giây đầu. Bản cũ đặt biểu đồ nhiệt độ từng cell lên đầu:
+    muốn biết có an toàn không thì phải đọc và so sánh từng đường, tức là bắt người
     xem làm việc của máy.
 
  2. CÓ HÀNG RIÊNG CHO "SỐ NÀY CÓ THẬT KHÔNG".
@@ -20,9 +20,9 @@ NGUYÊN TẮC THIẾT KẾ — đối tượng là GIÁM KHẢO trong 5 PHÚT, k
     này với một bản demo tô vẽ. Giấu chúng đi là vứt bỏ đúng điểm mạnh nhất.
     Số giả định phải TỰ KHAI là giả định, ngay trên màn hình.
 
- 3. NHIỆT ĐỘ 8 CELL DÙNG BAR GAUGE, KHÔNG DÙNG 8 ĐƯỜNG CHỒNG NHAU.
+ 3. NHIỆT ĐỘ TỪNG CELL DÙNG BAR GAUGE, KHÔNG DÙNG NHIỀU ĐƯỜNG CHỒNG NHAU.
     Câu hỏi thật là "cell nào khác phần còn lại", mà đó là so sánh KHÔNG GIAN
-    giữa 8 giá trị tại một thời điểm — bar gauge trả lời tức thì. Lịch sử theo
+    giữa các giá trị tại một thời điểm — bar gauge trả lời tức thì. Lịch sử theo
     thời gian vẫn giữ, nhưng đẩy xuống dưới vì nó trả lời câu hỏi khác.
 
  4. NGƯỠNG VẼ THÀNH ĐƯỜNG, KHÔNG ĐỂ NGƯỜI XEM TỰ NHỚ.
@@ -117,8 +117,9 @@ def main():
     P.append(panel(nxt(), "stat", "Cell nóng nhất", 10, 0, 5, 5,
         q(f'''from(bucket: "{BUCKET}")
   |> range(start: -6h)
-  |> filter(fn: (r) => r._measurement == "cell" and r._field == "value" and r.tag =~ /^Cell0[1-8]_Temp$/)
+  |> filter(fn: (r) => r._measurement == "cell" and r._field == "value" and r.tag =~ /^Cell0[1-6]_Temp$/)
   |> last()
+  |> group()
   |> max()'''),
         stat_opts(48),
         {"defaults": {"unit": "celsius", "decimals": 1, "noValue": "—",
@@ -132,13 +133,13 @@ def main():
 
     P.append(panel(nxt(), "stat", "Cảm biến khoẻ", 15, 0, 4, 5,
         last("Sensor_Healthy"), stat_opts(48),
-        {"defaults": {"unit": "none", "max": 8, "noValue": "0",
+        {"defaults": {"unit": "none", "max": 6, "noValue": "0",
                       "thresholds": thresholds([
                           {"color": "red", "value": None},
-                          {"color": "orange", "value": 6},
-                          {"color": "green", "value": 8}])},
+                          {"color": "orange", "value": 5},
+                          {"color": "green", "value": 6}])},
          "overrides": []},
-        "Trên tổng 8. Dưới 8 nghĩa là số liệu KHÔNG đầy đủ — xem docs/HAI_LOP_AI."))
+        "Trên tổng 6 (QĐ-036). Dưới 6 nghĩa là số liệu KHÔNG đầy đủ — xem docs/HAI_LOP_AI."))
 
     # Panel này là đặc sản của dự án: số nào đang là GIẢ ĐỊNH thì tự khai.
     P.append(panel(nxt(), "stat", "Dòng/áp: số THẬT?", 19, 0, 5, 5,
@@ -156,24 +157,26 @@ def main():
     P.append(panel(nxt(), "bargauge", "Lớp 1 — Nhiệt độ từng cell ngay lúc này", 0, 5, 10, 9,
         q(f'''from(bucket: "{BUCKET}")
   |> range(start: -6h)
-  |> filter(fn: (r) => r._measurement == "cell" and r._field == "value" and r.tag =~ /^Cell0[1-8]_Temp$/)
+  |> filter(fn: (r) => r._measurement == "cell" and r._field == "value" and r.tag =~ /^Cell0[1-6]_Temp$/)
   |> last()
   |> keep(columns: ["_value","tag"])'''),
         {"displayMode": "gradient", "orientation": "horizontal",
          "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": True},
          "showUnfilled": True, "minVizHeight": 16},
         {"defaults": {"unit": "celsius", "decimals": 2, "min": 15, "max": 65,
+                      # ten hang lay tu nhan `tag`, neu khong Grafana ghi "_value Cell01_Temp"
+                      "displayName": "${__field.labels.tag}",
                       "thresholds": thresholds([
                           {"color": "green", "value": None},
                           {"color": "yellow", "value": 45},
                           {"color": "orange", "value": 55},
                           {"color": "red", "value": T_CRIT}])},
          "overrides": []},
-        "So sánh KHÔNG GIAN giữa 8 cell tại một thời điểm — cell nào khác phần "
-        "còn lại thì thấy ngay, không phải đọc 8 đường chồng nhau."))
+        "So sánh KHÔNG GIAN giữa 6 cell tại một thời điểm — cell nào khác phần "
+        "còn lại thì thấy ngay, không phải đọc 6 đường chồng nhau."))
 
     P.append(panel(nxt(), "timeseries", "Lớp 1 — Điểm bất thường từng cell", 10, 5, 14, 9,
-        series("/^AI_Score0[1-8]$/"),
+        series("/^AI_Score0[1-6]$/"),
         {"legend": {"displayMode": "list", "placement": "bottom", "showLegend": True},
          "tooltip": {"mode": "multi", "sort": "desc"}},
         {"defaults": {"unit": "none", "decimals": 3,
@@ -222,7 +225,7 @@ def main():
         "nghĩa. Thà nói ra còn hơn im lặng đưa số đẹp."))
 
     # ===================== HÀNG 4 — độ tin cậy ===============================
-    P.append(panel(nxt(), "timeseries", "Nhiệt độ 8 cell theo thời gian", 0, 21, 12, 8,
+    P.append(panel(nxt(), "timeseries", "Nhiệt độ 6 cell theo thời gian", 0, 21, 12, 8,
         series("/_Temp$/"),
         {"legend": {"displayMode": "list", "placement": "bottom", "showLegend": True},
          "tooltip": {"mode": "multi", "sort": "desc"}},
@@ -259,7 +262,7 @@ def main():
 
     dash = {
         "uid": "hutieu-pin",
-        "title": "Hủ Tiếu — Giám sát pack pin 8S",
+        "title": "Hủ Tiếu — Giám sát pack pin 6S",
         "tags": ["hutieu", "pin"],
         "timezone": "browser",
         "schemaVersion": 39,

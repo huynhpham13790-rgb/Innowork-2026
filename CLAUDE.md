@@ -25,6 +25,7 @@ Bán kết: **26/09/2026**. Mọi quyết định kỹ thuật đều bị chi p
 | **Hai lớp AI hoạt động ra sao, gặp trường hợp nào thì làm gì** | `docs/HAI_LOP_AI_HOAT_DONG_THE_NAO.md` |
 | Requirement nối tới code/test ở đâu | `docs/RTM.md` |
 | Phương án cloud dự phòng | `VEDCaPhenika/PLAN_B_CLOUD.md` |
+| **Hồ sơ + slide Bán kết: dùng sao, còn thiếu gì** | `docs/HUONG_DAN_HO_SO_VA_SLIDE_BAN_KET.md` |
 
 ---
 

@@ -22,6 +22,7 @@ Một file duy nhất, cố ý. Đây là sketch *test đường truyền*, khô
 
 | Vùng | Hàm | Ghi chú |
 |---|---|---|
+| **Số cell** | `pack_config.h` → `PACK_N_CELLS` | **Nguồn sự thật DUY NHẤT.** `AI_N_CELLS`, `DS_N_PROBES`, `CC_N_CELLS`, `PM_N_CELLS`, `NUM_CELLS`, `PM_V_MIN/MAX` đều suy ra từ đây. Đang là **6**; **8 là bản dự phòng**, đổi một dòng. Số khác 6/8 bị `#error` chặn. Xem QĐ-038. |
 | Cấu hình | các `const` đầu file | `STAGE 1/2` quyết định bắn đi đâu. Sửa WiFi/broker ở đây. |
 | Thời gian | `isoTimestampUtc()`, `syncTime()`, `timeIsValid()` | `timeIsValid()` chặn không cho gửi khi NTP chưa xong. |
 | **Store-and-forward** | `spoolBegin/Append/Compact/Flush/Size()` | Đệm xuống LittleFS khi mất mạng. Có test riêng. |
@@ -43,6 +44,30 @@ Thư viện: `PubSubClient`, `ArduinoJson` v7.
 | `test_spool.cpp` | Giả lập LittleFS + MQTT, kiểm 5 nhóm tình huống mất mạng. |
 
 Chạy: `./test/run_test.sh`. Sửa logic spool mà không chạy lại cái này là đang bay mù.
+
+## Bench phần cứng — `test/`
+
+Sketch chạy **trên board thật**, không phải test trên PC. Mỗi thư mục nghiệm thu
+một mảnh phần cứng, để khi hỏng thì chỉ có một nghi phạm.
+
+| Thư mục | Nghiệm thu cái gì |
+|---|---|
+| `ds18b20_stress_test/` · `ds18b20_power_diag/` · `ds18b20_boot_latch/` | Bus 1-Wire, nguồn, hiệu chuẩn offset |
+| `cell_temp_ai_bench/` | `cell_temp` + `cell_ai` chạy cùng nhau |
+| `alarm_bench/` | Bốn mức báo động (QĐ-028) |
+| `pack_meter_bench/` | Giải mã thanh ghi INA228 — **chạy khô, không cần chip** |
+| `pack_meter_live/` | `PackMeter` trên **chip thật**: kiểm đường tự nhận INA226/INA228 (QĐ-037) |
+| **`hw_bringup_6s/`** | **Đợt 3: INA226 + 2×D4184 + sưởi 20 Ω + còi SFM-27.** Menu serial T1..T9 + `d`. Bằng chứng: `docs/BANG_CHUNG_BRINGUP_PHAN_CUNG_2026-09-20.md` |
+
+Nạp `hw_bringup_6s` (board cắm cổng USB-Serial-JTAG, `/dev/ttyACM0`):
+
+```
+FQBN="esp32:esp32:esp32s3:USBMode=hwcdc,CDCOnBoot=default,PSRAM=opi,FlashSize=16M"
+```
+
+⚠️ `CDCOnBoot=cdc` **nạp được, chạy được, nhưng serial câm tịt**. Máy này không
+có `arduino-cli` trên PATH; bản đi kèm nằm trong AppImage của Arduino IDE
+(`--appimage-extract`).
 
 ## Tầng cloud Plan B — `VEDCaPhenika/planb_cloud/`
 

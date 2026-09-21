@@ -1,0 +1,142 @@
+{
+ "fire_car": {
+  "file": "fire_car.jpg",
+  "title": "File:Burning car on Isokaari 20241223.jpg",
+  "lic": "CC BY 4.0",
+  "artist": "VynedJ",
+  "page": "https://commons.wikimedia.org/wiki/File:Burning_car_on_Isokaari_20241223.jpg"
+ },
+ "cell_explosion": {
+  "file": "cell_explosion.jpg",
+  "title": "File:Li-ion battery explosion.jpg",
+  "lic": "CC BY 4.0",
+  "artist": "Tavo Romann",
+  "page": "https://commons.wikimedia.org/wiki/File:Li-ion_battery_explosion.jpg"
+ },
+ "burnt_car": {
+  "file": "burnt_car.jpg",
+  "title": "File:Burnt car 2.jpg",
+  "lic": "CC BY-SA 3.0",
+  "artist": "ProjectManhattan",
+  "page": "https://commons.wikimedia.org/wiki/File:Burnt_car_2.jpg"
+ },
+ "pack_leaf": {
+  "file": "pack_leaf.jpg",
+  "title": "File:Nissan Leaf battery pack DC 03 2011 1629.jpg",
+  "lic": "CC BY-SA 3.0",
+  "artist": "Mariordo Mario Roberto Duran Ortiz",
+  "page": "https://commons.wikimedia.org/wiki/File:Nissan_Leaf_battery_pack_DC_03_2011_1629.jpg"
+ },
+ "pack_bmw": {
+  "file": "pack_bmw.jpg",
+  "title": "File:Lithium-Ion Battery for BMW i3 - Battery Pack.JPG",
+  "lic": "CC BY-SA 3.0",
+  "artist": "RudolfSimon",
+  "page": "https://commons.wikimedia.org/wiki/File:Lithium-Ion_Battery_for_BMW_i3_-_Battery_Pack.JPG"
+ },
+ "cells": {
+  "file": "cells.jpg",
+  "title": "File:18650 and 21700 lithium ion battery cell.jpg",
+  "lic": "CC0",
+  "artist": "Sevenethics",
+  "page": "https://commons.wikimedia.org/wiki/File:18650_and_21700_lithium_ion_battery_cell.jpg"
+ },
+ "cells_charger": {
+  "file": "cells_charger.jpg",
+  "title": "File:Four 18650 lithium cells in a Liitokala PL4 charger.jpg",
+  "lic": "CC0",
+  "artist": "Retired electrician",
+  "page": "https://commons.wikimedia.org/wiki/File:Four_18650_lithium_cells_in_a_Liitokala_PL4_charger.jpg"
+ },
+ "esp32": {
+  "file": "esp32.jpg",
+  "title": "File:ESP32 Dev Board.jpg",
+  "lic": "CC BY-SA 4.0",
+  "artist": "Edwiyanto",
+  "page": "https://commons.wikimedia.org/wiki/File:ESP32_Dev_Board.jpg"
+ },
+ "ds18b20": {
+  "file": "ds18b20.jpg",
+  "title": "File:SparkFun DS18B20 1.jpg",
+  "lic": "CC BY 2.0",
+  "artist": "SparkFun Electronics",
+  "page": "https://commons.wikimedia.org/wiki/File:SparkFun_DS18B20_1.jpg"
+ },
+ "grafana": {
+  "file": "grafana.png",
+  "title": "File:Grafana screenshot (2018).png",
+  "lic": "Public domain",
+  "artist": "Joel Kennedy",
+  "page": "https://commons.wikimedia.org/wiki/File:Grafana_screenshot_(2018).png"
+ },
+ "hanoi": {
+  "file": "hanoi.jpg",
+  "title": "File:Hanoi, motorcycle parking (6222936861).jpg",
+  "lic": "CC BY 2.0",
+  "artist": "Arian Zwegers",
+  "page": "https://commons.wikimedia.org/wiki/File:Hanoi,_motorcycle_parking_(6222936861).jpg"
+ },
+ "swap": {
+  "file": "swap.jpg",
+  "title": "File:Gogoro Network.jpg",
+  "lic": "CC BY-SA 4.0",
+  "artist": "Mliu92",
+  "page": "https://commons.wikimedia.org/wiki/File:Gogoro_Network.jpg"
+ },
+ "charging": {
+  "file": "charging.jpg",
+  "title": "File:Wuhan - electric bicycle and scooter charging station - P1050036.JPG",
+  "lic": "CC BY-SA 3.0",
+  "artist": "User:Vmenkov",
+  "page": "https://commons.wikimedia.org/wiki/File:Wuhan_-_electric_bicycle_and_scooter_charging_station_-_P1050036.JPG"
+ },
+ "bms6s": {
+  "file": "bms6s.jpg",
+  "title": "File:Generic Chinese 6S BMS board for lithium batteries 02.jpg",
+  "lic": "CC0",
+  "artist": "Retired electrician",
+  "page": "https://commons.wikimedia.org/wiki/File:Generic_Chinese_6S_BMS_board_for_lithium_batteries_02.jpg"
+ },
+ "jal787": {
+  "file": "jal787.jpg",
+  "title": "File:1-7-12 JAL787 APU Battery.JPG",
+  "lic": "Public domain (NTSB)",
+  "artist": "NTSB",
+  "page": "https://commons.wikimedia.org/wiki/File:1-7-12_JAL787_APU_Battery.JPG",
+  "note": "Pin lithium-ion that boeing 787 APU sau thermal runaway that - vat chung NTSB"
+ },
+ "auto_vallejo": {
+  "file": "auto_vallejo.jpg",
+  "title": "File:Auto fire Vallejo 1.jpg",
+  "lic": "CC BY-SA 3.0",
+  "artist": "Jim Heaphy",
+  "page": "https://commons.wikimedia.org/wiki/File:Auto_fire_Vallejo_1.jpg",
+  "note": "Xe chay trong bai do xe - KHONG phai xe dien, chu thich tren slide ghi dung nhu vay"
+ },
+ "swap_cabinet": {
+  "file": "swap_cabinet.jpg",
+  "title": "File:E-Scooter Battery-Swap-Station Beijing March 2024.jpg",
+  "lic": "CC BY-SA 4.0",
+  "artist": "Wikimedia Commons",
+  "page": "https://commons.wikimedia.org/wiki/File:E-Scooter_Battery-Swap-Station_Beijing_March_2024.jpg",
+  "note": "Tu doi pin xe dien - dung cho slide mo hinh kinh doanh"
+ },
+ "dashboard_real": {
+  "file": "dashboard_real.png",
+  "lic": "anh cua doi",
+  "artist": "Doi Hu Tieu",
+  "note": "Anh chup dashboard Grafana THAT cua doi (planb_cloud), du lieu la SO MO PHONG seed vao InfluxDB de minh hoa kich ban cell #3 nong len. Chu thich tren slide phai ghi ro la du lieu mo phong."
+ },
+ "fig_deviation": {
+  "file": "fig_deviation.png",
+  "lic": "tu ve",
+  "artist": "Doi Hu Tieu",
+  "note": "So do minh hoa cell lech khoi phan con lai"
+ },
+ "fig_charge_curve": {
+  "file": "fig_charge_curve.png",
+  "lic": "tu ve",
+  "artist": "Doi Hu Tieu",
+  "note": "So do CC-CV: pin chai nam o pha CV lau hon"
+ }
+}

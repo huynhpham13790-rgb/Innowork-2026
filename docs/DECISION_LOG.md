@@ -866,3 +866,215 @@ trường luôn hỏng" hay "mạng trường dùng được".
 **Việc phải nhớ:** `arduino_secrets.h` hiện để ICTU ở đầu danh sách cho tiện
 phát triển. **Trước ngày thi phải đảo `Huynh` lên đầu** — đã ghi cảnh báo ngay
 trong file.
+
+---
+
+### QĐ-036 · 19/09/2026 · Đã chốt — pack thí nghiệm xuống 6 cell, không còn 8
+
+Người phụ trách đổi cấu hình pack thí nghiệm từ **8S sang 6S** (19/09). Hồ sơ
+bán kết và bộ slide đã viết theo 6 cell.
+
+**Lập luận ở QĐ/PHAN_CUNG "vì sao 8 chứ không phải 4" vẫn đứng vững với 6:** hỏng
+một cell thì còn **5 mẫu tham chiếu**, đủ để nói chuyện thống kê (4 cell chỉ còn
+3 — đó mới là chỗ bị vặn). Gradient theo vị trí vẫn xuất hiện với 6 viên xếp
+hàng, nên Lớp 1 vẫn có mẫu hình không tầm thường để học.
+
+**Một hệ quả có lợi:** 6S sạc đầy là **25,2 V**, nằm dưới trần 26 V của INA219.
+Nghĩa là ràng buộc "INA219 không dùng được" ở `PHAN_CUNG_VA_KIEN_TRUC` chỉ còn
+đúng với bản 8S. Vẫn nên dùng INA228 như QĐ-031 vì nó đo luôn điện áp pack và
+đằng nào lên xe thật cũng cần, nhưng nếu INA228 về muộn thì INA219 **không còn
+là đường cụt**.
+
+**⚠️ Firmware hiện vẫn viết cứng cho 8 kênh — CHƯA SỬA.** Năm chỗ phải đổi cùng
+lúc, đổi thiếu một chỗ là lệch chỉ số cell âm thầm:
+
+| File | Hằng số | Hiện tại |
+|---|---|---|
+| `cell_ai.h` | `AI_N_CELLS` | 8 |
+| `ds18b20_offsets.h` | `DS_N_PROBES` + bảng ROM | 8 |
+| `charge_cycle.h` | `CC_N_CELLS` | 8 |
+| `pack_meter.h` | `PM_N_CELLS`, `PM_V_MIN` | 8 · 15,0 V (1,9 V/cell) → 6S phải là **11,4 V** |
+| `cell_temp.h` | phần kiểm "phải đủ 8 cảm biến" | 8 |
+
+Trọng số autoencoder **không phải xuất lại**: mô hình chạy trên **từng cell một**
+với 11 đặc trưng, số cell chỉ ảnh hưởng tới cách tính các đại lượng tham chiếu
+(trung bình, median, rank, spread) — không ảnh hưởng tới kích thước mạng. Đây là
+lợi ích trực tiếp của QĐ-033.
+
+**Phải kiểm lại sau khi sửa:** `test/run_test.sh` và `test_c_vs_python.py` với
+`AI_N_CELLS = 6`; `alarm_bench` không phụ thuộc số cell nên không đổi.
+
+**Bổ sung 20/09 — dashboard Grafana đã chỉnh theo 6 cell, và sửa một lỗi hiển thị
+thật.** `grafana/make_dashboard.py`: tiêu đề "8S"→"6S", regex `Cell0[1-8]`→`0[1-6]`,
+`Sensor_Healthy` đổi max 8→6 (trước đó 6/6 cảm biến khoẻ lại hiện màu cam vì ngưỡng
+xanh đặt ở 8).
+
+Lỗi thật tìm ra khi dựng thử để chụp ảnh: panel **"Cell nóng nhất"** hiện 6 con số
+chồng lên nhau thay vì một. Nguyên nhân: trong Flux, `max()` tính **theo từng bảng**,
+mà mỗi tag là một bảng — nên ra 6 giá trị. Phải `last()` trước (mỗi tag một dòng), rồi
+`group()` gộp lại, rồi mới `max()`. Thứ tự `group() |> last() |> max()` cũng sai: gộp
+trước thì `last()` chỉ còn một dòng và `max()` vô nghĩa. Đã sửa và kiểm bằng dữ liệu
+seed: cell nóng nhất hiện đúng 36,3 °C.
+
+Bar gauge cũng được đặt `displayName: ${__field.labels.tag}`, nếu không Grafana ghi
+tên hàng là `_value Cell01_Temp`.
+
+Ảnh chụp dashboard dùng cho hồ sơ và slide: `docs/slide_assets/dashboard_real.png` —
+**dashboard thật, số liệu mô phỏng**, và mọi chú thích đều ghi rõ điều đó.
+
+---
+
+## QĐ-037 — Bring-up phần cứng đợt 3 (INA226, D4184 ×2, sưởi 20 Ω, còi SFM-27)
+
+**Ngày:** 20/09/2026 · **Bằng chứng:** `docs/BANG_CHUNG_BRINGUP_PHAN_CUNG_2026-09-20.md`
+· **Sketch:** `test/hw_bringup_6s/`
+
+**Kết quả:** T1, T2, T3, T4, T5, T6, T7, T8, T9 — ĐẠT toàn bộ.
+
+**Đổi chip đo dòng: INA228 → INA226.** Phần cứng thực tế mua về là INA226 với
+shunt onboard R100 = 100 mΩ, không phải INA228/0,015 Ω như `pack_meter.h` đang
+mô tả. Hệ quả cần biết: toàn thang chỉ còn **±0,819 A** (±81,92 mV / 0,1 Ω),
+đủ cho sưởi 0,62 A nhưng **không đủ** để đo dòng sạc/xả pack thật. `pack_meter.cpp`
+chưa sửa theo — xem "việc còn lại".
+
+**Bốn quyết định kỹ thuật rút ra từ số đo, không phải từ suy luận:**
+
+1. **Cọc trigger D4184 KHÔNG được cấp nguồn riêng.** Đấu 3,3 V vào đó ghim cứng
+   gate lên cao: MOSFET dẫn vĩnh viễn, và mỗi lệnh `digitalWrite(LOW)` là một
+   lần ESP32 ngắn mạch chân ra của nó. Chỉ `TRIG → GPIO`, `GND → GND ESP32`,
+   và GND đó phải nối chung cực âm 12 V ở `VIN−`.
+
+2. **Đo mức chân GPIO phải ở chế độ INPUT.** Khi `pinMode(OUTPUT)`,
+   arduino-esp32 tắt bộ đệm vào nên `digitalRead` trả về giá trị không tin
+   được. Phép đo dứt điểm là bật điện trở kéo xuống nội rồi đọc: vẫn ra mức cao
+   ⇒ có nguồn ngoài ghim chân.
+
+3. **Tích phân năng lượng phải dùng quy tắc hình thang và nhịp lấy mẫu độc lập
+   với 1-Wire.** Bản bậc-thang-trái với bước 750 ms (vì gọi `dsReadAll()` trong
+   vòng tích phân) cho kết quả thiếu 12 %, **luôn lệch một chiều** — loại sai số
+   không tự triệt tiêu khi lấy trung bình nhiều mẻ, tức là Lớp 2 sẽ học đúng cái
+   lệch đó. Sau khi sửa: 35,11/35,10/35,11 J, tản 0,03 %.
+
+4. **Hệ an toàn phải được nuôi liên tục, kể cả lúc đang không làm gì.** Đồng hồ
+   "quá 5 s không có số đọc mới" vẫn chạy trong lúc chương trình ngồi ở menu
+   hoặc `delay()`, nên nó cắt oan hai lần. Cùng một lý do khiến firmware thật
+   cấm `delay()` dài trong vòng lặp chính.
+
+**Sửa phiếu test: ngưỡng thử T7 là 31 °C, không phải 35 °C.** Đo thật: nắm tay
+vào đầu dò 2 phút chỉ lên được 32,31 °C rồi nguội. 35 °C là ngưỡng không thể
+với tới, nên test đó luôn "trượt" mà không nói gì về hệ an toàn.
+
+**Đã thực hiện 21/09 — `pack_meter` chạy được cả hai chip, tự nhận.**
+Quyết định của đội: dùng INA226 trước, INA228 về thì đổi vào. Thay vì sửa qua
+sửa lại, `PackMeter::begin()` đọc mã định danh và cấu hình theo con đang cắm.
+Giao diện công khai (`PackMeasurement`) **không đổi**, nên
+`esp32s3_wiseiot_test.ino` không phải sửa một dòng nào.
+
+Thử INA228 **trước** trong chuỗi nhận dạng: thanh ghi `0x3F` không tồn tại trên
+INA226 nên đọc ra giá trị không xác định, còn `0xFE/0xFF` của INA228 lại là
+thanh ghi hợp lệ khác — thứ tự ngược lại dễ nhận nhầm hơn.
+
+Ba khác biệt của INA226 và cách xử lý:
+
+| | INA228 | INA226 |
+|---|---|---|
+| Toàn thang dòng | ±10,9 A (shunt 0,015 Ω) | **±0,819 A** (shunt 0,1 Ω) |
+| Đếm coulomb | thanh ghi `CHARGE` trong chip | **tích phân bằng phần mềm** |
+| Nhiệt độ chip | có | không → `die_temp = NAN` |
+
+- **Quyết định (5) mới — loại số bão hoà.** ±0,819 A là giới hạn chân shunt;
+  vượt qua thì thanh ghi dừng ở giá trị lớn nhất và trả về một con số trông
+  hoàn toàn hợp lý. `readIna226()` so với 99 % toàn thang rồi loại, đếm riêng
+  bằng `saturationCount()` — "dòng vượt thang đo" và "hỏng dây" đòi hỏi hai
+  hành động khác nhau nên không gộp vào một bộ đếm.
+- **Đếm coulomb phần mềm** bỏ qua lượt đầu (chưa có mốc thời gian, lấy Δt từ
+  `millis()=0` sẽ cộng một cục Ah bịa) và bỏ qua Δt ≥ 60 s (lỡ nhịp quá lâu
+  thì con số thành bịa). Hạn chế phải biết: chỉ tích phân những lúc `read()`
+  được gọi, nên ở nhịp thưa hơn 1 Hz con số Ah bắt đầu sai.
+- **Dòng tính từ điện áp shunt**, không đọc thanh ghi `CURRENT`. Hai đường cho
+  cùng kết quả (đo được: lệch 0,1 mA trên 605 mA) nhưng đường này không phụ
+  thuộc thanh ghi `CAL`.
+
+Kiểm chứng: `test/pack_meter_live/` chạy trên chip thật — nhận đúng INA226
+(`die_temp = NAN`, chỉ có trên đường INA226) và loại đúng số ngoài khoảng hợp
+lý. Firmware chính, `pack_meter_bench` và `run_test.sh` đều biên dịch/chạy lại
+sạch.
+
+**Việc còn lại (chưa làm, cần người quyết):**
+- `PM_N_CELLS`/`PM_V_MIN` vẫn là 8 cell / 15,0 V (QĐ-036 chưa thực hiện).
+- Cảm biến môi trường `DS_ROM_AMBIENT` và cảm biến **P05** hiện không có trên
+  bus. Còn 7/9 đầu dò.
+- Điện trở shunt của cả hai module đều **chưa đo lại** — sai số tuyệt đối ~5 %.
+
+---
+
+## QĐ-038 — Thực hiện 6S, và gom số cell về một nguồn sự thật
+
+**Ngày:** 21/09/2026 · **Thực hiện QĐ-036** (đã chốt 19/09 nhưng chưa sửa code)
+· Người phụ trách xác nhận: pack chạy 6S, **8S giữ làm bản dự phòng**.
+
+### Không sửa năm chỗ — bỏ hẳn khả năng sửa sót
+
+QĐ-036 liệt kê năm hằng số ở bốn file và cảnh báo "đổi thiếu một chỗ là lệch
+chỉ số cell âm thầm". Sửa tay năm chỗ thì lần sau đổi lại vẫn đúng rủi ro ấy.
+Thay vào đó: thêm `pack_config.h` giữ **`PACK_N_CELLS`** duy nhất, mọi hằng số
+khác suy ra từ nó.
+
+| Trước | Sau |
+|---|---|
+| `AI_N_CELLS 8` | `= PACK_N_CELLS` |
+| `DS_N_PROBES 8` | `= PACK_N_CELLS` |
+| `CC_N_CELLS 8` | `= PACK_N_CELLS` |
+| `PM_N_CELLS 8` | `= PACK_N_CELLS` |
+| `PM_V_MIN 15.0` · `PM_V_MAX 35.0` | `= PACK_V_MIN/MAX`, suy ra từ số cell |
+| **`NUM_CELLS 8`** | `= PACK_N_CELLS` + `static_assert` |
+
+Đổi cấu hình pack giờ là sửa **một dòng**. `PACK_N_CELLS` khác 6 hoặc 8 thì
+`#error` chặn ngay lúc biên dịch — vì bảng ROM và bảng offset chỉ có hai bản.
+
+### ⚠️ Phát hiện: QĐ-036 đếm thiếu, có SÁU chỗ chứ không phải năm
+
+`NUM_CELLS` trong `esp32s3_wiseiot_test.ino` **không có trong danh sách**, và
+nó là chỗ nguy hiểm nhất. `publishData()` chạy chỉ số tới `NUM_CELLS` để đọc
+`gCellTemp[]` — mảng có kích thước `AI_N_CELLS`. Hạ `AI_N_CELLS` xuống 6 theo
+đúng danh sách QĐ-036 mà giữ `NUM_CELLS = 8` thì vòng lặp **đọc tràn mảng** và
+đẩy hai cell rác lên dashboard, không có lỗi nào báo.
+
+Đây chính là lý do gom về một nguồn tốt hơn là sửa theo danh sách: danh sách có
+thể thiếu, ràng buộc biên dịch thì không.
+
+### Bảng offset 6 cell phải CĂN LẠI GỐC, không được cắt bớt
+
+Bảng gốc căn theo trung bình **8** kênh (tổng 8 hệ số = 0). Giữ nguyên 6 hệ số
+đầu thì tổng thành +0,0406 °C ⇒ phép hiệu chỉnh dịch nhiệt độ trung bình của
+cả pack đi +0,0068 °C. Vô hại với Lớp 1 (nhìn chênh lệch tương đối) nhưng phá
+tính chất "hiệu chỉnh không đụng giá trị tuyệt đối" — mà **ngưỡng cứng 60 °C
+lại đọc giá trị tuyệt đối**. Đã trừ mỗi hệ số đi 0,006767. Chênh lệch giữa các
+kênh không đổi (độ rộng P03−P02 vẫn 0,3260 °C) nên **không phải hiệu chuẩn lại
+bằng nước**.
+
+### Giả định phải người xác nhận
+
+Lấy **P01..P06**, bỏ P07/P08 — chọn theo thứ tự đánh số, **không phải kết quả
+đo**. Nếu sáu đầu dò đang dán lên pack không phải P01..P06 thì phải sửa
+`DS_ROM[]` cho khớp nhãn thật. Ghi chú: **P05 hiện không có trên bus**
+(bằng chứng bring-up 20/09), phải cắm lại trước khi lấy dữ liệu.
+
+### Kiểm chứng
+
+| Phép kiểm | Kết quả |
+|---|---|
+| Biên dịch 6S | ✅ 85 % flash |
+| Biên dịch 8S (bản dự phòng) | ✅ |
+| `PACK_N_CELLS = 7` | ✅ bị `#error` chặn, không biên dịch ra |
+| `ai/test_c_vs_python.py` ở 6 cell | ✅ 11/11 đặc trưng lệch ≤ 2,4e-7; sai số tái tạo lệch 1,4e-6; 100 % bước chỉ đúng cùng cell tệ nhất |
+| `test/run_test.sh` (spool) | ✅ toàn bộ PASS |
+| `pack_meter_bench`, `pack_meter_live`, `cell_temp_ai_bench`, `alarm_bench` | ✅ biên dịch |
+
+**Sửa luôn một lỗi trong chính bộ test:** `test_c_vs_python.py` ghim `N = 8`.
+Cái test dùng để gác việc đổi số cell lại là chỗ đầu tiên bị lệch. Giờ nó đọc
+`PACK_N_CELLS` thẳng từ `pack_config.h`.
+
+Payload MQTT: chỉ đổi **số lượng** trường `Cell0X_Temp` (6 thay vì 8) và hai
+chuỗi mô tả `Name`/`Desc`. Topic và cấu trúc `{"d":{...},"ts":...}` **không
+đổi** — ràng buộc cứng số 1 của `CLAUDE.md` được giữ nguyên.
