@@ -453,6 +453,33 @@ là mất sạch 8 cell cùng lúc thay vì mất từng con. Với dây ngắn 
 đáng đánh đổi, nhưng phải bọc cách điện riêng từng bó và níu dây ở chỗ dây
 jump cứng gặp dây mềm của đầu dò.
 
+---
+
+## Bổ sung 21/09 — Đặc tính nhiệt điện trở sưởi (`test/heater_thermal/`)
+
+Đầu dò P07 quấn lên điện trở sứ. Chi tiết và kết luận: **QĐ-040**.
+
+| | |
+|---|---|
+| Tốc độ lên | 0,115 °C/s (28,81 → 40,00 °C trong 97,7 s, 720 J) |
+| Cắt tại | 40,00 °C, t = 97 s |
+| **Đỉnh** | **45,62 °C tại t = 157 s — 60 s SAU khi cắt** |
+| **Vọt lố** | **+5,62 °C** |
+| Hằng số nguội | τ ≈ 407 s (nguội 95 % cần ~20 phút) |
+
+Hai điều rút ra, cả hai đều đổi cách nghĩ về hệ an toàn:
+
+1. **Ngưỡng cắt không phải trần nhiệt.** Cắt ở 40 vẫn lên tới 45,62. Chiếu sang
+   `AL_T_CRIT = 60 °C` thì đỉnh thật sẽ là ~65,6 °C nếu động học tương tự.
+2. **Lần chạy đầu KHÔNG cắt** vì ngưỡng đặt 50 °C mà đầu dò chỉ lên 46,94 °C sau
+   113 s — trong khi thân điện trở đã bỏng tay. Thứ dừng thí nghiệm là **bàn tay
+   người, không phải chương trình**. Đã thêm hạn mức **không đọc cảm biến** (cắt
+   sau 165 s hoặc 1200 J).
+
+⚠️ Cả hai con số trên đo trên **điện trở + đầu dò quấn ngoài**, không phải trên
+cell. Phải đo lại sau khi dán đầu dò lên pack rồi mới quyết có hạ `AL_T_CRIT`
+hay không.
+
 ## Việc còn lại
 
 - [x] ~~Cố định lại chỗ đấu nối cụm DS18B20~~ — đã hàn chụm 3 bó 21/09, bus
@@ -464,6 +491,10 @@ jump cứng gặp dây mềm của đầu dò.
 - [x] ~~Sửa firmware 8 cell → 6 cell~~ — đã làm, gom về `PACK_N_CELLS` (QĐ-038)
 - [x] ~~Xác định sợi dây nào ứng với ROM nào~~ — xong 21/09 bằng nước lạnh, đã
       dán giấy 1..8
+- [ ] **Đo lại vọt lố trên CELL THẬT** sau khi dán đầu dò, rồi quyết có hạ
+      `AL_T_CRIT` từ 60 °C xuống không (QĐ-040)
+- [ ] Cân nhắc đưa hạn mức "thời gian + năng lượng" vào `alarm.cpp` của firmware
+      thật, không chỉ ở bench (QĐ-040)
 - [ ] **Khi dán lên pack: đặt đúng sợi 1 lên cell 1, ... sợi 6 lên cell 6.**
       Bảng `DS_ROM[]` giả định thế, và sau khi dán thì không phép đo nào kiểm
       lại được (QĐ-038)

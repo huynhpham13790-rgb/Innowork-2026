@@ -1156,3 +1156,71 @@ thứ chạy trên board. Cụ thể: giữ "offset 2 °C = 100 %", giữ "0 bá
 
 **Việc còn lại:** thống nhất `PERSIST` về 30 trong `eval_ae_relative.py` và
 `validate_mcmaster.py` để hai đường số liệu không lệch nhau nữa.
+
+---
+
+## QĐ-040 — Đặc tính nhiệt của điện trở sưởi, và hai lỗ hổng trong cách nghĩ về hệ an toàn
+
+**Ngày:** 21/09/2026 · **Công cụ:** `test/heater_thermal/`
+· **Bằng chứng:** `docs/BANG_CHUNG_BRINGUP_PHAN_CUNG_2026-09-20.md`
+
+Đầu dò **P07** (nằm ngoài cấu hình 6S) quấn lên điện trở sứ 20 Ω / 10 W (đo
+được ~18,4 Ω), sưởi bằng 12 V qua D4184, đo dòng bằng INA226.
+
+### Số đo
+
+| | |
+|---|---|
+| Tốc độ lên | **0,115 °C/s** (28,81 → 40,00 °C trong 97,7 s, 720 J) |
+| Cắt tại | 40,00 °C, t = 97 s |
+| **Đỉnh** | **45,62 °C tại t = 157 s — 60 giây SAU khi cắt** |
+| **Vọt lố** | **+5,62 °C** |
+| Hằng số nguội | **τ ≈ 407 s** — nguội 95 % cần ~20 phút |
+
+### ⚠️ Lỗ hổng 1 — ngưỡng cắt KHÔNG phải là trần nhiệt
+
+Cắt ở 40 °C nhưng nhiệt vẫn đi tiếp 60 giây nữa và dừng ở 45,62 °C. Nhiệt đã
+nằm trong khối sứ vẫn tiếp tục lan ra đầu dò sau khi ngắt điện.
+
+Chiếu sang firmware: `AL_T_CRIT = 60,0 °C` nghĩa là **cắt ở 60**, không phải
+**không bao giờ quá 60**. Với động học kiểu này thì đỉnh thật sẽ là ~65,6 °C.
+
+**KHÔNG đổi `AL_T_CRIT` ngay** — đó là kiến trúc đã chốt ở QĐ-028, và con số
+5,62 °C này đo trên **điện trở + đầu dò quấn ngoài**, không phải trên cell. Cell
+18650 có khối nhiệt lớn hơn nhiều và đầu dò sẽ chạm trực tiếp vỏ cell, nên vọt
+lố ở đó gần như chắc chắn khác. **Phải đo lại sau khi dán đầu dò lên pack**, rồi
+người mới quyết có hạ ngưỡng không.
+
+Thứ đã chắc chắn ngay bây giờ: **một ngưỡng cắt luôn cần biên dự phòng**, và
+biên đó phải đo chứ không đoán.
+
+### ⚠️ Lỗ hổng 2 — hệ an toàn chỉ nhìn một đại lượng thì mù theo đúng cách đại lượng đó mù
+
+Lần chạy đầu (ngưỡng test 50 °C) **không bao giờ cắt**: bơm 7,3 W trong 113 s mà
+đầu dò mới lên 46,94 °C. Trong khi đó **thân điện trở đã nóng tới mức người phụ
+trách rụt tay** và tự rút adapter. Chênh lệch giữa bề mặt điện trở và đầu dò
+quấn ngoài ước cỡ 50–80 °C.
+
+Không có gì hỏng (10 W chạy 7,3 W là trong định mức, đầu dò thấy tối đa 46,9 °C
+so với giới hạn 125 °C). Nhưng **thứ dừng thí nghiệm là bàn tay người, không
+phải chương trình** — đó mới là chỗ sai.
+
+Gốc của nó là lỗi thiết kế: hệ an toàn chỉ nhìn **nhiệt độ**, mà nhiệt độ lại đo
+ở một chỗ không phải chỗ nóng nhất.
+
+**Đã sửa — thêm hạn mức KHÔNG đọc cảm biến:** cắt sau **165 s** hoặc **1200 J**
+đã bơm, bất kể nhiệt độ nói gì (`MAX_HEAT_MS`, `MAX_HEAT_J`). Hạn mức này vẫn cắt
+khi đầu dò tuột, dán sai chỗ, hay tiếp xúc kém — đúng những chế độ hỏng mà một
+ngưỡng nhiệt đơn thuần không thấy.
+
+**Nên cân nhắc đưa nguyên tắc này vào firmware thật**, không chỉ bench: hiện
+`alarm.cpp` cũng chỉ có ngưỡng nhiệt và trạng thái mất cảm biến. Người quyết.
+
+### Hệ quả cho kịch bản demo
+
+- Nguội chậm: **τ ≈ 407 s**. Chạy demo xong phải chờ ~20 phút mới về nền. Diễn
+  hai lần liên tiếp thì lần sau xuất phát từ nền nóng — phải tính trước, hoặc
+  chấp nhận và nói ra.
+- Tốc độ lên 0,115 °C/s là **trên điện trở**. Trên cell 18650 khối nhiệt lớn hơn
+  nhiều nên sẽ chậm hơn hẳn. Demo 90 giây chỉ chốt được **sau khi đo lại trên
+  pack thật**.
