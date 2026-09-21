@@ -465,7 +465,7 @@ jump cứng gặp dây mềm của đầu dò.
 | Cắt tại | 40,00 °C, t = 97 s |
 | **Đỉnh** | **45,62 °C tại t = 157 s — 60 s SAU khi cắt** |
 | **Vọt lố** | **+5,62 °C** |
-| Hằng số nguội | τ ≈ 407 s (nguội 95 % cần ~20 phút) |
+| Hằng số nguội | τ ≈ 359 s (về trong 1 °C của nền cần ~18 phút) |
 
 Hai điều rút ra, cả hai đều đổi cách nghĩ về hệ an toàn:
 
@@ -475,6 +475,12 @@ Hai điều rút ra, cả hai đều đổi cách nghĩ về hệ an toàn:
    113 s — trong khi thân điện trở đã bỏng tay. Thứ dừng thí nghiệm là **bàn tay
    người, không phải chương trình**. Đã thêm hạn mức **không đọc cảm biến** (cắt
    sau 165 s hoặc 1200 J).
+
+⚠️ **Giữa hai lần diễn demo phải chờ tới khi cell vừa sưởi về trong ~1 °C so
+với các cell kia** — sờ tay không kiểm được (lúc thấy "đã nguội" thì đầu dò vẫn
+còn cao hơn nền 8,9 °C; da người ~33 °C nên 35 °C sờ vào thấy trung tính). Lớp 1
+nhìn chênh lệch tương đối, nên cell còn ấm sẽ gây báo giả hoặc làm EMA coi mức
+ấm đó là nền. Xem QĐ-040.
 
 ⚠️ Cả hai con số trên đo trên **điện trở + đầu dò quấn ngoài**, không phải trên
 cell. Phải đo lại sau khi dán đầu dò lên pack rồi mới quyết có hạ `AL_T_CRIT`

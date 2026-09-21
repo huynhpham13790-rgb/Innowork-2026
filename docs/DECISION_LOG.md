@@ -1175,7 +1175,7 @@ thứ chạy trên board. Cụ thể: giữ "offset 2 °C = 100 %", giữ "0 bá
 | Cắt tại | 40,00 °C, t = 97 s |
 | **Đỉnh** | **45,62 °C tại t = 157 s — 60 giây SAU khi cắt** |
 | **Vọt lố** | **+5,62 °C** |
-| Hằng số nguội | **τ ≈ 407 s** — nguội 95 % cần ~20 phút |
+| Hằng số nguội | **τ ≈ 359 s** — về trong 1 °C của nền cần ~18 phút |
 
 ### ⚠️ Lỗ hổng 1 — ngưỡng cắt KHÔNG phải là trần nhiệt
 
@@ -1216,11 +1216,31 @@ ngưỡng nhiệt đơn thuần không thấy.
 **Nên cân nhắc đưa nguyên tắc này vào firmware thật**, không chỉ bench: hiện
 `alarm.cpp` cũng chỉ có ngưỡng nhiệt và trạng thái mất cảm biến. Người quyết.
 
-### Hệ quả cho kịch bản demo
+### Hệ quả cho kịch bản demo — và một cái bẫy dễ mất điểm
 
-- Nguội chậm: **τ ≈ 407 s**. Chạy demo xong phải chờ ~20 phút mới về nền. Diễn
-  hai lần liên tiếp thì lần sau xuất phát từ nền nóng — phải tính trước, hoặc
-  chấp nhận và nói ra.
+Ước đầu τ ≈ 407 s lấy từ **2 điểm trên 122 s**, mới nguội 26 % quãng đường —
+ngoại suy yếu, đã trình bày chắc chắn hơn mức dữ liệu cho phép. Đo lại với mốc
+dài gấp đôi (54 % quãng đường, 4,6 phút): **τ ≈ 359 s**, lệch 12 % so với ước
+đầu. Kết luận "~20 phút" vẫn đứng, chính xác hơn là **~18 phút**.
+
+⚠️ **Sờ tay KHÔNG kiểm được chuyện này.** Lúc người phụ trách thấy "đã nguội
+rồi", đầu dò đọc **35,25 °C** trong khi nền **26,4 °C** — còn cao hơn nền
+8,9 °C, mới đi được nửa đường. Da người ~33 °C nên 35 °C sờ vào thấy gần như
+trung tính. Bàn tay là dụng cụ tốt ở dải nóng (chính nó đã phát hiện điện trở
+quá nhiệt khi máy còn mù, xem lỗ hổng 2) nhưng **mù ở dải ấm**.
+
+**Cái bẫy:** Lớp 1 nhìn chênh lệch TƯƠNG ĐỐI giữa các cell. Diễn xong lần một
+rồi diễn lại ngay thì cell vừa sưởi vẫn ấm hơn 5 cell kia vài độ, và một trong
+hai chuyện xấu sẽ xảy ra:
+
+- hệ **báo động ngay khi vừa bật** — trông oai nhưng là báo giả, và không trả
+  lời được câu "sao nó báo trước khi các bạn sưởi?"
+- hoặc EMA của `dev` đã kịp coi mức ấm đó là nền bình thường, nên khi sưởi thật
+  thì **báo chậm hơn, hoặc không báo**
+
+**Quy tắc cho ngày thi:** giữa hai lần diễn, chờ tới khi cell vừa sưởi về trong
+~1 °C so với các cell còn lại. Con số đó **đọc thẳng trên dashboard**, không
+được dựa vào sờ tay.
 - Tốc độ lên 0,115 °C/s là **trên điện trở**. Trên cell 18650 khối nhiệt lớn hơn
   nhiều nên sẽ chậm hơn hẳn. Demo 90 giây chỉ chốt được **sau khi đo lại trên
   pack thật**.
