@@ -46,12 +46,27 @@
    ⚠️ BẢNG NÀY LÀ ÁNH XẠ VẬT LÝ — không suy ra được từ số cell. Đổi
    PACK_N_CELLS mà không kiểm bảng này là đang giả định điều chưa kiểm.
 
+   ✅ NHÃN VẬT LÝ ĐÃ XÁC ĐỊNH 21/09/2026 bằng `test/ds18b20_identify/`: nhúng
+   từng đầu dò vào nước lạnh, đối chiếu ROM nào tụt nhiệt. Cả 8 sợi đều khớp
+   bảng này, KHÔNG có ROM lạ ⇒ không thay cảm biến nào ⇒ bảng DS_OFFSET dưới
+   đây vẫn đúng, không phải hiệu chuẩn lại (QĐ-025). Trên mỗi sợi đã dán giấy
+   ghi số 1..8 theo đúng thứ tự bảng này.
+
+   ⚠️ NHƯNG ĐÓ MỚI LÀ "SỢI DÂY ↔ ROM", CHƯA PHẢI "CELL ↔ ROM". Lúc dán đầu dò
+   lên pack phải đặt sợi số 1 lên cell 1, số 2 lên cell 2... Không có phép đo
+   nào kiểm được việc đó sau khi đã dán, nên làm sai lúc dán là sai vĩnh viễn
+   và im lặng.
+
    ⚠️ GIẢ ĐỊNH KHI XUỐNG 6 CELL (21/09/2026): lấy **P01..P06**, bỏ P07 và P08.
    Đây là lựa chọn theo thứ tự đánh số, KHÔNG phải kết quả đo. Nếu sáu đầu dò
    đang dán lên pack không phải P01..P06 thì phải sửa bảng dưới đây cho khớp
    nhãn thật — sai chỗ này thì mọi thứ phía sau đều sai một cách im lặng.
-   Ghi chú hiện trạng: P05 đang KHÔNG có trên bus (xem bằng chứng bring-up
-   20/09), phải cắm lại trước khi lấy dữ liệu. */
+   ⚠️ TIẾP XÚC CHẬP CHỜN — chưa sửa xong tính tới 21/09. Sợi nào vừa bị động
+   tay vào thì sợi đó hay mất kết nối (đọc ra -127 °C), rồi có khi tự sống lại.
+   Đã gặp với P05 (mất → tự về → mất → tự về) và P07 (mất sau khi cầm lên, chưa
+   về). KHÔNG phải cảm biến hỏng — ROM vẫn khớp bảng khi nó sống. Phải cố định
+   lại chỗ đấu nối trước khi dán lên pack. Chi tiết:
+   docs/BANG_CHUNG_BRINGUP_PHAN_CUNG_2026-09-20.md */
 const uint8_t DS_ROM[DS_N_PROBES][8] = {
   { 0x28, 0x30, 0xF1, 0x01, 0x00, 0x00, 0x00, 0x17 },   // P01
   { 0x28, 0xB8, 0xC8, 0x01, 0x00, 0x00, 0x00, 0x2B },   // P02

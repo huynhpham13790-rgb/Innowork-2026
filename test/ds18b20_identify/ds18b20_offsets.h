@@ -1,0 +1,1 @@
+../../VEDCaPhenika/esp32s3_wiseiot_test/ds18b20_offsets.h

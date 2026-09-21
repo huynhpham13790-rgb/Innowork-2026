@@ -354,13 +354,89 @@ Biên dịch lại sạch: firmware chính (85 % flash), `pack_meter_bench`,
 `pack_meter_live`, `hw_bringup_6s`. `test/run_test.sh` (spool, chạy trên PC):
 toàn bộ PASS.
 
+---
+
+## Bổ sung 21/09 — Gán nhãn 8 đầu dò bằng nước lạnh
+
+Công cụ: `test/ds18b20_identify/`. Nhúng **một** đầu dò vào cốc nước lạnh,
+sketch in ra tên con đang tụt nhiệt, dán giấy ghi số lên sợi đó.
+
+**Không dùng ngưỡng tuyệt đối kiểu "dưới 20 °C là đang nhúng"** — ngưỡng đó phụ
+thuộc nước lạnh tới đâu và phòng nóng tới đâu, hôm nay đúng mai sai. Dùng
+chênh lệch so với **trung vị cả dàn**: mốc tự trôi theo nhiệt độ phòng. Trung
+vị chứ không phải trung bình, vì chính kênh đang nhúng sẽ kéo lệch trung bình
+làm nó trông đỡ lạnh đi.
+
+### Kết quả — cả 8 sợi, khớp 100 % bảng đã hiệu chuẩn
+
+| Giấy dán | ROM | Trong pack 6S? |
+|---|---|---|
+| **1** | `28 30 F1 01 00 00 00 17` | ✓ |
+| **2** | `28 B8 C8 01 00 00 00 2B` | ✓ |
+| **3** | `28 FA 81 02 00 00 00 A2` | ✓ |
+| **4** | `28 46 AF 01 00 00 00 0A` | ✓ |
+| **5** | `28 EE 07 03 00 00 00 FD` | ✓ |
+| **6** | `28 D1 F8 03 00 00 00 FD` | ✓ |
+| **7** | `28 4D 49 04 00 00 00 35` | ✗ dự phòng (bản 8S) |
+| **8** | `28 7F CD 01 00 00 00 E3` | ✗ dự phòng (bản 8S) |
+
+**Không có ROM lạ** ⇒ không con nào bị thay ⇒ bảng `DS_OFFSET` vẫn đúng,
+**không phải hiệu chuẩn lại bằng nước** (QĐ-025).
+
+⚠️ Việc này xác định **"sợi dây ↔ ROM"**, chưa phải **"cell ↔ ROM"**. Lúc dán
+lên pack vẫn phải đặt đúng sợi 1 lên cell 1, sợi 2 lên cell 2... Không có phép
+đo nào kiểm được điều đó sau khi đã dán.
+
+### Hai cái bẫy gặp thật trong lúc làm
+
+**1. −127 °C cướp mất kết luận.** Đó là mã báo **mất kết nối** của DS18B20,
+không phải nhiệt độ. Trung vị ~25 °C nên nó hiện thành lệch −152 °C — luôn
+thắng cuộc thi "lạnh nhất". Sketch trên board có chặn, nhưng script đọc log
+viết vội thì không, và nó đã **báo sai tên một lần** (nói P05 trong khi thực tế
+là P07). Nước đá lạnh nhất cũng chỉ ~−25 °C so với phòng ⇒ ngưỡng −50 tách
+được hai thứ.
+
+**2. Sợi vừa nhấc ra vẫn còn lạnh hàng chục giây**, nên có lúc hai ba sợi cùng
+lạnh và **sợi lạnh nhất lại là sợi đã làm xong**. Gặp thật: P08 ở −6,31 (đang
+lạnh dần) mới là sợi trong nước, còn P07 ở −7,75 → −3,56 (đang ấm lên) là sợi
+cũ. Phân biệt bằng **chiều biến thiên**: trong nước thì lạnh dần, vừa nhấc ra
+thì ấm dần. Quy tắc này đã đưa vào sketch nên lần sau không cần ai ngồi nhìn.
+
+### ⚠️ Tiếp xúc chập chờn — chẩn đoán cũ SAI, đã sửa lại
+
+Chẩn đoán ban đầu "con P05 hỏng" là **sai**. Dữ liệu bác bỏ nó:
+
+| Thời điểm | P05 | P07 |
+|---|---|---|
+| 20/09, lần chạy T6 đầu | có | có |
+| 20/09, các lần khởi động sau | **mất** | có |
+| 21/09, bắt đầu gán nhãn | có (tự về, không ai sửa) | có |
+| 21/09, sau khi nhúng P07 | **mất** rồi **tự về** | **mất**, chưa về |
+
+Mẫu hình thật: **sợi nào vừa bị động tay vào thì sợi đó mất kết nối**, và có
+khi tự sống lại. Cái chung không nằm ở một con cảm biến — ROM vẫn khớp bảng mỗi
+khi nó sống — mà ở **cách cố định dây**, nhiều khả năng là chỗ cắm breadboard
+hoặc cầu đấu bị xê dịch khi kéo dây.
+
+Điều này đổi hẳn việc phải làm: **không mua cảm biến mới, không hiệu chuẩn
+lại** — mà hàn cứng hoặc dùng cầu đấu bắt vít, và níu dây để đầu cắm không bị
+kéo. Phải làm **trước khi dán lên pack**, vì lúc dán còn phải kéo dây nhiều hơn.
+
+Cần loại trừ thêm một khả năng: nếu lúc nhúng mà nước chạm tới mối nối chứ
+không chỉ đầu kim loại thì đó là nguyên nhân khác hẳn.
+
 ## Việc còn lại
 
-- [ ] Cắm lại **P05** (`28 EE 07 03 00 00 00 FD`) — bus còn 7/8 cell
+- [ ] **Cố định lại chỗ đấu nối cả cụm DS18B20** (hàn cứng / cầu đấu bắt vít
+      + níu dây). Đây là việc gấp nhất: P07 đang mất kết nối, P05 chập chờn.
+      KHÔNG phải thay cảm biến — xem mục "tiếp xúc chập chờn" ở trên
 - [ ] Cắm lại cảm biến **môi trường** (`28 73 4C 04 00 00 00 19`)
 - [x] ~~`pack_meter` viết cho INA228~~ — đã cho tự nhận cả hai chip (QĐ-037)
 - [ ] Đo lại điện trở shunt của module INA226 (0,1 Ω là trị số ghi trên nhãn)
 - [ ] Ghi lại trị số điện trở sưởi thật (đo được ~18,4 Ω, không phải 20 Ω)
 - [x] ~~Sửa firmware 8 cell → 6 cell~~ — đã làm, gom về `PACK_N_CELLS` (QĐ-038)
-- [ ] **Xác nhận sáu đầu dò đang dán lên pack đúng là P01..P06** — bảng `DS_ROM[]`
-      đang giả định thế, và đó là giả định chưa đo (QĐ-038)
+- [x] ~~Xác định sợi dây nào ứng với ROM nào~~ — xong 21/09 bằng nước lạnh, đã
+      dán giấy 1..8
+- [ ] **Khi dán lên pack: đặt đúng sợi 1 lên cell 1, ... sợi 6 lên cell 6.**
+      Bảng `DS_ROM[]` giả định thế, và sau khi dán thì không phép đo nào kiểm
+      lại được (QĐ-038)
