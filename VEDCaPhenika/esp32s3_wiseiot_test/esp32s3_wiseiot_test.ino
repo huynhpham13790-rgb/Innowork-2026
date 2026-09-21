@@ -648,6 +648,15 @@ void publishAnomaly(const CellAIResult& r) {
   dev["AI_Alarm"]      = r.alarm ? 1 : 0;
   dev["AI_WorstCell"]  = r.worst_cell + 1;         // 1-based cho người đọc
   dev["AI_WorstScore"] = round(r.worst_score * 1000) / 1000.0;
+
+  /* DẠNG bất thường + ba số đã tra ra nó. Data contract đòi giá trị phải là
+     SỐ nên dạng đi dưới dạng mã 0..3 (xem enum AiPattern); Node-RED dịch sang
+     chữ. KHÔNG gửi chuỗi ở đây — đổi kiểu giá trị là phá hợp đồng dữ liệu, và
+     docs/DATA_CONTRACT.md là thứ không được tự ý sửa. */
+  dev["AI_Pattern"]    = (int)r.pattern;
+  dev["AI_Dev"]        = round(r.dev     * 100) / 100.0;
+  dev["AI_DtDiff"]     = round(r.dt_diff * 100) / 100.0;
+  dev["AI_Shock"]      = round(r.shock   * 100) / 100.0;
   for (int i = 0; i < AI_N_CELLS; i++) {
     char name[16]; snprintf(name, sizeof(name), "AI_Score%02d", i + 1);
     dev[name] = round(r.score[i] * 1000) / 1000.0;
@@ -801,6 +810,29 @@ void publishData() {
     char name[16]; snprintf(name, sizeof(name), "Cell%02d_Temp", i);
     dev[name] = round(gCellTemp[i - 1] * 100) / 100.0;
   }
+
+  /* Kết luận Lớp 1 đi kèm MỌI gói dữ liệu, không chỉ lúc chuyển trạng thái.
+     publishAnomaly() chỉ bắn khi vào/ra báo động — nếu dashboard chỉ dựa vào
+     đó thì ai mở trang GIỮA LÚC đang báo động sẽ thấy thẻ chẩn đoán TRỐNG,
+     đúng lúc cần nó nhất. Thêm 6 trường SỐ, vẫn đúng format {"d":{...},"ts"}
+     nên không đụng tới hợp đồng dữ liệu. */
+  /* Mức báo động đi CÙNG NHỊP với các trường AI_*, dù publishSensorHealth()
+     cũng gửi nó. Hai trường liên quan chặt mà đi hai nhịp khác nhau thì giao
+     diện sẽ có lúc hiện "điểm 1,12 / ngưỡng 1,07" ngay cạnh chữ "Bình thường"
+     — nhìn như hệ tự mâu thuẫn, và đó là thứ giám khảo hỏi ngay. */
+  dev["Alarm_Level"] = (int)gAlarm.level();
+  dev["Alarm_Muted"] = gAlarm.muted() ? 1 : 0;
+  dev["Alarm_Quiet"] = gAlarm.quiet() ? 1 : 0;
+
+  if (gLastAi.valid) {
+    dev["AI_WorstCell"]  = gLastAi.worst_cell + 1;
+    dev["AI_WorstScore"] = round(gLastAi.worst_score * 1000) / 1000.0;
+    dev["AI_Pattern"]    = (int)gLastAi.pattern;
+    dev["AI_Dev"]        = round(gLastAi.dev     * 100) / 100.0;
+    dev["AI_DtDiff"]     = round(gLastAi.dt_diff * 100) / 100.0;
+    dev["AI_Shock"]      = round(gLastAi.shock   * 100) / 100.0;
+  }
+
   doc["ts"] = isoTimestampUtc();
 
   String out; serializeJson(doc, out);
@@ -976,6 +1008,11 @@ void setup() {
      Wi-Fi là kênh chính lên cloud và là phần được chấm điểm (QĐ-021), BLE chỉ
      là kênh phụ cho thợ. Hỏng BLE thì mất tiện nghi; hỏng MQTT thì mất bài. */
   gBle.begin(DEVICE_ID);
+  /* Hai hàm DUY NHẤT mà lệnh BLE chạm tới được. Sưởi không có mặt ở đây, cố ý:
+     nó là thứ duy nhất bơm năng lượng vào pack nên vẫn chỉ đi qua MQTT có tài
+     khoản kèm công tắc chết người (QĐ-042). */
+  gBle.onCommand([](bool on){ gAlarm.setMuted(on); },
+                 [](bool on){ gAlarm.setQuiet(on); });
 }
 
 void loop() {
@@ -1019,6 +1056,7 @@ void loop() {
      cú nhấn tay chỉ vài trăm ms, lấy mẫu 1 Hz là bỏ lọt. Đo 21/09: cú nhấn
      thứ hai của người dùng biến mất hoàn toàn vì chuyện này. */
   gAlarm.pollButton();
+  gBle.tick();          // cho tắt tiếng từ BLE tự hết hạn
 
   // Lệnh bằng tay qua Serial. MQTT (phần B) sẽ gọi đúng hai hàm này, không có
   // đường tắt nào khác vào gHeater.

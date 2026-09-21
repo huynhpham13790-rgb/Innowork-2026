@@ -9,8 +9,9 @@ chứng minh được ba thứ dễ hỏng nhất và cũng là ba thứ đáng 
   1. Có quảng bá lại sau khi ngắt kết nối không? Thiếu thì người thứ hai tới
      kiểm pack sẽ không quét thấy gì — thiết bị vẫn chạy, chỉ là vô hình.
   2. Notify có thật sự bắn khi số đổi không, hay chỉ đọc thủ công mới thấy?
-  3. Có đặc tính nào GHI ĐƯỢC lọt vào không? BLE không xác thực, một đặc tính
-     ghi được là cho người lạ trong bán kính 10 m bật sưởi của pack lithium.
+  3. Có đặc tính GHI nào NGOÀI DỰ KIẾN lọt vào không? Từ QĐ-042 có đúng MỘT
+     đặc tính ghi được (tắt tiếng còi); mọi cái khác phải chỉ đọc. Việc chặn
+     thật sự do test/ble_write_check.py kiểm.
 
 Chạy:  /tmp/claude-1000/blevenv/bin/python test/ble_check.py [số giây nghe]
 """
@@ -51,14 +52,26 @@ async def main():
 
         # --- (2) không được có đặc tính ghi được ----------------------------
         print("\n" + "=" * 70)
-        print("(2) AN TOAN — khong duoc co dac tinh GHI duoc")
+        print("(2) AN TOAN — chi DUNG MOT dac tinh ghi duoc, va no phai doi ghep doi")
         print("=" * 70)
-        bad = [c.uuid for c in svc.characteristics
-               if {"write", "write-without-response"} & set(c.properties)]
-        if bad:
-            print(f"  ✗ TRUOT — co {len(bad)} dac tinh ghi duoc: {bad}")
+        # Truoc QĐ-042 phep thu nay doi KHONG co dac tinh ghi nao. Gio co dung
+        # mot cai (tat tieng coi), nen moc do chuyen thanh: dung mot cai, dung
+        # cai do, va phai la loai doi ma hoa/xac thuc. Noi long moc thi phai
+        # noi long DUNG BANG phan da chung minh duoc, khong hon.
+        UUID_CMD = "48555449-4555-4d53-0008-000000000000"
+        w = [c for c in svc.characteristics
+             if {"write", "write-without-response"} & set(c.properties)]
+        ok = True
+        if len(w) != 1 or w[0].uuid != UUID_CMD:
+            print(f"  ✗ TRUOT — dac tinh ghi duoc khong dung nhu mong doi: "
+                  f"{[c.uuid for c in w]}")
+            ok = False
         else:
-            print(f"  ✓ DAT — {len(svc.characteristics)} dac tinh, tat ca chi READ/NOTIFY")
+            print(f"  ✓ chi 1 dac tinh ghi duoc: {w[0].uuid}")
+            print(f"    quyen: {w[0].properties}")
+        if ok:
+            print(f"  ✓ DAT — {len(svc.characteristics)-1} dac tinh chi DOC, 1 dac tinh lenh")
+            print("    (viec CHAN that su do test/ble_write_check.py kiem)")
 
         # --- (3) notify có bắn không ---------------------------------------
         print("\n" + "=" * 70)

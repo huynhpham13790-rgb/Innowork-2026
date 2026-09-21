@@ -14,18 +14,27 @@
  *  khoảnh khắc nguy hiểm nhất là sạc qua đêm không ai trông. Đây là kênh PHỤ.
  *
  *  ===========================================================================
- *  VÌ SAO KHÔNG CÓ ĐẶC TÍNH NÀO GHI ĐƯỢC — đọc kỹ trước khi thêm
+ *  GHI ĐƯỢC ĐÚNG MỘT THỨ: TẮT TIẾNG CÒI — và phải trả giá để có nó (QĐ-042)
  *  ===========================================================================
- *  Mọi characteristic ở đây đều READ + NOTIFY, KHÔNG CÓ WRITE. Cố ý.
+ *  Bản đầu (QĐ-041) KHÔNG có đặc tính ghi nào. Lý do vẫn đúng nguyên: BLE
+ *  quảng bá công khai, nên một đặc tính ghi tự do là cho bất kỳ ai trong bán
+ *  kính 10 m tắt còi của một pack pin lithium — không mật khẩu, không dấu vết.
  *
- *  BLE quảng bá công khai và không có xác thực. Thêm một đặc tính ghi được là
- *  cho bất kỳ ai trong bán kính 10 m bật được sưởi hoặc tắt được còi của một
- *  pack pin lithium — không cần mật khẩu, không để lại dấu vết. Đường điều
- *  khiển đã có rồi và nó đi qua MQTT có tài khoản (xem onMqttMessage), cộng
- *  thêm công tắc chết người DH_DEADMAN_MS ở phía thiết bị.
+ *  Nhưng người dùng cần tắt được còi từ điện thoại khi đã biết lỗi, và bắt họ
+ *  chạy lại chỗ pack để bấm nút BOOT là thiết kế tồi. Nên mở, kèm BA lớp chặn:
  *
- *  Muốn điều khiển qua BLE thì phải có ghép đôi + mã PIN trước, và đó là một
- *  quyết định phải ghi vào DECISION_LOG, không phải một dòng code thêm vào.
+ *   1. GHÉP ĐÔI + MÃ PIN. Đặc tính lệnh đòi liên kết đã mã hoá và xác thực
+ *      (bonding + MITM). Người lạ đi ngang KHÔNG ghi được vì chưa ghép đôi, mà
+ *      ghép đôi thì phải nhập đúng 6 số BLE_PASSKEY.
+ *   2. CHỈ TẮT TIẾNG, KHÔNG BẬT SƯỞI. Danh sách lệnh qua BLE chỉ có mute và
+ *      quiet. Sưởi vẫn chỉ đi qua MQTT có tài khoản + công tắc chết người.
+ *      Kẻ xấu ghép đôi được cũng không làm nóng được pack.
+ *   3. TỰ HẾT HẠN. Tắt tiếng từ BLE tự hết sau BLE_MUTE_TTL_MS. Kể cả bị lạm
+ *      dụng thì im lặng cũng không vĩnh viễn — và người dùng thật cũng khỏi
+ *      quên bật lại, đúng cái bẫy đã gặp ngày 21/09.
+ *
+ *  Ngoài ra Alarm không cho tắt tiếng ở mức NGUY KỊCH (ngưỡng cứng 60 °C) —
+ *  lớp cuối cùng thì không ai được bịt miệng, kể cả chủ máy.
  *
  *  ===========================================================================
  *  DÙNG THẾ NÀO (không cần viết app)
@@ -60,6 +69,15 @@
    sẽ đẩy UUID dịch vụ ra ngoài và thợ sẽ không lọc được theo dịch vụ. */
 #define BLE_DEV_NAME  "HuTieu-BMS"
 
+/* Mã ghép đôi 6 số. ĐỔI TRƯỚC KHI GIAO MÁY THẬT — số này in trên nhãn dán ở
+   thân thiết bị, không phải bí mật lớn, nhưng nó chặn được người đi ngang.
+   Không đưa vào arduino_secrets.h vì nó phải khớp với cái in trên nhãn, tức
+   thuộc về cấu hình sản phẩm chứ không phải bí mật của kho mã. */
+#define BLE_PASSKEY       123456
+
+/* Tắt tiếng từ BLE tự hết sau 5 phút. Xem lớp chặn thứ 3 ở trên. */
+#define BLE_MUTE_TTL_MS   300000UL
+
 class BleView {
  public:
   bool begin(const char* device_id);
@@ -78,6 +96,14 @@ class BleView {
               bool muted, bool quiet,
               bool meter_ok, float pack_v, float pack_a, float soc_pct,
               int n_healthy, bool wifi_ok, bool cloud_ok);
+
+  /* Gắn hai hàm mà lệnh BLE được phép gọi. KHÔNG có đường nào khác từ BLE vào
+     thiết bị — muốn thêm lệnh phải thêm ở đây, nên không thể vô tình mở một
+     đường điều khiển chỉ vì đổi payload ở điện thoại. */
+  void onCommand(void (*mute_fn)(bool), void (*quiet_fn)(bool));
+
+  /* Gọi mỗi vòng loop(): lo việc cho tắt tiếng từ BLE tự hết hạn. */
+  void tick();
 
   bool ready()     const { return ready_; }
   bool connected() const;

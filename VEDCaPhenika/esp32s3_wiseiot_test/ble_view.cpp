@@ -7,6 +7,8 @@ void BleView::update(const float*, const CellAIResult&, AlarmLevel, bool, bool,
                      bool, float, float, float, int, bool, bool) {}
 bool BleView::connected() const { return false; }
 int  BleView::clientCount() const { return 0; }
+void BleView::onCommand(void (*)(bool), void (*)(bool)) {}
+void BleView::tick() {}
 #else
 
 #include <BLEDevice.h>
@@ -24,11 +26,46 @@ int  BleView::clientCount() const { return 0; }
 #define UUID_AI    "48555449-4555-4d53-0004-000000000000"
 #define UUID_PACK  "48555449-4555-4d53-0005-000000000000"
 #define UUID_SYS   "48555449-4555-4d53-0006-000000000000"
+#define UUID_DIAG  "48555449-4555-4d53-0007-000000000000"
+#define UUID_CMD   "48555449-4555-4d53-0008-000000000000"
 
-static const int N_CHAR = 5;
+static const int N_CHAR = 6;
 static BLEServer         *sServer = nullptr;
 static BLECharacteristic *sCh[N_CHAR] = {nullptr};
 static String             sLast[N_CHAR];
+
+static void (*sMuteFn)(bool)  = nullptr;
+static void (*sQuietFn)(bool) = nullptr;
+static uint32_t sMuteUntil    = 0;      // 0 = không có hẹn giờ đang chạy
+
+/* Đặc tính lệnh. Chỉ nhận ĐÚNG bốn chuỗi — danh sách trắng, không phân tích
+   cú pháp gì cả. Không có chỗ cho lệnh lạ lọt vào, và thêm lệnh mới thì phải
+   sửa đúng chỗ này nên không thể vô tình mở thêm một đường điều khiển.
+
+   Sưởi CỐ Ý không có mặt: nó là thứ duy nhất bơm năng lượng vào pack, nên vẫn
+   chỉ đi qua MQTT có tài khoản kèm công tắc chết người (QĐ-040, QĐ-042). */
+class CmdCb : public BLECharacteristicCallbacks {
+  void onWrite(BLECharacteristic* c) override {
+    String v = c->getValue();
+    v.trim();
+    const char* reply = "lenh la - chi nhan: mute on|mute off|quiet on|quiet off";
+
+    if (v == "mute on"  && sMuteFn)  {
+      sMuteFn(true);
+      sMuteUntil = millis() + BLE_MUTE_TTL_MS;   // tự hết hạn
+      reply = "da tat tieng - TU BAT LAI sau 5 phut";
+    } else if (v == "mute off" && sMuteFn)  {
+      sMuteFn(false);  sMuteUntil = 0;  reply = "da bat lai tieng";
+    } else if (v == "quiet on"  && sQuietFn) {
+      sQuietFn(true);  reply = "da chuyen sang bip thua";
+    } else if (v == "quiet off" && sQuietFn) {
+      sQuietFn(false); reply = "da tat bip thua";
+    }
+    Serial.printf("[BLE ] lenh \"%s\" -> %s\n", v.c_str(), reply);
+    c->setValue(reply);      // đọc lại đặc tính là thấy kết quả thật
+  }
+};
+static CmdCb sCmdCb;
 
 /* Quảng bá lại ngay khi thợ ngắt kết nối. Thiếu chỗ này thì người thứ hai tới
    kiểm pack sẽ KHÔNG QUÉT THẤY GÌ CẢ — thiết bị vẫn chạy, vẫn báo động, chỉ là
@@ -67,6 +104,18 @@ bool BleView::begin(const char* device_id) {
      (xem ghi chú MTU trong ble_view.h). */
   BLEDevice::setMTU(247);
 
+  /* Ghép đôi có mã PIN. MITM = bắt buộc nhập mã, bonding = nhớ máy đã ghép nên
+     lần sau khỏi nhập lại. Không có mấy dòng này thì đặc tính lệnh ở dưới chỉ
+     là một cái cửa khoá bằng dây chun.
+     (Không gọi setEncryptionLevel(): hàm đó chỉ có khi backend là Bluedroid,
+      mà core 3.3.11 đang chạy NimBLE. Mức mã hoá do quyền đặt trên từng
+      đặc tính quyết định — xem setAccessPermissions() ở dưới.) */
+  BLESecurity::setPassKey(true, BLE_PASSKEY);   // true = mã CỐ ĐỊNH, in trên nhãn
+  BLESecurity::setAuthenticationMode(true, true, true);   // bonding, MITM, SC
+  BLESecurity::setCapability(ESP_IO_CAP_OUT);             // thiết bị hiện mã
+  BLESecurity::setInitEncryptionKey(ESP_BLE_ENC_KEY_MASK | ESP_BLE_ID_KEY_MASK);
+  BLESecurity::setRespEncryptionKey(ESP_BLE_ENC_KEY_MASK | ESP_BLE_ID_KEY_MASK);
+
   sServer = BLEDevice::createServer();
   sServer->setCallbacks(&sSrvCb);
 
@@ -76,6 +125,29 @@ bool BleView::begin(const char* device_id) {
   sCh[2] = mkChar(svc, UUID_AI,    "Lop 1 - cell nghi ngo");
   sCh[3] = mkChar(svc, UUID_PACK,  "Dien ap / dong / SoC");
   sCh[4] = mkChar(svc, UUID_SYS,   "Tinh trang he thong");
+  sCh[5] = mkChar(svc, UUID_DIAG,  "So do da dung de chan doan");
+
+  /* Đặc tính DUY NHẤT ghi được, và nó đòi liên kết đã mã hoá + xác thực. Điện
+     thoại chưa ghép đôi ghi vào sẽ bị từ chối ngay ở tầng GATT, không tới được
+     hàm onWrite. Đây là lớp chặn số 1 của QĐ-042. */
+  /* Quyền phải nằm trong THUỘC TÍNH lúc tạo, không phải qua setAccessPermissions().
+     Bản đầu của tớ gọi setAccessPermissions() — mà hàm đó có thân rỗng khi
+     backend là NimBLE (BLECharacteristic.cpp dòng 167: thân nằm trong
+     #ifdef CONFIG_BLUEDROID_ENABLED). Tức lớp bảo vệ số 1 KHÔNG TỒN TẠI, và
+     test/ble_write_check.py bắt được ngay: máy chưa ghép đôi tắt được còi.
+     Đặt cả hai đường để đúng với cả hai backend. */
+  BLECharacteristic* cmd = svc->createCharacteristic(
+      UUID_CMD, BLECharacteristic::PROPERTY_READ
+              | BLECharacteristic::PROPERTY_WRITE
+              | BLECharacteristic::PROPERTY_WRITE_ENC      // đòi liên kết mã hoá
+              | BLECharacteristic::PROPERTY_WRITE_AUTHEN); // đòi đã xác thực PIN
+  cmd->setAccessPermissions(ESP_GATT_PERM_READ_ENCRYPTED |
+                            ESP_GATT_PERM_WRITE_ENC_MITM);
+  cmd->setCallbacks(&sCmdCb);
+  cmd->setValue("mute on | mute off | quiet on | quiet off");
+  { BLE2901* d = new BLE2901();
+    d->setDescription("Lenh (can ghep doi) - tat tieng coi");
+    cmd->addDescriptor(d); }
   for (int i = 0; i < N_CHAR; i++) { sLast[i] = ""; sCh[i]->setValue("dang khoi dong"); }
   svc->start();
 
@@ -90,6 +162,19 @@ bool BleView::begin(const char* device_id) {
                 (unsigned)(heap0 - ESP.getFreeHeap()), (unsigned)ESP.getFreeHeap());
   Serial.println("[BLE ] doc bang nRF Connect - CHI DOC, khong co lenh ghi nao");
   return true;
+}
+
+void BleView::onCommand(void (*mute_fn)(bool), void (*quiet_fn)(bool)) {
+  sMuteFn = mute_fn; sQuietFn = quiet_fn;
+}
+
+/* Cho tắt tiếng từ BLE tự hết hạn. Lớp chặn số 3: im lặng không bao giờ vĩnh
+   viễn, kể cả khi bị lạm dụng — và người dùng thật cũng khỏi quên bật lại,
+   đúng cái bẫy đã gặp ngày 21/09 (tắt tiếng còn nguyên sang lần demo sau). */
+void BleView::tick() {
+  if (!sMuteUntil || (int32_t)(sMuteUntil - millis()) > 0) return;
+  sMuteUntil = 0;
+  if (sMuteFn) { sMuteFn(false); Serial.println("[BLE ] het han tat tieng - coi bat lai"); }
 }
 
 bool BleView::connected()  const { return sServer && sServer->getConnectedCount() > 0; }
@@ -116,7 +201,7 @@ void BleView::update(const float* temps, const CellAIResult& ai, AlarmLevel lvl,
                      bool meter_ok, float pack_v, float pack_a, float soc_pct,
                      int n_healthy, bool wifi_ok, bool cloud_ok) {
   if (!ready_) return;
-  char b[200];
+  char b[256];
 
   /* Trạng thái PHẢI kèm chuyện còi có đang bị bịt miệng không. Tắt tiếng mà
      không ai thấy chính là chế độ hỏng nguy hiểm nhất của cả khối báo động:
@@ -144,13 +229,17 @@ void BleView::update(const float* temps, const CellAIResult& ai, AlarmLevel lvl,
   if (!ai.valid) {
     snprintf(b, sizeof(b), "AI dang khoi dong, chua ket luan");
   } else if (ai.alarm) {
-    snprintf(b, sizeof(b), "CELL %d - diem %.2f / nguong %.2f - da giu %us",
-             ai.worst_cell + 1, ai.worst_score, (double)CellAI::threshold(),
-             ai.run_s[ai.worst_cell]);
+    /* Kèm DẠNG và VIỆC PHẢI LÀM, không chỉ con số. Thợ đứng cạnh pack không
+       tra được bảng TH-1/2/3 từ một con số điểm; mà phân biệt TH-1 với TH-2
+       chính là khác biệt giữa "cách ly pack ngay" và "ghi sổ, mai kiểm". */
+    snprintf(b, sizeof(b), "CELL %d - %s | %s | diem %.2f/%.2f, giu %us",
+             ai.worst_cell + 1, aiPatternName(ai.pattern),
+             aiPatternAction(ai.pattern), ai.worst_score,
+             (double)CellAI::threshold(), ai.run_s[ai.worst_cell]);
   } else if (ai.run_s[ai.worst_cell] > 0) {
-    snprintf(b, sizeof(b), "cell %d dang vuot (%.2f), moi giu %us/%us",
-             ai.worst_cell + 1, ai.worst_score, ai.run_s[ai.worst_cell],
-             CellAI::persist_s());
+    snprintf(b, sizeof(b), "cell %d dang vuot (%.2f) - %s - moi giu %us/%us",
+             ai.worst_cell + 1, ai.worst_score, aiPatternName(ai.pattern),
+             ai.run_s[ai.worst_cell], CellAI::persist_s());
   } else {
     snprintf(b, sizeof(b), "khong co cell bat thuong (cao nhat %.2f / %.2f)",
              ai.worst_score, (double)CellAI::threshold());
@@ -161,6 +250,13 @@ void BleView::update(const float* temps, const CellAIResult& ai, AlarmLevel lvl,
                          pack_v, pack_a, soc_pct);
   else          snprintf(b, sizeof(b), "chua do duoc (khong thay INA)");
   put(3, b);
+
+  /* Ba con số đã dùng để tra ra DẠNG ở trên. Đưa ra ngoài để thợ KIỂM được
+     lời khuyên thay vì phải tin nó — một lời khuyên không kiểm được thì đến
+     lúc nó sai sẽ không ai phát hiện. */
+  snprintf(b, sizeof(b), "lech %+.2f degC | nhanh hon pack %+.2f degC/phut | "
+           "dot ngot %+.2f degC", ai.dev, ai.dt_diff, ai.shock);
+  put(5, ai.valid ? b : "chua co so (AI dang khoi dong)");
 
   snprintf(b, sizeof(b), "cam bien %d/%d  wifi %s  cloud %s  chay %lu phut",
            n_healthy, AI_N_CELLS, wifi_ok ? "OK" : "mat",

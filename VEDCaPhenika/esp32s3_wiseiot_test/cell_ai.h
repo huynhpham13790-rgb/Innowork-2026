@@ -36,6 +36,44 @@
 #define AI_EMA_TAU   300    // hằng số thời gian EMA chậm (giây)
 #define AI_I_SCALE   20.0f  // dòng chuẩn hoá (A)
 
+/* =============================================================================
+ *  DẠNG bất thường — KHÔNG phải nguyên nhân
+ *
+ *  PHẢI ĐỌC KỸ ĐOẠN NÀY TRƯỚC KHI DÙNG:
+ *  Autoencoder chỉ học "6 cell bình thường trông thế nào" rồi báo khi có cell
+ *  không khớp. Nó KHÔNG BIẾT TÊN của bất kỳ lỗi nào — nó chưa từng được dạy,
+ *  và đội cũng không có dữ liệu gán nhãn để dạy. Điểm số của nó trả lời đúng
+ *  một câu: "cell này lệch bao nhiêu so với các cell còn lại".
+ *
+ *  Nhưng HÌNH DẠNG của cái lệch thì phân biệt được bằng ba đặc trưng đã tính
+ *  sẵn, và docs/HAI_LOP_AI_HOAT_DONG_THE_NAO.md đã có bảng tra sẵn từ hình
+ *  dạng sang nguyên nhân khả dĩ. Phân loại dưới đây CHỈ LÀ TRA BẢNG ĐÓ — nó
+ *  thu hẹp phạm vi cho thợ, không kết luận thay thợ.
+ *
+ *  Vì sao đáng làm: phân biệt TH-1 với TH-2 là khác biệt giữa "cách ly pack
+ *  ngay" và "ghi sổ, kiểm lúc bảo dưỡng". Thợ đứng cạnh pack cần đúng điều đó,
+ *  và trước đây màn BLE chỉ đưa con số nên họ không tra được.
+ *
+ *  KHÔNG được trình bày đầu ra này như một chẩn đoán chắc chắn — trước giám
+ *  khảo cũng vậy. Nói đúng là: "hệ phát hiện bất thường và phân loại DẠNG,
+ *  không chẩn đoán nguyên nhân".
+ * ========================================================================== */
+enum AiPattern : uint8_t {
+  AIP_NONE = 0,   // không có dạng nào nổi bật
+  AIP_FAST = 1,   // TH-1 · nóng lên NHANH HƠN pack — mối hàn kém / chớm chập
+  AIP_WARM = 2,   // TH-2 · nóng hơn nhưng ỔN ĐỊNH — cell chai / tản nhiệt kém
+  AIP_COLD = 3,   // TH-3 · LẠNH bất thường — mất kết nối / cảm biến bong
+};
+
+/* Ngưỡng tra bảng. Đây là ranh giới ĐỌC HIỂU cho người, KHÔNG phải ngưỡng báo
+   động — báo động vẫn hoàn toàn do autoencoder và ngưỡng cứng 60 °C quyết định.
+   Có sai vài phần mười ở đây thì chỉ làm lời khuyên kém sắc, không làm hệ bỏ
+   sót hay báo oan. */
+#define AIP_FAST_DTDIFF   1.0f   // °C/phút nhanh hơn pack thì coi là đang vọt
+#define AIP_FAST_SHOCK    1.5f   // °C lệch đột ngột so với nền chậm
+#define AIP_WARM_DEV      1.5f   // °C nóng hơn trung bình pack một cách ổn định
+#define AIP_COLD_DEV     -2.0f   // °C lạnh hơn trung bình pack
+
 struct CellAIResult {
   bool  valid;                  // false khi chưa đủ dữ liệu khởi động
   bool  alarm;                  // đã vượt ngưỡng liên tục đủ lâu
@@ -43,7 +81,18 @@ struct CellAIResult {
   float worst_score;            // sai số tái tạo của cell đó
   float score[AI_N_CELLS];      // sai số tái tạo từng cell
   uint16_t run_s[AI_N_CELLS];   // số giây liên tục đang vượt ngưỡng
+
+  /* Dạng bất thường của worst_cell, cùng ba số đã dùng để tra ra nó — đưa cả
+     số thật ra ngoài để người còn kiểm được lời khuyên, thay vì phải tin. */
+  AiPattern pattern;
+  float dev;                    // °C lệch so với trung bình pack
+  float dt_diff;                // °C/phút nóng nhanh hơn pack
+  float shock;                  // °C lệch đột ngột so với nền chậm
 };
+
+/* Nhãn ngắn để hiện lên BLE/dashboard, và việc phải làm kèm theo. */
+const char* aiPatternName(AiPattern p);
+const char* aiPatternAction(AiPattern p);
 
 class CellAI {
  public:

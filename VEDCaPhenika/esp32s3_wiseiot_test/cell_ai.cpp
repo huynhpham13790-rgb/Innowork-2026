@@ -187,5 +187,50 @@ CellAIResult CellAI::update(const float* temps, float ambient,
     res.run_s[i] = run_[i];
     if (run_[i] >= AE_PERSIST_S) res.alarm = true;
   }
+
+  /* --- Tra bảng DẠNG bất thường cho cell tệ nhất -------------------------
+     Chỉ là tra bảng của docs/HAI_LOP_AI_HOAT_DONG_THE_NAO.md, KHÔNG phải một
+     bộ phân loại được huấn luyện, và KHÔNG ảnh hưởng gì tới quyết định báo
+     động — báo động đã chốt xong ở vòng lặp trên. Xem chú thích dài ở
+     enum AiPattern trong cell_ai.h trước khi sửa mấy dòng này. */
+  {
+    const int w = res.worst_cell;
+    res.dev     = feat_[w][0];    // lệch so với trung bình pack
+    res.dt_diff = feat_[w][7];    // nóng nhanh hơn pack bao nhiêu
+    res.shock   = feat_[w][9];    // lệch đột ngột so với nền chậm
+
+    /* Thứ tự kiểm CÓ Ý NGHĨA, không được đảo:
+       LẠNH xét trước vì nó dễ bị bỏ sót nhất (ai cũng canh nóng) và vì một
+       cell mất kết nối là chuyện khẩn cấp theo kiểu khác hẳn.
+       NHANH xét trước ẤM vì một cell vừa nóng vừa đang vọt lên thì điều đáng
+       nói là NÓ ĐANG VỌT — xếp nó vào "ấm ổn định" là hạ cấp một TH-1 thành
+       TH-2, tức biến "cách ly ngay" thành "ghi sổ để mai xem". */
+    if (!res.valid)                                    res.pattern = AIP_NONE;
+    else if (res.dev <= AIP_COLD_DEV)                  res.pattern = AIP_COLD;
+    else if (res.dt_diff >= AIP_FAST_DTDIFF ||
+             res.shock   >= AIP_FAST_SHOCK)            res.pattern = AIP_FAST;
+    else if (res.dev >= AIP_WARM_DEV)                  res.pattern = AIP_WARM;
+    else                                               res.pattern = AIP_NONE;
+  }
   return res;
+}
+
+const char* aiPatternName(AiPattern p) {
+  switch (p) {
+    case AIP_FAST: return "NONG LEN NHANH (TH-1)";
+    case AIP_WARM: return "nong hon nhung on dinh (TH-2)";
+    case AIP_COLD: return "LANH bat thuong (TH-3)";
+    default:       return "chua ro dang";
+  }
+}
+
+const char* aiPatternAction(AiPattern p) {
+  switch (p) {
+    // Thứ tự việc phải làm lấy nguyên từ TH-1 trong tài liệu: ngắt sạc TRƯỚC,
+    // vì lúc đang nạp là lúc nguy hiểm nhất.
+    case AIP_FAST: return "NGAT SAC, ngat tai, CACH LY PACK ra cho thoang";
+    case AIP_WARM: return "chua khan. Ghi so, kiem o lan bao duong";
+    case AIP_COLD: return "kiem moi noi cua cell va xem cam bien con dan chat";
+    default:       return "theo doi tiep";
+  }
 }

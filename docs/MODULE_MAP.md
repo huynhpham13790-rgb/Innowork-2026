@@ -44,6 +44,7 @@ Thư viện: `PubSubClient`, `ArduinoJson` v7.
 | `run_test.sh` | Cắt code spool **thật** từ `.ino` rồi biên dịch cùng test. Chạy trên PC, không cần board. |
 | `test_spool.cpp` | Giả lập LittleFS + MQTT, kiểm 5 nhóm tình huống mất mạng. |
 | `ble_check.py` | Nghiệm thu BLE **từ PC**: đọc 5 đặc tính, khẳng định **không có đặc tính ghi được**, notify có bắn, và có quảng bá lại sau khi ngắt. |
+| `ble_write_check.py` | Nối mà **không ghép đôi** rồi thử ghi lệnh tắt còi. Phải bị chặn. Xem QĐ-042. |
 | `dtr_mute_check.py` | Mở cổng serial với `dtr=True` (kịch bản xấu nhất) rồi **đọc trạng thái qua BLE** để chắc còi không bị tự tắt tiếng. Xem QĐ-041. |
 
 ⚠️ Hai file trên cần `bleak` + `pyserial` và **Bluetooth trên PC đang bật**
@@ -88,7 +89,7 @@ có `arduino-cli` trên PATH; bản đi kèm nằm trong AppImage của Arduino 
 | `mosquitto/mosquitto.conf` | Bắt buộc đăng nhập MQTT | Bật ẩn danh chỉ khi chạy LAN nhà |
 | `mosquitto/passwd` | Sinh bằng `mosquitto_passwd`, **không commit** | Đổi mật khẩu MQTT |
 | `nodered/flow_wisepaas_to_influx.json` | Flow chạy thật, import qua UI | Đổi luồng xử lý |
-| `nodered/flow_demo_control.json` | **Bảng điều khiển demo** — `http://127.0.0.1:1880/hutieu`. Nút xin bật sưởi + tắt tiếng còi | Đổi nút bấm. Chỉ dùng node LÕI, không cần cài palette |
+| `nodered/flow_demo_control.json` | **Màn hình người dùng cuối** — `http://127.0.0.1:1880/hutieu`. Trạng thái, 6 cell, chẩn đoán TH-1/2/3, nút tắt còi; phần sưởi nằm dưới mục "chỉ dùng khi trình diễn" | Đổi giao diện. Chỉ dùng node LÕI, không cần cài palette. **Flow đang chạy có id `1c36b21664cab788`**, khác tên file — sửa xong phải đồng bộ hai chiều |
 | `nodered/convert.js` | Bản đọc được của node "WISE-PaaS → line protocol" | Đổi cách map payload → DB |
 | `nodered/check_influx_response.js` | Bản đọc được của node "Kiểm tra kết quả ghi" | Đổi cách báo lỗi ghi |
 
@@ -101,3 +102,14 @@ có `arduino-cli` trên PATH; bản đi kèm nằm trong AppImage của Arduino 
 | Điều khiển AI, gate, DoD | `CLAUDE.md` |
 | Hợp đồng dữ liệu, module map, test, quyết định, RTM | `docs/` |
 | Nghiên cứu, phần cứng, lộ trình, Plan B | `VEDCaPhenika/*.md` |
+
+## Ba màn hình, ba người dùng — đừng nhầm vai
+
+| Màn | Phục vụ ai | Chỉ nó làm được |
+|---|---|---|
+| **Grafana** `:3000` | A — quản lý đội xe | Đồ thị lịch sử, nhiều pack. **Đây là phần được chấm điểm.** |
+| **Node-RED** `/hutieu` | Người dùng cuối + người trình diễn | **Có nút bấm** gửi lệnh xuống thiết bị. Hợp điện thoại. |
+| **BLE** (nRF Connect) | B — thợ đứng cạnh pack | **Chạy không cần mạng.** Đọc tự do; tắt còi thì phải ghép đôi. |
+
+Grafana là dashboard đồ thị nên **không gửi lệnh xuống thiết bị được** — mọi nút
+bấm bắt buộc nằm ở trang Node-RED. Đó là lý do có hai trang web chứ không một.

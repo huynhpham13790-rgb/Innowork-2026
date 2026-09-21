@@ -1,15 +1,15 @@
 [
   {
-    "id": "tab_demo_ctl",
+    "id": "1c36b21664cab788",
     "type": "tab",
     "label": "Bang dieu khien demo",
     "disabled": false,
-    "info": "Nut bam de xin bat suoi khi diễn, va tat tieng coi.\n\nCLOUD CHI DUOC XIN, THIET BI MOI QUYET. Flow nay chi gui lenh; moi han muc an toan nam tren ESP32 va khong lenh nao tu day nang duoc.\n\nLenh xin tu het han sau 15s. Trang web tu gia han moi 5s khi cong tac dang BAT. Dong tab = het gia han = suoi TAT.\n\nMo: http://127.0.0.1:1880/hutieu"
+    "info": ""
   },
   {
     "id": "ui_page",
     "type": "http in",
-    "z": "tab_demo_ctl",
+    "z": "1c36b21664cab788",
     "name": "GET /hutieu",
     "url": "/hutieu",
     "method": "get",
@@ -26,13 +26,13 @@
   {
     "id": "ui_tmpl",
     "type": "template",
-    "z": "tab_demo_ctl",
+    "z": "1c36b21664cab788",
     "name": "trang dieu khien",
     "field": "payload",
     "fieldType": "msg",
     "format": "html",
     "syntax": "plain",
-    "template": "<!doctype html><html lang=\"vi\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>Hu Tieu — dieu khien demo</title><style>body{font-family:system-ui,sans-serif;background:#0f172a;color:#e2e8f0;margin:0;padding:24px;max-width:620px}h1{font-size:20px;margin:0 0 4px}p.sub{color:#94a3b8;margin:0 0 20px;font-size:14px}.card{background:#1e293b;border:1px solid #334155;border-radius:10px;padding:16px;margin-bottom:14px}button{font-size:16px;padding:12px 18px;border-radius:8px;border:0;cursor:pointer;margin-right:8px}.on{background:#b91c1c;color:#fff}.off{background:#334155;color:#e2e8f0}.k{color:#94a3b8;font-size:13px}.v{font-size:22px;font-weight:600}.row{display:flex;gap:24px;flex-wrap:wrap}.warn{background:#422006;border-color:#854d0e;color:#fde68a;font-size:13px;line-height:1.5}</style></head><body><h1>Dieu khien demo — pack Hu Tieu</h1><p class=\"sub\">Cloud chi XIN, thiet bi QUYET. Moi han muc an toan nam tren ESP32.</p><div class=\"card warn\"><b>Cong tac tu nha sau 15 giay</b> neu trang nay khong gia han. Dong tab hoac mat mang = suoi TAT. Do la co y.</div><div class=\"card\"><div class=\"k\">Suoi mot cell de dien</div><div style=\"margin:12px 0\"><button id=\"b\" class=\"off\" onclick=\"tog()\">BAT SUOI</button><button class=\"off\" onclick=\"send('heat_stop')\">DUNG NGAY</button></div><div class=\"row\"><div><div class=\"k\">chenh lech</div><div class=\"v\" id=\"d\">—</div></div><div><div class=\"k\">con hieu luc</div><div class=\"v\" id=\"l\">—</div></div><div><div class=\"k\">trang thai</div><div class=\"v\" id=\"s\" style=\"font-size:15px\">—</div></div></div></div><div class=\"card\"><div class=\"k\">Coi</div><div style=\"margin:12px 0\"><button class=\"off\" onclick=\"send('mute',!st.muted)\">TAT/BAT TIENG</button><button class=\"off\" onclick=\"send('quiet',!st.quiet)\">BIP THUA</button></div><div class=\"row\"><div><div class=\"k\">muc bao dong</div><div class=\"v\" id=\"a\">—</div></div><div><div class=\"k\">coi</div><div class=\"v\" id=\"m\" style=\"font-size:15px\">—</div></div></div><div class=\"k\" style=\"margin-top:10px\">Bip thua KHONG phai giam am luong — SFM-27 la coi chu dong, chi co keu/khong keu. No rut tieng con mot nhip ngan moi chu ky. Muc NGUY KICH luon keu het co.</div></div><script>\nlet want=false, st={};\nconst L=['OK','THEO DOI','BAO DONG','NGUY KICH'];\nasync function send(c,on){await fetch('/hutieu/cmd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(on===undefined?{cmd:c}:{cmd:c,on:on})});}\nfunction tog(){want=!want;document.getElementById('b').className=want?'on':'off';document.getElementById('b').textContent=want?'DANG SUOI — bam de dung':'BAT SUOI';if(!want)send('heat_stop');}\n// gia han moi 5s: deadman tren thiet bi la 15s nen mat 3 nhip lien tiep moi tat\nsetInterval(()=>{if(want)send('heat');},5000);\nsetInterval(async()=>{try{const r=await fetch('/hutieu/state');st=await r.json();\ndocument.getElementById('d').textContent=(st.delta!==undefined?st.delta.toFixed(2)+' °C':'—');\ndocument.getElementById('l').textContent=(st.left_s!==undefined?st.left_s+' s':'—');\ndocument.getElementById('s').textContent=st.reason||'—';\ndocument.getElementById('a').textContent=L[st.alarm]||'—';\ndocument.getElementById('m').textContent=st.muted?'DA TAT TIENG':(st.quiet?'bip thua':'keu binh thuong');}catch(e){}},1000);\n</script></body></html>",
+    "template": "<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">\n<title>Pack pin — Hủ Tiếu</title>\n<style>\n:root{\n  --bg:#f4f5f7; --card:#fff; --tx:#16181d; --dim:#6b7280; --line:#e3e6ea;\n  --ok:#12894f; --watch:#b8860b; --alarm:#d1342f; --crit:#8b0f1d; --accent:#1f6feb;\n}\n@media (prefers-color-scheme:dark){\n  :root{--bg:#0f1115;--card:#171a21;--tx:#e8eaed;--dim:#9aa3af;--line:#262b34;\n        --ok:#35c17b;--watch:#e0a417;--alarm:#ff5f57;--crit:#ff2d43;--accent:#589bff}\n}\n*{box-sizing:border-box}\nbody{margin:0;background:var(--bg);color:var(--tx);\n  font:16px/1.5 -apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,sans-serif;\n  padding:14px;max-width:560px;margin:0 auto;-webkit-text-size-adjust:100%}\nh1{font-size:17px;margin:0 0 12px;display:flex;align-items:center;gap:8px}\nh1 small{font-weight:400;color:var(--dim);font-size:13px;margin-left:auto}\n.card{background:var(--card);border:1px solid var(--line);border-radius:14px;\n  padding:14px;margin-bottom:12px}\n#banner{border-radius:14px;padding:16px;margin-bottom:12px;color:#fff;\n  transition:background .3s}\n#banner .lvl{font-size:21px;font-weight:700;letter-spacing:.2px}\n#banner .sub{opacity:.93;font-size:14px;margin-top:3px}\n.b-ok{background:var(--ok)} .b-watch{background:var(--watch)}\n.b-alarm{background:var(--alarm)} .b-crit{background:var(--crit)}\n.b-dead{background:#555}\n.pulse{animation:p 1.1s infinite}\n@keyframes p{0%,100%{opacity:1}50%{opacity:.55}}\n\n.cells{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}\n.cell{border:1px solid var(--line);border-radius:10px;padding:9px 6px;text-align:center}\n.cell .n{font-size:11px;color:var(--dim)}\n.cell .t{font-size:19px;font-weight:600;font-variant-numeric:tabular-nums}\n.cell.hot{border-color:var(--alarm);background:color-mix(in srgb,var(--alarm) 12%,transparent)}\n.cell.hot .t{color:var(--alarm)}\n.cell.dead .t{color:var(--dim)}\n\n.diag{border-left:4px solid var(--alarm);padding-left:12px}\n.diag .what{font-weight:700;color:var(--alarm)}\n.diag .do{margin-top:6px;font-weight:600}\n.nums{margin-top:9px;font-size:13px;color:var(--dim);\n  font-variant-numeric:tabular-nums;line-height:1.7}\n.kv{display:flex;justify-content:space-between;gap:10px;padding:5px 0;\n  border-bottom:1px solid var(--line);font-size:14px}\n.kv:last-child{border-bottom:0}\n.kv b{font-variant-numeric:tabular-nums;font-weight:600}\nh2{font-size:13px;text-transform:uppercase;letter-spacing:.6px;color:var(--dim);\n  margin:0 0 10px;font-weight:600}\nbutton{font:inherit;font-weight:600;border-radius:10px;border:1px solid var(--line);\n  background:var(--card);color:var(--tx);padding:11px 12px;cursor:pointer;width:100%}\nbutton:active{transform:scale(.98)}\nbutton.on{background:var(--accent);border-color:var(--accent);color:#fff}\n.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}\n.demo{margin-top:10px;padding-top:12px;border-top:1px dashed var(--line)}\n.warn{font-size:12px;color:var(--dim);margin-top:8px}\n#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:18px;\n  background:#000c;color:#fff;padding:9px 16px;border-radius:20px;font-size:14px;\n  opacity:0;transition:opacity .25s;pointer-events:none}\n</style>\n\n<h1>Pack pin 6 cell <small id=\"dev\">—</small></h1>\n\n<div id=\"banner\" class=\"b-dead\"><div class=\"lvl\">Đang kết nối…</div>\n  <div class=\"sub\" id=\"bsub\">chờ số liệu từ thiết bị</div></div>\n\n<div class=\"card\"><h2>Nhiệt độ từng cell</h2><div class=\"cells\" id=\"cells\"></div></div>\n\n<div class=\"card\" id=\"diagcard\" style=\"display:none\"><h2>Chẩn đoán</h2>\n  <div class=\"diag\"><div class=\"what\" id=\"dwhat\"></div>\n    <div class=\"do\" id=\"ddo\"></div><div class=\"nums\" id=\"dnums\"></div></div>\n  <div class=\"warn\">Hệ phát hiện bất thường và phân loại <b>dạng</b>. Nó không\n    khẳng định nguyên nhân — hãy kiểm tra trực tiếp trước khi kết luận.</div>\n</div>\n\n<div class=\"card\"><h2>Pack</h2><div id=\"pack\"></div></div>\n\n<div class=\"card\"><h2>Còi báo động</h2>\n  <div class=\"row\">\n    <button id=\"bmute\" onclick=\"send('mute',!S.muted)\">Tắt tiếng</button>\n    <button id=\"bquiet\" onclick=\"send('quiet',!S.quiet)\">Bíp thưa</button>\n  </div>\n  <div class=\"warn\">Tắt tiếng <b>không</b> tắt báo động — đèn và dashboard vẫn\n    báo. Khi mức nguy hiểm tăng lên, còi <b>tự kêu lại</b>.</div>\n\n  <div class=\"demo\"><h2>Chỉ dùng khi trình diễn</h2>\n    <button id=\"bheat\" onclick=\"heat()\">Bật sưởi để diễn</button>\n    <div class=\"warn\">Thiết bị tự tắt sau <b>15 giây</b> nếu trang này ngừng gia\n      hạn, và tự cắt khi chênh lệch quá ngưỡng. Đóng tab là sưởi tắt.</div>\n  </div>\n</div>\n\n<div id=\"toast\"></div>\n\n<script>\nvar S = {muted:0, quiet:0}, heating = 0;\n\nfunction toast(m){var t=document.getElementById('toast');t.textContent=m;\n  t.style.opacity=1;clearTimeout(t._h);t._h=setTimeout(function(){t.style.opacity=0},1900)}\n\nfunction send(cmd,on){\n  fetch('/hutieu/cmd',{method:'POST',headers:{'Content-Type':'application/json'},\n    body:JSON.stringify({cmd:cmd,on:!!on})})\n   .then(function(r){return r.json()})\n   .then(function(j){toast(j.error?('Bị từ chối: '+j.error):'Đã gửi lệnh')})\n   .catch(function(){toast('Không gửi được')});\n}\n\n// Sưởi: gia hạn liên tục. Thiết bị mới là bên quyết, trang chỉ XIN.\nfunction heat(){\n  if(heating){clearInterval(heating);heating=0;\n    fetch('/hutieu/cmd',{method:'POST',headers:{'Content-Type':'application/json'},\n      body:JSON.stringify({cmd:'heat_stop'})});\n    document.getElementById('bheat').classList.remove('on');\n    document.getElementById('bheat').textContent='Bật sưởi để diễn';\n    toast('Đã dừng sưởi');return;}\n  var ask=function(){fetch('/hutieu/cmd',{method:'POST',\n    headers:{'Content-Type':'application/json'},body:JSON.stringify({cmd:'heat'})})};\n  ask();heating=setInterval(ask,5000);\n  document.getElementById('bheat').classList.add('on');\n  document.getElementById('bheat').textContent='Đang sưởi — bấm để dừng';\n}\n\nvar PAT=[null,\n {w:'Nóng lên nhanh hơn cả pack (TH-1)',d:'Ngắt sạc, ngắt tải, cách ly pack ra chỗ thoáng',c:'var(--alarm)'},\n {w:'Nóng hơn nhưng ổn định (TH-2)',    d:'Chưa khẩn cấp. Ghi sổ, kiểm ở lần bảo dưỡng',c:'var(--watch)'},\n {w:'Lạnh bất thường (TH-3)',           d:'Kiểm mối nối của cell và xem cảm biến còn dán chặt',c:'var(--watch)'}];\n\nfunction draw(p){\n  var d=p.dev||{}, L=p.live||{}, dead=L.stale;\n  // Mức báo động lấy từ DONG DU LIEU SONG, khong lay tu ack.\n  // ack chi sinh ra khi co nguoi gui lenh, nen neu tin vao no thi trang se\n  // DUNG HINH o trang thai cu cho toi luc ai do bam nut — so cu trong y het\n  // so moi. Da xay ra that 21/09 ngay sau khi nap lai firmware.\n  var lvl = L.Alarm_Level, muted = L.Alarm_Muted, quiet = L.Alarm_Quiet;\n  if (lvl === undefined) { lvl = d.alarm; muted = d.muted; quiet = d.quiet; }\n  document.getElementById('dev').textContent=L.device||'—';\n\n  var b=document.getElementById('banner'),\n      cls=dead?'b-dead':['b-ok','b-watch','b-alarm','b-crit'][lvl]||'b-dead',\n      txt=dead?'MẤT LIÊN LẠC':['Bình thường','Theo dõi','BÁO ĐỘNG','NGUY KỊCH'][lvl]||'—',\n      sub=dead?'Không nhận được số liệu quá 15 giây — số hiển thị có thể đã cũ'\n         :[ 'Sáu cell đang bám sát nhau',\n            'AI thấy một cell lệch, đang đếm giờ xác nhận',\n            'Một cell lệch đủ lâu để xác nhận là bất thường',\n            'Có cell vượt ngưỡng cứng 60 °C'][lvl]||'';\n  b.className=cls+((lvl>=2&&!dead)?' pulse':'');\n  b.querySelector('.lvl').textContent=txt+(muted?'  🔇':'');\n  document.getElementById('bsub').textContent=sub+(muted?' · còi đang bị tắt tiếng':'');\n\n  var c=L.cells||[],worst=(lvl>=1||L.AI_Pattern)?(L.AI_WorstCell||0):0,h='';\n  for(var i=0;i<c.length;i++){\n    var bad=(i+1)===worst && (lvl>=2);\n    h+='<div class=\"cell'+(bad?' hot':'')+'\"><div class=\"n\">Cell '+(i+1)+\n       '</div><div class=\"t\">'+(c[i]==null?'--':c[i].toFixed(1))+'</div></div>';\n  }\n  document.getElementById('cells').innerHTML=h||\n    '<div class=\"cell dead\"><div class=\"t\">--</div></div>';\n\n  // Hien the chan doan khi CO DANG bat thuong, ke ca luc chua den muc bao dong\n  // — TH-2/TH-3 la thu can ghi so chu khong can hanh dong ngay, va giau no di\n  // thi nguoi dung mat luon phan canh bao som.\n  var dc=document.getElementById('diagcard');\n  if(!dead && L.AI_Pattern){\n    var P=PAT[L.AI_Pattern]||{w:'Chưa rõ dạng',d:'Theo dõi tiếp',c:'var(--dim)'};\n    dc.style.display='';\n    dc.querySelector('.diag').style.borderLeftColor=P.c;\n    var w=document.getElementById('dwhat');\n    w.style.color=P.c;\n    w.textContent='Cell '+L.AI_WorstCell+' — '+P.w+(lvl<2?'  (chưa tới mức báo động)':'');\n    document.getElementById('ddo').textContent='→ '+P.d;\n    document.getElementById('dnums').innerHTML=\n      'Lệch <b>'+f(L.AI_Dev)+' °C</b> so với trung bình pack<br>'+\n      'Nóng nhanh hơn pack <b>'+f(L.AI_DtDiff)+' °C/phút</b><br>'+\n      'Lệch đột ngột <b>'+f(L.AI_Shock)+' °C</b> so với nền<br>'+\n      'Điểm AI <b>'+(L.AI_WorstScore||0).toFixed(2)+'</b> / ngưỡng 1,07';\n  } else dc.style.display='none';\n\n  // Do do RONG tu chinh 6 so dang hien, khong dung Heater_Delta: truong do chi\n  // co nghia luc suoi dang chay va se hien 0,00 khi suoi tat — tro thanh mot\n  // con so SAI nam canh sau con so dung.\n  var sp='—';\n  if(c.length){var mx=Math.max.apply(null,c),mn=Math.min.apply(null,c);\n               sp=(mx-mn).toFixed(2)+' °C';}\n  document.getElementById('pack').innerHTML=\n    kv('Chênh lệch nóng nhất − lạnh nhất', sp)+\n    kv('Cảm biến', (L.Sensor_Healthy!==undefined?L.Sensor_Healthy:'?')+'/'+c.length+' kênh khoẻ')+\n    kv('Sưởi trình diễn', (L.Heater_On||d.heater)?'đang bật':'tắt')+\n    kv('Cập nhật lần cuối', dead?'quá 15 giây trước':'vừa xong');\n\n  S.muted=muted;S.quiet=quiet;\n  tog('bmute', muted, 'Bật lại tiếng','Tắt tiếng');\n  tog('bquiet',quiet, 'Đang bíp thưa','Bíp thưa');\n}\nfunction f(x){return (x==null||isNaN(x))?'—':(x>0?'+':'')+Number(x).toFixed(2)}\nfunction kv(k,v){return '<div class=\"kv\"><span>'+k+'</span><b>'+v+'</b></div>'}\nfunction tog(id,on,a,b){var e=document.getElementById(id);\n  e.classList.toggle('on',!!on);e.textContent=on?a:b}\n\nfunction tick(){fetch('/hutieu/state').then(function(r){return r.json()})\n  .then(draw).catch(function(){})}\ntick();setInterval(tick,2000);\nwindow.addEventListener('beforeunload',function(){\n  if(heating)navigator.sendBeacon('/hutieu/cmd',\n    new Blob([JSON.stringify({cmd:'heat_stop'})],{type:'application/json'}))});\n</script>\n",
     "output": "str",
     "x": 330,
     "y": 80,
@@ -45,7 +45,7 @@
   {
     "id": "ui_resp",
     "type": "http response",
-    "z": "tab_demo_ctl",
+    "z": "1c36b21664cab788",
     "name": "",
     "statusCode": "200",
     "headers": {
@@ -58,7 +58,7 @@
   {
     "id": "cmd_in",
     "type": "http in",
-    "z": "tab_demo_ctl",
+    "z": "1c36b21664cab788",
     "name": "POST /hutieu/cmd",
     "url": "/hutieu/cmd",
     "method": "post",
@@ -75,7 +75,7 @@
   {
     "id": "cmd_fn",
     "type": "function",
-    "z": "tab_demo_ctl",
+    "z": "1c36b21664cab788",
     "name": "loc lenh + dat topic",
     "func": "// CHI cho qua bon lenh nay. Danh sach trang chu khong phai danh sach den:\n// them lenh moi phai sua o day, nen khong the vo tinh mo mot duong dieu khien\n// nao do chi vi doi payload o trinh duyet.\nconst OK = ['heat', 'heat_stop', 'mute', 'quiet'];\nconst p = msg.payload || {};\nif (!OK.includes(p.cmd)) {\n    msg.statusCode = 400;\n    msg.payload = { error: 'lenh khong nam trong danh sach trang' };\n    return [null, msg];\n}\n// nodeId phai khop NODE_ID trong firmware (buildTopics)\nconst NODE_ID = 'DAN_NODE_ID_VAO_DAY';\nconst out = { topic: '/wisepaas/scada/' + NODE_ID + '/cmd', payload: JSON.stringify(p) };\n// PHAI dung lai `msg` cho nhanh tra loi, khong duoc tao object moi: node\n// `http response` can msg.res de biet tra ve cho request nao. Tao object moi\n// lam mat msg.res => lenh VAN toi thiet bi nhung trinh duyet treo vinh vien.\n// Da dinh dung loi nay 21/09.\nmsg.statusCode = 200;\nmsg.payload = { ok: true };\nreturn [out, msg];",
     "outputs": 2,
@@ -98,7 +98,7 @@
   {
     "id": "cmd_out",
     "type": "mqtt out",
-    "z": "tab_demo_ctl",
+    "z": "1c36b21664cab788",
     "name": "-> topic cmd",
     "topic": "",
     "qos": "1",
@@ -116,7 +116,7 @@
   {
     "id": "cmd_resp",
     "type": "http response",
-    "z": "tab_demo_ctl",
+    "z": "1c36b21664cab788",
     "name": "",
     "statusCode": "",
     "headers": {},
@@ -127,7 +127,7 @@
   {
     "id": "ack_in",
     "type": "mqtt in",
-    "z": "tab_demo_ctl",
+    "z": "1c36b21664cab788",
     "name": "ack tu ESP32",
     "topic": "/wisepaas/scada/+/ack",
     "qos": "0",
@@ -148,7 +148,7 @@
   {
     "id": "ack_store",
     "type": "function",
-    "z": "tab_demo_ctl",
+    "z": "1c36b21664cab788",
     "name": "nho trang thai THAT",
     "func": "// Luu trang thai do THIET BI bao ve, khong phai thu nguoi vua bam.\n// Giao dien phai hien cai thiet bi DANG THE NAO — hai thu do khac nhau va chi\n// cai dau la that.\nflow.set('dev_state', msg.payload);\nreturn null;",
     "outputs": 0,
@@ -164,7 +164,7 @@
   {
     "id": "state_in",
     "type": "http in",
-    "z": "tab_demo_ctl",
+    "z": "1c36b21664cab788",
     "name": "GET /hutieu/state",
     "url": "/hutieu/state",
     "method": "get",
@@ -181,9 +181,9 @@
   {
     "id": "state_fn",
     "type": "function",
-    "z": "tab_demo_ctl",
+    "z": "1c36b21664cab788",
     "name": "tra trang thai",
-    "func": "msg.payload = flow.get('dev_state') || {};\nreturn msg;",
+    "func": "// Gop hai nguon: trang thai thiet bi tu ack, va so do song tu topic data.\nconst st = flow.get('dev_state') || {};\nconst lv = flow.get('live') || {};\n// Du lieu cu hon 15s thi noi thang la MAT LIEN LAC, dung hien so cu nhu so moi.\nlv.stale = !lv.seen || (Date.now() - lv.seen) > 15000;\nmsg.payload = { dev: st, live: lv };\nreturn msg;\n",
     "outputs": 1,
     "timeout": 0,
     "noerr": 0,
@@ -201,7 +201,7 @@
   {
     "id": "state_resp",
     "type": "http response",
-    "z": "tab_demo_ctl",
+    "z": "1c36b21664cab788",
     "name": "",
     "statusCode": "200",
     "headers": {
@@ -209,6 +209,34 @@
     },
     "x": 540,
     "y": 320,
+    "wires": []
+  },
+  {
+    "id": "data_in",
+    "type": "mqtt in",
+    "z": "1c36b21664cab788",
+    "name": "du lieu tu ESP32",
+    "topic": "/wisepaas/scada/+/data",
+    "qos": "0",
+    "datatype": "auto-detect",
+    "broker": "broker_local",
+    "x": 150,
+    "y": 420,
+    "wires": [
+      [
+        "data_store"
+      ]
+    ]
+  },
+  {
+    "id": "data_store",
+    "type": "function",
+    "z": "1c36b21664cab788",
+    "name": "nho so do moi nhat",
+    "func": "// Giu lai ban tin data gan nhat de trang hien duoc so THAT.\n// Chi DOC topic data — khong dung vao, khong bien doi, khong gui di dau.\n// Hop dong du lieu (docs/DATA_CONTRACT.md) la thu khong duoc tu y sua.\nconst p = msg.payload || {};\nconst d = p.d || {};\nconst dev = Object.keys(d)[0];\nif (!dev) return null;\nconst v = d[dev];\n\nconst cells = [];\nfor (let i = 1; i <= 8; i++) {\n    const k = 'Cell' + String(i).padStart(2, '0') + '_Temp';\n    if (v[k] === undefined) break;\n    cells.push(v[k]);\n}\n\nconst prev = flow.get('live') || {};\nconst live = Object.assign({}, prev, { device: dev, ts: p.ts, seen: Date.now() });\nif (cells.length) live.cells = cells;\n\n// Cac truong AI chi di kem ban tin BAT THUONG (publishAnomaly), khong co trong\n// moi goi data. Nen chi ghi de khi that su co mat — neu khong, mot goi data\n// binh thuong se XOA MAT ket luan cua AI va trang se trong rong dung luc dang\n// bao dong.\nfor (const k of ['AI_Alarm','AI_WorstCell','AI_WorstScore',\n                 'AI_Pattern','AI_Dev','AI_DtDiff','AI_Shock',\n                 'Alarm_Level','Alarm_Muted','Alarm_Quiet','Alarm_Events',\n                 'Heater_On','Heater_State','Heater_Delta',\n                 'Sensor_Healthy','Sensor_Found']) {\n    if (v[k] !== undefined) live[k] = v[k];\n}\nflow.set('live', live);\nreturn null;\n",
+    "outputs": 0,
+    "x": 400,
+    "y": 420,
     "wires": []
   }
 ]

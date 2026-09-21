@@ -214,7 +214,15 @@ void Alarm::update(bool ai_alarm, bool ai_watch, float t_max, bool sensor_bad) {
      (3) ở alarm.h đóng lại. */
   const bool quiet_gate = (!quiet_ || lvl_ >= AL_CRITICAL ||
                            (t - t_blink_) < AL_QUIET_BEEP_MS);
-  setBuzzer(lvl_ >= AL_ALARM && !muted_ && blink_ && quiet_gate);
+  /* Tắt tiếng KHÔNG có hiệu lực ở mức NGUY KỊCH.
+     "bíp thưa" đã bị chặn ở đây từ trước (xem ngay trên), nhưng "tắt tiếng"
+     thì chưa — tức là vẫn còn một đường bịt miệng hoàn toàn ngưỡng cứng 60 °C,
+     đúng cánh cửa mà quyết định (3) trong alarm.h đóng lại. Lỗ này chỉ lộ ra
+     khi mở đường tắt tiếng qua BLE (QĐ-042): trước đó muốn tắt tiếng phải đứng
+     tại chỗ bấm nút, giờ thì làm được từ xa.
+     Lớp bảo vệ cuối cùng thì không ai được bịt miệng, kể cả chủ máy. */
+  const bool mute_gate = !muted_ || lvl_ >= AL_CRITICAL;
+  setBuzzer(lvl_ >= AL_ALARM && mute_gate && blink_ && quiet_gate);
 }
 
 const char* Alarm::levelName() const {

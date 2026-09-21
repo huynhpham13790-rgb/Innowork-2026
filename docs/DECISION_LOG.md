@@ -1367,3 +1367,96 @@ Mỗi phép vá cho một lớp an toàn phải kèm phép đo cho **cả hai v�
 
 - Nút BOOT vẫn là chân chung với DTR. Bản vá phần mềm đã đủ an toàn, nhưng nếu
   có board rời thì **dời nút tắt tiếng sang chân khác** vẫn sạch hơn.
+
+---
+
+## QĐ-042 — Phân loại DẠNG bất thường, và mở đúng một đường ghi qua BLE
+
+**21/09/2026 · Đã chốt, đã đo trên phần cứng**
+
+### (A) Lớp 1 nói được DẠNG, không chỉ nói điểm số
+
+Trước: BLE và dashboard chỉ đưa `cell 3, điểm 26,97`. Thợ đứng cạnh pack không
+làm gì được với con số đó — bảng tra TH-1/2/3 nằm trong tài liệu, trên máy tính,
+không nằm trong tay họ.
+
+Nay: `cell_ai` tra bảng đó ngay trên thiết bị, từ ba đặc trưng **đã tính sẵn**
+(`dev_mean`, `dT_diff`, `dev_shock`) — không thêm phép tính nào đáng kể.
+
+| Dạng | Điều kiện | Việc phải làm |
+|---|---|---|
+| TH-1 `AIP_FAST` | `dT_diff ≥ 1,0` °C/ph **hoặc** `shock ≥ 1,5` °C | Ngắt sạc, ngắt tải, cách ly pack |
+| TH-2 `AIP_WARM` | `dev ≥ 1,5` °C, không vọt | Ghi sổ, kiểm lúc bảo dưỡng |
+| TH-3 `AIP_COLD` | `dev ≤ −2,0` °C | Kiểm mối nối và cảm biến |
+
+**Vì sao đáng làm:** phân biệt TH-1 với TH-2 là khác biệt giữa *"cách ly pack
+ngay"* và *"mai xem"*. Đó là quyết định đắt nhất mà thợ phải ra tại chỗ.
+
+**Ba ràng buộc, đều quan trọng ngang nhau:**
+
+1. **Đây là TRA BẢNG, không phải bộ phân loại được huấn luyện.** Autoencoder
+   chưa bao giờ được dạy tên của bất kỳ lỗi nào, và đội không có dữ liệu gán
+   nhãn để dạy. Trước giám khảo phải nói đúng: *"phát hiện bất thường và phân
+   loại dạng, không chẩn đoán nguyên nhân"*.
+2. **Không đụng gì tới quyết định báo động.** Báo động vẫn do autoencoder +
+   ngưỡng cứng 60 °C quyết. Ngưỡng tra bảng có sai thì lời khuyên kém sắc, chứ
+   không làm hệ bỏ sót hay báo oan.
+3. **Ba con số thô được đưa ra cùng lời khuyên**, trên cả BLE lẫn trang web.
+   Một lời khuyên không kiểm được thì đến lúc nó sai sẽ không ai phát hiện.
+
+**Thứ tự kiểm không được đảo:** LẠNH trước (dễ bỏ sót nhất), rồi NHANH, rồi ẤM.
+Xếp NHANH sau ẤM là hạ một TH-1 xuống TH-2 — biến "cách ly ngay" thành "mai
+xem".
+
+Nghiệm thu trên phần cứng: đốt cell 3 →
+`CELL 3 - NONG LEN NHANH (TH-1) | NGAT SAC, ngat tai, CACH LY PACK`,
+`lech +9,53 °C | nhanh hon pack +2,19 °C/phut | dot ngot +7,60 °C`.
+Cell 3 ấm ổn định → `TH-2`. Cell 3 về nền → `chua ro dang`.
+
+### (B) Mở đúng MỘT đường ghi qua BLE — và trả giá cho nó
+
+QĐ-041 chốt "không có đặc tính ghi nào", lý do vẫn đúng nguyên: BLE quảng bá
+công khai, một đặc tính ghi tự do là cho bất kỳ ai trong 10 m tắt còi của pack
+lithium. Nhưng bắt người dùng chạy về chỗ pack bấm nút BOOT mới tắt được còi là
+thiết kế tồi. Mở, kèm **bốn** lớp chặn:
+
+1. **Ghép đôi + mã PIN 6 số** (`BLE_PASSKEY`, in trên nhãn thiết bị).
+2. **Chỉ `mute`/`quiet`, không có `heat`.** Sưởi là thứ duy nhất bơm năng lượng
+   vào pack nên vẫn chỉ đi qua MQTT có tài khoản + công tắc chết người (QĐ-040).
+   Kẻ ghép đôi được cũng không làm nóng được pack.
+3. **Tự hết hạn sau 5 phút** (`BLE_MUTE_TTL_MS`). Im lặng không bao giờ vĩnh
+   viễn — và người dùng thật khỏi quên bật lại, đúng cái bẫy gặp ngày 21/09.
+4. **Không tắt được tiếng ở mức NGUY KỊCH.**
+
+### Lỗi tìm ra khi làm (B): lớp bảo mật đầu tiên KHÔNG TỒN TẠI
+
+Bản đầu dùng `cmd->setAccessPermissions(ESP_GATT_PERM_WRITE_ENC_MITM)`. Biên
+dịch sạch, không cảnh báo gì. Nhưng `test/ble_write_check.py` — nối mà **không**
+ghép đôi rồi ghi `mute on` — cho kết quả:
+
+```
+truoc khi ghi : BINH THUONG
+sau khi ghi   : BINH THUONG  [COI DANG TAT TIENG]
+✗ TRUOT — may CHUA GHEP DOI van tat duoc coi
+```
+
+Nguyên nhân: core 3.3.11 chạy **NimBLE**, mà `BLECharacteristic::setAccessPermissions()`
+có **thân rỗng** khi không phải Bluedroid (`BLECharacteristic.cpp:167`, thân nằm
+trong `#ifdef CONFIG_BLUEDROID_ENABLED`). Hàm chạy, không báo lỗi, và không làm
+gì cả.
+
+Sửa: đặt quyền vào **thuộc tính lúc tạo đặc tính** —
+`PROPERTY_WRITE_ENC | PROPERTY_WRITE_AUTHEN` — đây mới là đường NimBLE đọc.
+Giữ luôn cả `setAccessPermissions()` để đúng với cả hai backend.
+
+**Phép thử cũng phải sửa:** bản đầu không có hạn giờ nên khi thiết bị bắt đầu
+đòi ghép đôi, BlueZ ngồi chờ PIN và phép thử **treo 10 phút** mà không kết luận
+được gì. Thêm hạn giờ 20 giây, và coi *treo* là **ĐẠT** — vì nghĩa là ghi không
+đi qua được. Kết quả sau khi sửa: `✓ DAT — ghi bi CHAN`.
+
+### Bài học
+
+Lặp lại đúng bài học của QĐ-041 ở một chỗ khác: **một lớp bảo vệ chưa được đo
+thì chưa tồn tại**. Lần này nó còn im lặng hơn — hàm có thật, biên dịch sạch,
+và không làm gì. Không có phép thử thì nó đã lên sân khấu nguyên vẹn dưới dạng
+một dòng bình luận nói rằng hệ thống an toàn.
