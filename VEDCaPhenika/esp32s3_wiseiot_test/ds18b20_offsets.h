@@ -61,12 +61,12 @@
    Đây là lựa chọn theo thứ tự đánh số, KHÔNG phải kết quả đo. Nếu sáu đầu dò
    đang dán lên pack không phải P01..P06 thì phải sửa bảng dưới đây cho khớp
    nhãn thật — sai chỗ này thì mọi thứ phía sau đều sai một cách im lặng.
-   ⚠️ TIẾP XÚC CHẬP CHỜN — chưa sửa xong tính tới 21/09. Sợi nào vừa bị động
-   tay vào thì sợi đó hay mất kết nối (đọc ra -127 °C), rồi có khi tự sống lại.
-   Đã gặp với P05 (mất → tự về → mất → tự về) và P07 (mất sau khi cầm lên, chưa
-   về). KHÔNG phải cảm biến hỏng — ROM vẫn khớp bảng khi nó sống. Phải cố định
-   lại chỗ đấu nối trước khi dán lên pack. Chi tiết:
-   docs/BANG_CHUNG_BRINGUP_PHAN_CUNG_2026-09-20.md */
+   ✅ TIẾP XÚC ĐÃ SỬA 21/09. Trước đó bus chập chờn (7/8, sợi nào vừa động tay
+   vào thì mất kết nối rồi có khi tự về). Nguyên nhân: có đầu dò cắm nhầm ray
+   trên breadboard — ray nguồn bị cắt đôi ở giữa, hai nửa không thông nhau.
+   Đã hàn chụm 8 DATA / 8 VDD / 8 GND thành ba bó, mỗi bó ra một dây jump.
+   Sau khi sửa: 8/8 ổn định, lỗi đọc 0,04 % (1/2.272), ROM không đổi con nào.
+   Chi tiết: docs/BANG_CHUNG_BRINGUP_PHAN_CUNG_2026-09-20.md */
 const uint8_t DS_ROM[DS_N_PROBES][8] = {
   { 0x28, 0x30, 0xF1, 0x01, 0x00, 0x00, 0x00, 0x17 },   // P01
   { 0x28, 0xB8, 0xC8, 0x01, 0x00, 0x00, 0x00, 0x2B },   // P02

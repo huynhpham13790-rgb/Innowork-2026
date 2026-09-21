@@ -413,23 +413,50 @@ Chẩn đoán ban đầu "con P05 hỏng" là **sai**. Dữ liệu bác bỏ nó
 | 21/09, bắt đầu gán nhãn | có (tự về, không ai sửa) | có |
 | 21/09, sau khi nhúng P07 | **mất** rồi **tự về** | **mất**, chưa về |
 
-Mẫu hình thật: **sợi nào vừa bị động tay vào thì sợi đó mất kết nối**, và có
-khi tự sống lại. Cái chung không nằm ở một con cảm biến — ROM vẫn khớp bảng mỗi
-khi nó sống — mà ở **cách cố định dây**, nhiều khả năng là chỗ cắm breadboard
-hoặc cầu đấu bị xê dịch khi kéo dây.
+### ✅ NGUYÊN NHÂN THẬT — và cả hai chẩn đoán của AI đều chưa đúng
 
-Điều này đổi hẳn việc phải làm: **không mua cảm biến mới, không hiệu chuẩn
-lại** — mà hàn cứng hoặc dùng cầu đấu bắt vít, và níu dây để đầu cắm không bị
-kéo. Phải làm **trước khi dán lên pack**, vì lúc dán còn phải kéo dây nhiều hơn.
+Người phụ trách tìm ra: **có đầu dò cắm nhầm ray trên breadboard**. Ray nguồn
+của nhiều breadboard **bị cắt đôi ở giữa**, hai nửa không thông nhau trừ khi
+có dây bắc qua — con nào nằm nửa có điện thì chạy, nửa kia thì câm, và chạm
+tay vào là đổi. Khớp với toàn bộ số liệu đã đo.
 
-Cần loại trừ thêm một khả năng: nếu lúc nhúng mà nước chạm tới mối nối chứ
-không chỉ đầu kim loại thì đó là nguyên nhân khác hẳn.
+Ghi lại để không quên: chẩn đoán đầu của AI là **"con P05 hỏng"** — sai, dữ
+liệu bác bỏ khi P05 tự sống lại. Chẩn đoán thứ hai là **"xê dịch cơ học"** —
+đúng hướng nhưng chưa tới nơi, và nó không giải thích nổi việc P05 tự hồi mà
+không ai đụng vào. Cả hai đều là suy đoán từ triệu chứng; thứ giải được là
+người nhìn thẳng vào cách cắm dây.
+
+### Đã sửa: hàn chụm ba bó, ra 3 dây jump
+
+Hàn 8 chân DATA vào nhau, 8 chân VDD vào nhau, 8 chân GND vào nhau, mỗi bó ra
+một dây jump cắm breadboard. Đây đúng là cách bus 1-Wire được thiết kế để đấu:
+open-drain, mọi thiết bị chung một dây, phân biệt bằng mã ROM 64 bit — không
+có chuyện tranh chấp điện.
+
+**Kết quả đo sau khi hàn (21/09):**
+
+| | Trước hàn | Sau hàn |
+|---|---|---|
+| Số cảm biến thấy | 7/8, lúc có lúc không | **8/8, ổn định qua nhiều lần khởi động** |
+| Lỗi đọc (T5, 2 lượt) | — | **1 / 2.272 (0,04 %)**, lượt hai 0/1136 |
+| Tản nhiệt giữa các kênh | 0,75 °C | **0,19 °C** |
+| Nhiễu còi lên bus | 0 lỗi | 0 lỗi |
+
+Lỗi duy nhất rơi vào lượt đầu ngay sau khi hàn, lượt hai sạch hoàn toàn — nhiều
+khả năng là chấn động còn sót lại. Tản nhiệt giảm còn 0,19 °C là hệ quả của
+việc bó chung một chỗ, không phải cải thiện cảm biến.
+
+8 ROM vẫn khớp bảng, không con nào lạ ⇒ `DS_OFFSET` giữ nguyên.
+
+⚠️ Đổi lại: hàn chụm biến 8 kênh thành **một điểm hỏng chung** — cục hàn lỗi
+là mất sạch 8 cell cùng lúc thay vì mất từng con. Với dây ngắn thế này thì
+đáng đánh đổi, nhưng phải bọc cách điện riêng từng bó và níu dây ở chỗ dây
+jump cứng gặp dây mềm của đầu dò.
 
 ## Việc còn lại
 
-- [ ] **Cố định lại chỗ đấu nối cả cụm DS18B20** (hàn cứng / cầu đấu bắt vít
-      + níu dây). Đây là việc gấp nhất: P07 đang mất kết nối, P05 chập chờn.
-      KHÔNG phải thay cảm biến — xem mục "tiếp xúc chập chờn" ở trên
+- [x] ~~Cố định lại chỗ đấu nối cụm DS18B20~~ — đã hàn chụm 3 bó 21/09, bus
+      ổn định 8/8, lỗi 0,04 %
 - [ ] Cắm lại cảm biến **môi trường** (`28 73 4C 04 00 00 00 19`)
 - [x] ~~`pack_meter` viết cho INA228~~ — đã cho tự nhận cả hai chip (QĐ-037)
 - [ ] Đo lại điện trở shunt của module INA226 (0,1 Ω là trị số ghi trên nhãn)
