@@ -123,9 +123,19 @@ const float DS_OFFSET[DS_N_PROBES] = {
 /* ---------------------------------------------------------------------------
  *  Cảm biến thứ 9 — ĐO NHIỆT ĐỘ MÔI TRƯỜNG, không dán lên cell.
  *
- *  Vì sao cần: đặc trưng của Lớp 1 có phần so cell với môi trường. Trước đây
- *  chỗ này là hằng số 28 °C, tức là một giả định được nhét vào giữa đường dữ
- *  liệu thật. Pack nóng lên 10 °C vì trời nắng sẽ bị đọc nhầm thành pack tự
+ *  ⚠️ LÝ DO GỐC ĐÃ HẾT HIỆU LỰC TỪ QĐ-033 — đọc kỹ trước khi đi mua con thứ 9.
+ *  Đoạn dưới đây viết khi Lớp 1 còn 16 đặc trưng, trong đó có `t_minus_amb` và
+ *  `pack_minus_amb`. QĐ-033 đã BỎ cả hai (cùng 3 đặc trưng tuyệt đối khác), nên
+ *  **Lớp 1 hiện KHÔNG dùng nhiệt độ môi trường nữa**. Thiếu con này Lớp 1 vẫn
+ *  chạy đầy đủ, không mất đặc trưng nào.
+ *  Nó còn dùng cho: hiển thị trên dashboard (`Ambient_Temp`, `Ambient_IsReal`)
+ *  và Lớp 2. Thiếu thì firmware dùng hằng số 28 °C và đặt `Ambient_IsReal = 0`
+ *  — có cờ báo, không giấu.
+ *
+ *  Lý do gốc, giữ lại để hiểu vì sao từng mua nó:
+ *  đặc trưng của Lớp 1 (bản 16 đặc trưng) có phần so cell với môi trường. Trước
+ *  đây chỗ này là hằng số 28 °C, tức là một giả định được nhét vào giữa đường
+ *  dữ liệu thật. Pack nóng lên 10 °C vì trời nắng sẽ bị đọc nhầm thành pack tự
  *  sinh nhiệt.
  *
  *  ✅ ĐÃ HIỆU CHUẨN 14/09/2026, cùng mẻ nước với 8 con cell — bắt buộc phải

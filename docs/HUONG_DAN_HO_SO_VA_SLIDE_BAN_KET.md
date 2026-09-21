@@ -107,8 +107,9 @@ Nhưng **số liệu gốc phải thuộc nằm lòng** để trả lời khi b�
 | Nếu bị hỏi | Con số thật | Nguồn |
 |---|---|---|
 | Mô hình to bao nhiêu? | 271 tham số, 1,1 KB, 11 đặc trưng | QĐ-033 |
-| Phát hiện được bao nhiêu? | offset 2 °C: 100 % · drift 5 °C: 88 % | `BANG_CHUNG_AE_TUONG_DOI_2026-09-15.md` |
-| Báo động giả? | 0 sự kiện / 6.123.080 mẫu-cell → chặn trên 95 %: hiếm hơn 1 lần/3 ngày | QĐ-033 |
+| Phát hiện được bao nhiêu? | offset 2 °C: **100 %** · drift 5 °C: **~67 %** | QĐ-039 (đo ở quy tắc giữ 30 s, đúng như firmware) |
+| Báo động giả? | 0 sự kiện / 6.123.080 mẫu-cell → chặn trên 95 %: hiếm hơn 1 lần/3 ngày | QĐ-033 (cũng ở 30 s) |
+| Xuống 6 cell có yếu đi không? | Báo động giả vẫn 0 %, tỉ lệ phát hiện không đổi, chỉ **chậm hơn 8–12 %** với lỗi ramp | QĐ-039 |
 | Chuyển sang pack khác thì sao? | tách biệt ~19× trên pack McMaster | QĐ-033 |
 | Trước đây từng hỏng thế nào? | báo oan 98,7 % trên file lành | QĐ-032 |
 | Ngưỡng báo động? | 1,071, phải giữ 30 giây | QĐ-033 |
@@ -116,6 +117,19 @@ Nhưng **số liệu gốc phải thuộc nằm lòng** để trả lời khi b�
 | Thống kê cháy? | ~31 % khi đỗ, ~25 % trong hầm, thay pack 1,5–12 triệu | `KHUNG_NGHIEN_CUU_v2_HuTieu.md` §2, §5 |
 
 **Đừng nói "0 báo động giả" thành "không bao giờ báo oan".**
+
+### ⚠️ Con số "drift 5 °C: 88 %" đã bị rút lại — đọc kỹ chỗ này
+
+Số cũ đo ở quy tắc giữ liên tục **10 giây**, nhưng **firmware thật đòi 30
+giây**. Ở 30 giây, drift 5 °C chỉ còn **~67 %**. Nguy hiểm hơn: ở 10 giây thì
+báo động giả **không còn là 0** mà là 0,0189 %.
+
+Nghĩa là **hai con số đinh cũ không thể cùng đúng một lúc** — "0 báo động giả"
+là số của 30 giây, "88 %" là số của 10 giây. Ai hỏi "hai số này đo cùng lúc
+chứ?" thì bản cũ không trả lời được.
+
+Toàn bộ số liệu đang công bố giờ lấy **cùng một cấu hình 30 giây**. Chi tiết và
+bảng đối chiếu: QĐ-039.
 
 ---
 

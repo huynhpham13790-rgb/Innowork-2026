@@ -1078,3 +1078,81 @@ Cái test dùng để gác việc đổi số cell lại là chỗ đầu tiên 
 Payload MQTT: chỉ đổi **số lượng** trường `Cell0X_Temp` (6 thay vì 8) và hai
 chuỗi mô tả `Name`/`Desc`. Topic và cấu trúc `{"d":{...},"ts":...}` **không
 đổi** — ràng buộc cứng số 1 của `CLAUDE.md` được giữ nguyên.
+
+---
+
+## QĐ-039 — Kiểm Lớp 1 ở 6 cell: giữ nguyên mô hình và ngưỡng; và một mâu thuẫn trong số liệu công bố
+
+**Ngày:** 21/09/2026 · **Công cụ:** `ai/pack_size_study.py` (viết mới)
+
+### Câu hỏi
+
+QĐ-038 hạ pack xuống 6 cell. Mạng không phải đổi (11 đặc trưng/cell, kích thước
+độc lập với N) — chuyện đó đã chắc. Nhưng nhiều trong 11 đặc trưng tính **trên
+cả pack**, nên thống kê của chúng dịch khi N đổi: cell lỗi nằm trong 6 con thì
+tự kéo trung bình và độ lệch chuẩn pack lên mạnh hơn khi nằm trong 8 con, tức
+là **tự che mình nhiều hơn**. Mô hình lại huấn luyện ở `PACK_SIZE = 8`, và
+ngưỡng 1,0707 chốt ở N = 8.
+
+Ước lượng bằng tay trước khi đo: `zscore` yếu đi ~16 %. **Phải đo, vì đó mới là
+suy luận.**
+
+### Thiết kế phép đo
+
+Pack 6 cell lấy là **6 cell ĐẦU của đúng pack 8 cell đó**, lỗi tiêm vào **cùng
+một cell**. Nhờ vậy mọi khác biệt đều đến từ thống kê pack, không phải từ việc
+hai bên nhìn vào cell khác nhau. 24 đoạn pack-ảo từ 8 chu kỳ test của bộ UPC.
+
+### Kết quả — KHÔNG phải huấn luyện lại, KHÔNG phải đổi ngưỡng
+
+| N cell | báo động giả @1,0707 | p99.9 của điểm |
+|---|---|---|
+| 8 | 0,0000 % | 1,17955 |
+| 6 | 0,0000 % | 1,17975 |
+
+Nền sạch **không dịch chuyển** — hai ngưỡng p99.9 lệch nhau 0,02 %.
+
+| Lỗi | N=8 | N=6 |
+|---|---|---|
+| offset 2 °C | 100 %, trễ 75 s | 100 %, trễ 77 s |
+| offset 3 °C | 100 %, trễ 62 s | 100 %, trễ 62 s |
+| ramp 1 °C/10ph | 100 %, trễ 3212 s | 100 %, trễ **3436 s** |
+| ramp 5 °C/10ph | 100 %, trễ 261 s | 100 %, trễ **286 s** |
+| drift 5 °C | 67 % | 67 % |
+
+**Cái giá thật: chậm hơn 8–12 % với lỗi kiểu ramp.** Tỉ lệ phát hiện không đổi.
+Đúng chiều đã dự đoán nhưng **nhẹ hơn nhiều** con 16 % tính tay — vì mô hình
+còn 9 đặc trưng khác đỡ, không chỉ sống bằng `zscore`.
+
+Drift 3 °C ra 25 % (N=8) so với 17 % (N=6): đó là **6 ca so với 4 ca trên 24
+đoạn** — nhiễu thống kê, đừng đọc thành suy giảm.
+
+### ⚠️ Phát hiện phụ, nghiêm trọng hơn câu hỏi gốc
+
+Hai con số đinh đang dùng trong hồ sơ và slide **đến từ hai cấu hình khác nhau
+và không thể cùng đúng một lúc**:
+
+| | giữ 10 s | giữ 30 s (**firmware thật**) |
+|---|---|---|
+| Báo động giả | **0,0189 %** | **0,0000 %** |
+| offset 2 °C | 100 % | 100 % |
+| drift 5 °C | **83 %** | **67 %** |
+
+- *"0 báo động giả / 6.123.080 mẫu-cell"* chỉ đúng ở **30 giây**
+- *"drift 5 °C: 88 %"* đo ở **10 giây** — mà ở 10 giây báo động giả **không còn
+  là 0**
+
+Gốc: `eval_ae_relative.py` nhập `PERSIST = 10` từ `validate_mcmaster.py`, trong
+khi `operating_point_rel.npz` ghi `persist_s = 30` và `cell_ai.cpp` cũng giữ 30
+giây. Hai đường số liệu chạy song song mà không ai đối chiếu.
+
+**Nói công bằng:** phép đo này ra 83 % còn hồ sơ ghi 88 % — chênh do cỡ mẫu
+khác (24 đoạn / 8 chu kỳ). Kết luận **không phải** "88 % sai", mà là **"88 %
+được đo ở cấu hình không chạy trên thiết bị"**.
+
+**Quyết định: chỉ công bố cột 30 giây**, vì đó là cột tự nhất quán và đúng với
+thứ chạy trên board. Cụ thể: giữ "offset 2 °C = 100 %", giữ "0 báo động giả",
+**sửa "drift 5 °C" từ 88 % xuống ~67 %**.
+
+**Việc còn lại:** thống nhất `PERSIST` về 30 trong `eval_ae_relative.py` và
+`validate_mcmaster.py` để hai đường số liệu không lệch nhau nữa.
