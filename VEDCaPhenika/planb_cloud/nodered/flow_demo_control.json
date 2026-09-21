@@ -1,0 +1,214 @@
+[
+  {
+    "id": "tab_demo_ctl",
+    "type": "tab",
+    "label": "Bang dieu khien demo",
+    "disabled": false,
+    "info": "Nut bam de xin bat suoi khi diễn, va tat tieng coi.\n\nCLOUD CHI DUOC XIN, THIET BI MOI QUYET. Flow nay chi gui lenh; moi han muc an toan nam tren ESP32 va khong lenh nao tu day nang duoc.\n\nLenh xin tu het han sau 15s. Trang web tu gia han moi 5s khi cong tac dang BAT. Dong tab = het gia han = suoi TAT.\n\nMo: http://127.0.0.1:1880/hutieu"
+  },
+  {
+    "id": "ui_page",
+    "type": "http in",
+    "z": "tab_demo_ctl",
+    "name": "GET /hutieu",
+    "url": "/hutieu",
+    "method": "get",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 130,
+    "y": 80,
+    "wires": [
+      [
+        "ui_tmpl"
+      ]
+    ]
+  },
+  {
+    "id": "ui_tmpl",
+    "type": "template",
+    "z": "tab_demo_ctl",
+    "name": "trang dieu khien",
+    "field": "payload",
+    "fieldType": "msg",
+    "format": "html",
+    "syntax": "plain",
+    "template": "<!doctype html><html lang=\"vi\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>Hu Tieu — dieu khien demo</title><style>body{font-family:system-ui,sans-serif;background:#0f172a;color:#e2e8f0;margin:0;padding:24px;max-width:620px}h1{font-size:20px;margin:0 0 4px}p.sub{color:#94a3b8;margin:0 0 20px;font-size:14px}.card{background:#1e293b;border:1px solid #334155;border-radius:10px;padding:16px;margin-bottom:14px}button{font-size:16px;padding:12px 18px;border-radius:8px;border:0;cursor:pointer;margin-right:8px}.on{background:#b91c1c;color:#fff}.off{background:#334155;color:#e2e8f0}.k{color:#94a3b8;font-size:13px}.v{font-size:22px;font-weight:600}.row{display:flex;gap:24px;flex-wrap:wrap}.warn{background:#422006;border-color:#854d0e;color:#fde68a;font-size:13px;line-height:1.5}</style></head><body><h1>Dieu khien demo — pack Hu Tieu</h1><p class=\"sub\">Cloud chi XIN, thiet bi QUYET. Moi han muc an toan nam tren ESP32.</p><div class=\"card warn\"><b>Cong tac tu nha sau 15 giay</b> neu trang nay khong gia han. Dong tab hoac mat mang = suoi TAT. Do la co y.</div><div class=\"card\"><div class=\"k\">Suoi mot cell de dien</div><div style=\"margin:12px 0\"><button id=\"b\" class=\"off\" onclick=\"tog()\">BAT SUOI</button><button class=\"off\" onclick=\"send('heat_stop')\">DUNG NGAY</button></div><div class=\"row\"><div><div class=\"k\">chenh lech</div><div class=\"v\" id=\"d\">—</div></div><div><div class=\"k\">con hieu luc</div><div class=\"v\" id=\"l\">—</div></div><div><div class=\"k\">trang thai</div><div class=\"v\" id=\"s\" style=\"font-size:15px\">—</div></div></div></div><div class=\"card\"><div class=\"k\">Coi</div><div style=\"margin:12px 0\"><button class=\"off\" onclick=\"send('mute',!st.muted)\">TAT/BAT TIENG</button><button class=\"off\" onclick=\"send('quiet',!st.quiet)\">BIP THUA</button></div><div class=\"row\"><div><div class=\"k\">muc bao dong</div><div class=\"v\" id=\"a\">—</div></div><div><div class=\"k\">coi</div><div class=\"v\" id=\"m\" style=\"font-size:15px\">—</div></div></div><div class=\"k\" style=\"margin-top:10px\">Bip thua KHONG phai giam am luong — SFM-27 la coi chu dong, chi co keu/khong keu. No rut tieng con mot nhip ngan moi chu ky. Muc NGUY KICH luon keu het co.</div></div><script>\nlet want=false, st={};\nconst L=['OK','THEO DOI','BAO DONG','NGUY KICH'];\nasync function send(c,on){await fetch('/hutieu/cmd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(on===undefined?{cmd:c}:{cmd:c,on:on})});}\nfunction tog(){want=!want;document.getElementById('b').className=want?'on':'off';document.getElementById('b').textContent=want?'DANG SUOI — bam de dung':'BAT SUOI';if(!want)send('heat_stop');}\n// gia han moi 5s: deadman tren thiet bi la 15s nen mat 3 nhip lien tiep moi tat\nsetInterval(()=>{if(want)send('heat');},5000);\nsetInterval(async()=>{try{const r=await fetch('/hutieu/state');st=await r.json();\ndocument.getElementById('d').textContent=(st.delta!==undefined?st.delta.toFixed(2)+' °C':'—');\ndocument.getElementById('l').textContent=(st.left_s!==undefined?st.left_s+' s':'—');\ndocument.getElementById('s').textContent=st.reason||'—';\ndocument.getElementById('a').textContent=L[st.alarm]||'—';\ndocument.getElementById('m').textContent=st.muted?'DA TAT TIENG':(st.quiet?'bip thua':'keu binh thuong');}catch(e){}},1000);\n</script></body></html>",
+    "output": "str",
+    "x": 330,
+    "y": 80,
+    "wires": [
+      [
+        "ui_resp"
+      ]
+    ]
+  },
+  {
+    "id": "ui_resp",
+    "type": "http response",
+    "z": "tab_demo_ctl",
+    "name": "",
+    "statusCode": "200",
+    "headers": {
+      "content-type": "text/html; charset=utf-8"
+    },
+    "x": 530,
+    "y": 80,
+    "wires": []
+  },
+  {
+    "id": "cmd_in",
+    "type": "http in",
+    "z": "tab_demo_ctl",
+    "name": "POST /hutieu/cmd",
+    "url": "/hutieu/cmd",
+    "method": "post",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 140,
+    "y": 160,
+    "wires": [
+      [
+        "cmd_fn"
+      ]
+    ]
+  },
+  {
+    "id": "cmd_fn",
+    "type": "function",
+    "z": "tab_demo_ctl",
+    "name": "loc lenh + dat topic",
+    "func": "// CHI cho qua bon lenh nay. Danh sach trang chu khong phai danh sach den:\n// them lenh moi phai sua o day, nen khong the vo tinh mo mot duong dieu khien\n// nao do chi vi doi payload o trinh duyet.\nconst OK = ['heat', 'heat_stop', 'mute', 'quiet'];\nconst p = msg.payload || {};\nif (!OK.includes(p.cmd)) {\n    msg.statusCode = 400;\n    msg.payload = { error: 'lenh khong nam trong danh sach trang' };\n    return [null, msg];\n}\n// nodeId phai khop NODE_ID trong firmware (buildTopics)\nconst NODE_ID = 'DAN_NODE_ID_VAO_DAY';\nconst out = { topic: '/wisepaas/scada/' + NODE_ID + '/cmd', payload: JSON.stringify(p) };\n// PHAI dung lai `msg` cho nhanh tra loi, khong duoc tao object moi: node\n// `http response` can msg.res de biet tra ve cho request nao. Tao object moi\n// lam mat msg.res => lenh VAN toi thiet bi nhung trinh duyet treo vinh vien.\n// Da dinh dung loi nay 21/09.\nmsg.statusCode = 200;\nmsg.payload = { ok: true };\nreturn [out, msg];",
+    "outputs": 2,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 350,
+    "y": 160,
+    "wires": [
+      [
+        "cmd_out"
+      ],
+      [
+        "cmd_resp"
+      ]
+    ]
+  },
+  {
+    "id": "cmd_out",
+    "type": "mqtt out",
+    "z": "tab_demo_ctl",
+    "name": "-> topic cmd",
+    "topic": "",
+    "qos": "1",
+    "retain": "false",
+    "respTopic": "",
+    "contentType": "",
+    "userProps": "",
+    "correl": "",
+    "expiry": "",
+    "broker": "broker_local",
+    "x": 570,
+    "y": 140,
+    "wires": []
+  },
+  {
+    "id": "cmd_resp",
+    "type": "http response",
+    "z": "tab_demo_ctl",
+    "name": "",
+    "statusCode": "",
+    "headers": {},
+    "x": 570,
+    "y": 190,
+    "wires": []
+  },
+  {
+    "id": "ack_in",
+    "type": "mqtt in",
+    "z": "tab_demo_ctl",
+    "name": "ack tu ESP32",
+    "topic": "/wisepaas/scada/+/ack",
+    "qos": "0",
+    "datatype": "json",
+    "broker": "broker_local",
+    "nl": false,
+    "rap": true,
+    "rh": 0,
+    "inputs": 0,
+    "x": 140,
+    "y": 250,
+    "wires": [
+      [
+        "ack_store"
+      ]
+    ]
+  },
+  {
+    "id": "ack_store",
+    "type": "function",
+    "z": "tab_demo_ctl",
+    "name": "nho trang thai THAT",
+    "func": "// Luu trang thai do THIET BI bao ve, khong phai thu nguoi vua bam.\n// Giao dien phai hien cai thiet bi DANG THE NAO — hai thu do khac nhau va chi\n// cai dau la that.\nflow.set('dev_state', msg.payload);\nreturn null;",
+    "outputs": 0,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 360,
+    "y": 250,
+    "wires": []
+  },
+  {
+    "id": "state_in",
+    "type": "http in",
+    "z": "tab_demo_ctl",
+    "name": "GET /hutieu/state",
+    "url": "/hutieu/state",
+    "method": "get",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 140,
+    "y": 320,
+    "wires": [
+      [
+        "state_fn"
+      ]
+    ]
+  },
+  {
+    "id": "state_fn",
+    "type": "function",
+    "z": "tab_demo_ctl",
+    "name": "tra trang thai",
+    "func": "msg.payload = flow.get('dev_state') || {};\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 350,
+    "y": 320,
+    "wires": [
+      [
+        "state_resp"
+      ]
+    ]
+  },
+  {
+    "id": "state_resp",
+    "type": "http response",
+    "z": "tab_demo_ctl",
+    "name": "",
+    "statusCode": "200",
+    "headers": {
+      "content-type": "application/json"
+    },
+    "x": 540,
+    "y": 320,
+    "wires": []
+  }
+]

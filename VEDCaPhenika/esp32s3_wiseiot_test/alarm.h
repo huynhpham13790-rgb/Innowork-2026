@@ -55,7 +55,8 @@
  * đưa xung vào mới kêu. Mua nhầm loại là chuyện rất hay xảy ra, nên hỗ trợ cả
  * hai — nếu cắm vào mà im, đổi số này trước khi nghi ngờ còi hỏng. */
 #define AL_BUZZER_ACTIVE  1
-#define AL_BUZZER_HZ      2730  // gần đỉnh cộng hưởng của còi thụ động phổ biến
+#define AL_BUZZER_HZ      2730
+#define AL_QUIET_BEEP_MS  90    // độ dài tiếng bíp ở chế độ bíp thưa  // gần đỉnh cộng hưởng của còi thụ động phổ biến
 
 /* Ngưỡng cứng, độc lập hoàn toàn với AI. Đây là lớp bảo vệ cuối cùng và không
  * bao giờ được bỏ đi vì "đã có AI" — autoencoder bỏ sót kiểu trôi nhiệt chậm
@@ -89,6 +90,22 @@ class Alarm {
 
   AlarmLevel level() const { return lvl_; }
   bool  muted() const { return muted_; }
+  bool  quiet() const { return quiet_; }
+
+  /* Tắt tiếng / bật lại từ XA (nút trên dashboard). Đi qua đúng cờ mà nút bấm
+     tại chỗ dùng, nên mọi quy tắc cũ vẫn áp dụng — đặc biệt là "leo thang thì
+     huỷ tắt tiếng". Không có đường tắt nào khác vào còi. */
+  void setMuted(bool m);
+
+  /* Bíp THƯA: kêu một nhịp ngắn mỗi chu kỳ thay vì kêu suốt nửa chu kỳ.
+     ⚠️ KHÔNG phải giảm âm lượng. SFM-27 là còi CHỦ ĐỘNG — mạch dao động nằm
+     trong thân còi, chỉ có hai trạng thái có điện / không điện. Băm PWM nguồn
+     của nó không làm nhỏ tiếng mà chỉ chặt tiếng thành từng đoạn. Thứ giảm
+     được là mức gây khó chịu, không phải decibel. Nói đúng tên để sau này
+     không ai trông đợi nhầm.
+     KHÔNG áp dụng ở mức NGUY KỊCH: ngưỡng cứng 60 °C là lớp bảo vệ cuối cùng,
+     nó phải kêu hết cỡ. */
+  void setQuiet(bool q);
   /* Số lần leo lên mức ALARM trở lên kể từ lúc khởi động — đẩy lên dashboard
      để biết đêm qua có gì xảy ra mà không ai ở đó nghe. */
   uint32_t eventCount() const { return n_events_; }
@@ -103,6 +120,7 @@ class Alarm {
   bool     crit_latched_ = false;
   bool     sensor_bad_   = false;
   bool     muted_        = false;
+  bool     quiet_        = false;
   bool     buzz_on_      = false;
   uint32_t n_events_     = 0;
   uint32_t t_blink_      = 0;

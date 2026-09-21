@@ -552,6 +552,67 @@ việc: giới hạn mềm vọt qua, trần cứng 50 °C không bị đụng t
 Lỗi 1 và 2 cộng lại đúng bằng "màn demo mất phần gây ấn tượng nhất mà không ai
 biết vì sao". Cả ba đều là loại **không có lỗi nào báo**.
 
+---
+
+## Bổ sung 21/09 — Bảng điều khiển demo (`http://127.0.0.1:1880/hutieu`)
+
+Nút bấm để xin bật sưởi và tắt tiếng còi khi diễn. Dùng **node lõi của Node-RED**
+(`http in` / `template` / `mqtt out`), **không cài palette nào** — giữ đúng kỷ
+luật ghim phiên bản của dự án, và không thêm một thứ có thể hỏng vào ngày thi.
+
+### Nguyên tắc: cloud chỉ được XIN, thiết bị mới QUYẾT
+
+`onMqttMessage()` **không bật sưởi**. Nó chỉ gọi `gHeater.request()`, rồi
+`DemoHeater` tự kiểm trần 50 °C, hạn mức thời gian, mất cảm biến — và mới quyết.
+**Không lệnh nào từ mạng nâng được các hạn mức đó.** `request()` còn tự kẹp
+`hold_ms` xuống tối đa `DH_DEADMAN_MS`, nên kể cả payload xin 1 giờ cũng chỉ
+được 15 giây.
+
+Hai tầng chặn độc lập:
+- **Node-RED**: danh sách TRẮNG 4 lệnh (`heat`, `heat_stop`, `mute`, `quiet`).
+  Danh sách trắng chứ không phải danh sách đen — thêm lệnh mới phải sửa code,
+  nên không thể vô tình mở một đường điều khiển chỉ vì đổi payload ở trình duyệt.
+- **Firmware**: mọi hạn mức an toàn, không thể can thiệp từ xa.
+
+### Công tắc chết người — đã kiểm
+
+```
+xin lần đầu        -> left=15s
+gia hạn đều 5s     -> heater=1, delta 1,96 °C, "dang bom nhiet"
+ngừng gia hạn 20s  -> heater=0, left=0s, "lenh xin het han"
+```
+
+Trang web tự gia hạn mỗi 5 giây; thiết bị cho 15 giây. **Đóng tab, mất mạng,
+sập Node-RED → sưởi TẮT**, không kẹt ở trạng thái bật lúc không ai nhìn.
+
+### Giao diện hiện trạng thái THẬT, không hiện thứ vừa bấm
+
+ESP32 trả `ack` sau mỗi lệnh kèm trạng thái thật (`heater`, `delta`, `left_s`,
+`reason`, `muted`, `quiet`, `alarm`); trang web hiển thị cái đó. Nút bấm và
+trạng thái thiết bị là **hai thứ khác nhau**, và chỉ cái sau là thật.
+
+Kiểm: danh sách trắng chặn `heat_forever` → HTTP 400; lệnh hợp lệ trả lời trong
+~2 ms.
+
+### Tắt tiếng và "bíp thưa"
+
+- **Tắt tiếng**: đi qua đúng cờ mà nút BOOT tại chỗ dùng, nên giữ nguyên quy tắc
+  cũ — **leo thang mức báo động thì tự huỷ tắt tiếng** (QĐ-028).
+- **Bíp thưa**: rút tiếng còn 90 ms mỗi chu kỳ. ⚠️ **KHÔNG phải giảm âm lượng.**
+  SFM-27 là còi **chủ động** — mạch dao động nằm trong thân còi, chỉ có hai
+  trạng thái có điện/không điện; băm PWM nguồn của nó không làm nhỏ tiếng mà chỉ
+  chặt tiếng thành đoạn. Thứ giảm được là mức gây khó chịu, không phải decibel.
+- **Bíp thưa KHÔNG áp dụng ở mức NGUY KỊCH.** Ngưỡng cứng 60 °C là lớp bảo vệ
+  cuối cùng, nó phải kêu hết cỡ.
+
+### Một lỗi đã mắc và đã sửa
+
+Node lọc lệnh ban đầu tạo một object mới cho nhánh trả lời thay vì dùng lại
+`msg`, nên mất `msg.res` và node `http response` không biết trả về cho request
+nào. Hậu quả rất dễ chẩn đoán nhầm: **lệnh VẪN tới thiết bị và vẫn thực thi**
+(ack chứng minh), chỉ có trình duyệt treo vĩnh viễn. Nhìn từ phía người dùng thì
+giống hệt "hệ thống không nhận lệnh".
+
 ## Việc còn lại
 
 - [x] ~~Cố định lại chỗ đấu nối cụm DS18B20~~ — đã hàn chụm 3 bó 21/09, bus

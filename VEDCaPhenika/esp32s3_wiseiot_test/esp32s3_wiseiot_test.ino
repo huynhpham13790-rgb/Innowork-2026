@@ -422,10 +422,71 @@ void buildTopics() {
   snprintf(topicAck,  sizeof(topicAck),  "/wisepaas/scada/%s/ack",  NODE_ID);
 }
 
+/* Nhận lệnh từ cloud.
+ *
+ * ⚠️ NGUYÊN TẮC: CLOUD CHỈ ĐƯỢC XIN, THIẾT BỊ MỚI QUYẾT.
+ * Hàm này KHÔNG bật sưởi. Nó chỉ gọi gHeater.request(), và DemoHeater tự kiểm
+ * mọi hạn mức — trần 50 °C, hạn mức thời gian, mất cảm biến — rồi mới quyết.
+ * Không lệnh nào từ mạng nâng được các hạn mức đó. Một nút bấm trên dashboard
+ * có thể nâng ngưỡng an toàn là một nút bấm đốt pack pin.
+ *
+ * ⚠️ VÀ LỆNH XIN TỰ HẾT HẠN. Muốn sưởi tiếp thì dashboard phải gửi lại đều
+ * đặn. Mất mạng, sập Node-RED, đóng tab trình duyệt → sưởi TẮT. Đây là khác
+ * biệt giữa một nút bấm tiện tay và một nút bấm bật sưởi rồi kẹt ở đó lúc
+ * không ai nhìn.
+ *
+ * Định dạng: {"cmd":"heat"} · {"cmd":"heat_stop"} · {"cmd":"mute","on":true}
+ *            {"cmd":"quiet","on":true}
+ * Trả lời trên topicAck để dashboard hiển thị THIẾT BỊ ĐANG THẾ NÀO, chứ không
+ * phải hiển thị NGƯỜI VỪA BẤM GÌ. Hai thứ đó khác nhau, và chỉ cái đầu là thật.
+ */
+void publishAck(const char* cmd, const char* result);
+
 void onMqttMessage(char* topic, byte* payload, unsigned int len) {
   Serial.printf("[MQTT<-] %s : ", topic);
   for (unsigned int i = 0; i < len; i++) Serial.write(payload[i]);
   Serial.println();
+
+  if (strcmp(topic, topicCmd) != 0) return;   // chỉ nghe lệnh trên topic cmd
+
+  JsonDocument d;
+  if (deserializeJson(d, payload, len)) { publishAck("?", "json hong"); return; }
+  const char* cmd = d["cmd"] | "";
+
+  if (!strcmp(cmd, "heat")) {
+    gHeater.request();
+    publishAck(cmd, gHeater.state() == DH_BLOCKED ? "bi chan" : "da nhan");
+  } else if (!strcmp(cmd, "heat_stop")) {
+    gHeater.stop();
+    publishAck(cmd, "da dung");
+  } else if (!strcmp(cmd, "mute")) {
+    gAlarm.setMuted(d["on"] | true);
+    publishAck(cmd, gAlarm.muted() ? "dang tat tieng" : "dang keu");
+  } else if (!strcmp(cmd, "quiet")) {
+    gAlarm.setQuiet(d["on"] | true);
+    publishAck(cmd, gAlarm.quiet() ? "bip thua" : "keu binh thuong");
+  } else {
+    publishAck(cmd, "khong hieu lenh");
+  }
+}
+
+void publishAck(const char* cmd, const char* result) {
+  if (!mqtt.connected()) return;
+  JsonDocument d;
+  d["cmd"]     = cmd;
+  d["result"]  = result;
+  // Trạng thái THẬT của thiết bị sau khi xử lý lệnh
+  d["heater"]  = gHeater.on() ? 1 : 0;
+  d["state"]   = (int)gHeater.state();
+  d["reason"]  = gHeater.reason();
+  d["delta"]   = round(gHeater.delta() * 100) / 100.0;
+  d["left_s"]  = gHeater.secondsLeft();
+  d["muted"]   = gAlarm.muted() ? 1 : 0;
+  d["quiet"]   = gAlarm.quiet() ? 1 : 0;
+  d["alarm"]   = (int)gAlarm.level();
+  char buf[320];
+  const size_t n = serializeJson(d, buf, sizeof(buf));
+  mqtt.publish(topicAck, (const uint8_t*)buf, n, false);
 }
 
 // Gửi Config: khai báo Node + Device + 8 tag analog. Chỉ cần gửi 1 lần sau khi
@@ -639,6 +700,7 @@ void publishSensorHealth() {
   // đó là cách duy nhất biết đêm qua có gì xảy ra mà không ai ở đó nghe.
   dev["Alarm_Level"]      = (int)gAlarm.level();
   dev["Alarm_Muted"]      = gAlarm.muted() ? 1 : 0;
+  dev["Alarm_Quiet"]      = gAlarm.quiet() ? 1 : 0;
   dev["Alarm_Events"]     = (int)gAlarm.eventCount();
 
   // Dòng/áp pack. Meter_IsReal = 0 nghĩa là hai giá trị trên là GIẢ ĐỊNH, đừng

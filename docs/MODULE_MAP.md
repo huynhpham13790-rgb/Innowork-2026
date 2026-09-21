@@ -78,6 +78,7 @@ có `arduino-cli` trên PATH; bản đi kèm nằm trong AppImage của Arduino 
 | `mosquitto/mosquitto.conf` | Bắt buộc đăng nhập MQTT | Bật ẩn danh chỉ khi chạy LAN nhà |
 | `mosquitto/passwd` | Sinh bằng `mosquitto_passwd`, **không commit** | Đổi mật khẩu MQTT |
 | `nodered/flow_wisepaas_to_influx.json` | Flow chạy thật, import qua UI | Đổi luồng xử lý |
+| `nodered/flow_demo_control.json` | **Bảng điều khiển demo** — `http://127.0.0.1:1880/hutieu`. Nút xin bật sưởi + tắt tiếng còi | Đổi nút bấm. Chỉ dùng node LÕI, không cần cài palette |
 | `nodered/convert.js` | Bản đọc được của node "WISE-PaaS → line protocol" | Đổi cách map payload → DB |
 | `nodered/check_influx_response.js` | Bản đọc được của node "Kiểm tra kết quả ghi" | Đổi cách báo lỗi ghi |
 

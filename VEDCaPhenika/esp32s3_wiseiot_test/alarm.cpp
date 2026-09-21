@@ -92,6 +92,18 @@ void Alarm::pollMute() {
   }
 }
 
+void Alarm::setMuted(bool m) {
+  if (muted_ == m) return;
+  muted_ = m;
+  Serial.printf("[ALRM] %s coi (lenh tu xa)\n", m ? "TAT TIENG" : "BAT LAI TIENG");
+}
+
+void Alarm::setQuiet(bool q) {
+  if (quiet_ == q) return;
+  quiet_ = q;
+  Serial.printf("[ALRM] bip thua: %s (lenh tu xa)\n", q ? "BAT" : "TAT");
+}
+
 void Alarm::update(bool ai_alarm, bool ai_watch, float t_max, bool sensor_bad) {
   pollMute();
 
@@ -115,7 +127,10 @@ void Alarm::update(bool ai_alarm, bool ai_watch, float t_max, bool sensor_bad) {
     // Leo thang thì huỷ tắt tiếng — xem quyết định (3) ở alarm.h. Người dùng
     // tắt tiếng cảnh báo AI không có nghĩa là họ chấp nhận im lặng khi sau đó
     // pin vượt 60 °C.
-    if (lvl_ > prev) muted_ = false;
+    // Leo thang huỷ CẢ tắt tiếng lẫn bíp thưa. Người dùng chấp nhận nghe ít
+    // hơn khi AI nghi ngờ, không có nghĩa là họ chấp nhận nghe ít hơn khi pin
+    // đã vượt 60 °C.
+    if (lvl_ > prev) { muted_ = false; quiet_ = false; }
     if (lvl_ >= AL_ALARM && prev < AL_ALARM) n_events_++;
     Serial.printf("[ALRM] %s -> %s%s\n",
                   prev == AL_OK ? "OK" : (prev == AL_WATCH ? "THEO DOI" :
@@ -150,7 +165,14 @@ void Alarm::update(bool ai_alarm, bool ai_watch, float t_max, bool sensor_bad) {
 
   // Còi chỉ kêu từ mức BAO DONG trở lên. Mức THEO DOI cố tình im: nếu mỗi lần
   // AI hơi nghi là còi kêu thì chỉ sau vài đêm người ta sẽ tắt vĩnh viễn.
-  setBuzzer(lvl_ >= AL_ALARM && !muted_ && blink_);
+  /* Còi chỉ kêu từ mức BAO DONG trở lên (xem chú thích ngay trên).
+     Chế độ bíp thưa rút tiếng xuống còn AL_QUIET_BEEP_MS đầu mỗi chu kỳ —
+     nhưng CHỈ ở mức BAO DONG. Mức NGUY KỊCH là ngưỡng cứng 60 °C, lớp bảo vệ
+     cuối cùng; cho phép làm nó thưa đi là mở lại đúng cánh cửa mà quyết định
+     (3) ở alarm.h đóng lại. */
+  const bool quiet_gate = (!quiet_ || lvl_ >= AL_CRITICAL ||
+                           (t - t_blink_) < AL_QUIET_BEEP_MS);
+  setBuzzer(lvl_ >= AL_ALARM && !muted_ && blink_ && quiet_gate);
 }
 
 const char* Alarm::levelName() const {
