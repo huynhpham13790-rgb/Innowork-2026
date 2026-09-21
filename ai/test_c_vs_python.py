@@ -62,7 +62,17 @@ def main():
 
     # ---- sinh chuỗi dữ liệu thử, có cả một cell nóng dần ---------------------
     rng = np.random.default_rng(3)
-    T, N = 400, 8
+    # Số cell KHÔNG được viết cứng ở đây: nó phải bám theo PACK_N_CELLS của
+    # firmware, nếu không thì chính cái test dùng để gác việc đổi số cell lại
+    # là chỗ đầu tiên bị lệch. (Đã xảy ra: test ghim N=8 trong khi firmware
+    # xuống 6 — QĐ-038.)
+    cfg = (FW / "pack_config.h").read_text()
+    m = re.search(r"^\s*#define\s+PACK_N_CELLS\s+(\d+)", cfg, re.M)
+    if not m:
+        sys.exit("Khong doc duoc PACK_N_CELLS tu pack_config.h")
+    N = int(m.group(1))
+    T = 400
+    print(f"  (PACK_N_CELLS = {N}, lay tu firmware)")
     temps = 25 + np.cumsum(rng.normal(0, 0.03, (T, N)), axis=0).astype(np.float32)
     temps[:, 2] += np.clip(np.arange(T) - 150, 0, None) * 0.01      # cell 2 nóng dần
     temps = np.round(temps / DS18B20_STEP) * DS18B20_STEP           # như DS18B20

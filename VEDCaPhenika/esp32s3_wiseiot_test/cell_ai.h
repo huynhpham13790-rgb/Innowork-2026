@@ -14,12 +14,14 @@
  *      if (r.alarm) { ... cell r.worst_cell đang bất thường ... }
  *
  *  Chi phí: ~3 KB RAM cho cửa sổ trượt, ~1,4 KB flash cho trọng số,
- *  356 phép nhân-cộng × 8 cell mỗi giây — không đáng kể ở 240 MHz.
+ *  356 phép nhân-cộng × PACK_N_CELLS cell mỗi giây — không đáng kể ở 240 MHz.
  * ========================================================================== */
 #pragma once
 #include <stdint.h>
+#include "pack_config.h"
 
-#define AI_N_CELLS   8
+// Số cell lấy từ pack_config.h — xem lý do ở đó (QĐ-038).
+#define AI_N_CELLS   PACK_N_CELLS
 // 11 đặc trưng THUẦN TƯƠNG ĐỐI (QĐ-033). Trước đây là 16; đã bỏ 5 đặc trưng
 // mang giá trị tuyệt đối (T-amb, packT-amb, |I|/I_SCALE, soc, (T-25)/25).
 // Lý do: chúng giống hệt nhau ở mọi cell nên không mang thông tin phân biệt

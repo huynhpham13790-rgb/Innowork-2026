@@ -9,7 +9,7 @@
  *              KHÔNG phải sửa logic. Nếu STAGE 1 chạy mà STAGE 2 hỏng
  *              => lỗi nằm ở credential/tenant, không phải ở code.
  *
- *  Dữ liệu: 8 nhiệt độ giả lập (pack 8S). Cell #5 được cho nóng dần lên
+ *  Dữ liệu: nhiệt độ giả lập cho PACK_N_CELLS cell (pack 6S). Một cell được cho nóng dần lên
  *  để có sẵn một "bất thường" nhìn thấy trên dashboard.
  *
  *  Thư viện cần cài (Arduino IDE > Library Manager):
@@ -107,7 +107,13 @@ const char* TEST_USER = SECRET_MQTT_USER;
 const char* TEST_PASS = SECRET_MQTT_PASS;
 
 // ---------------------------------------------------------------- Cấu hình chung
-const int   NUM_CELLS      = 8;
+/* Số cell đẩy lên MQTT. PHẢI bằng AI_N_CELLS: vòng lặp publishData() đọc
+   gCellTemp[] — mảng có kích thước AI_N_CELLS — theo chỉ số chạy tới NUM_CELLS.
+   Trước 21/09 hai con số này là hai hằng số rời nhau; hạ AI_N_CELLS xuống 6 mà
+   quên NUM_CELLS thì vòng lặp đọc tràn mảng và đẩy hai cell RÁC lên dashboard,
+   không có lỗi nào báo. Buộc cả hai về cùng một nguồn (QĐ-038). */
+const int   NUM_CELLS      = PACK_N_CELLS;
+static_assert(NUM_CELLS == AI_N_CELLS, "NUM_CELLS phai bang AI_N_CELLS");
 const long  PUBLISH_MS     = 2000;    // 0.5 Hz cho lúc test
 const long  HEARTBEAT_MS   = 60000;   // đúng mặc định của EdgeAgent
 
@@ -164,7 +170,7 @@ ChargeCycle gCharge;
 int  gSimCycle = 0;                 // số chu kỳ sạc đã MÔ PHỎNG
 const long SIM_CHARGE_EVERY_MS = 45000;   // cứ 45s lại mô phỏng 1 chu kỳ sạc
 unsigned long lastSimCharge = 0;
-float  gCellTemp[AI_N_CELLS];     // nhiệt 8 cell của bước hiện tại
+float  gCellTemp[AI_N_CELLS];     // nhiệt từng cell của bước hiện tại
 bool   gAlarmLatched = false;     // đã báo động rồi thì không spam lại
 int    gAlarmCell    = -1;
 
@@ -194,7 +200,7 @@ static float crudeSocFromVoltage(float cell_v) {
   const float soc = (cell_v - 3.0f) / (4.2f - 3.0f) * 100.0f;
   return soc < 0.0f ? 0.0f : (soc > 100.0f ? 100.0f : soc);
 }
-bool     gTempOk = false;         // begin() có đủ 8 cảm biến không
+bool     gTempOk = false;         // begin() có đủ cảm biến không
 unsigned long lastTempPrint = 0;
 const long TEMP_PRINT_MS = 30000;
 void publishSensorHealth();
@@ -432,9 +438,9 @@ void publishConfig() {
   node["Type"]     = 0;                               // 0 = Gateway
   node["Hbt"]      = HEARTBEAT_MS / 1000;
   JsonObject dev   = node["Device"][DEVICE_ID].to<JsonObject>();
-  dev["Name"]      = "Pack pin 8S";
+  dev["Name"]      = "Pack pin 6S";
   dev["Type"]      = "BatteryPack";
-  dev["Desc"]      = "Pack thi nghiem 8 cell LG HG2";
+  dev["Desc"]      = "Pack thi nghiem 6 cell LG HG2";
   JsonObject tags  = dev["Tag"].to<JsonObject>();
 
   for (int i = 1; i <= NUM_CELLS; i++) {
@@ -477,7 +483,7 @@ void publishHeartbeat() {
 // Payload dữ liệu — đây là thứ quyết định dashboard có vẽ được hay không:
 // { "d": { "<deviceId>": { "<tag>": <so>, ... } }, "ts": "...Z" }
 // ============================================================ Lớp 1: AI on-device
-// Chạy 1 Hz. Đọc nhiệt 8 cell (hiện đang giả lập — khi gắn DS18B20 thật thì
+// Chạy 1 Hz. Đọc nhiệt từng cell (hiện đang giả lập — khi gắn DS18B20 thật thì
 // chỉ thay chỗ đọc), cho qua autoencoder, và báo động nếu một cell vượt ngưỡng
 // đủ lâu.
 //

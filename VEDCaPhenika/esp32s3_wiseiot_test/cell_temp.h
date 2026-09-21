@@ -1,5 +1,6 @@
 /* =============================================================================
- *  Đọc 8 cảm biến nhiệt độ DS18B20 — bản dùng được trên xe thật.
+ *  Đọc các cảm biến nhiệt độ DS18B20 (số lượng = PACK_N_CELLS) — bản dùng
+ *  được trên xe thật.
  *
  *  Bốn thứ module này làm mà `sensors.getTempCByIndex(i)` không làm:
  *
@@ -42,7 +43,7 @@
 
 struct CellTempStatus {
   bool     ready;                // đã có ít nhất một lượt đọc hợp lệ
-  uint8_t  n_found;              // số cảm biến thấy lúc khởi động (phải bằng 8)
+  uint8_t  n_found;              // số cảm biến thấy lúc khởi động (phải bằng CT_N)
   uint8_t  n_healthy;            // số kênh đang khoẻ
   bool     healthy[CT_N];
   uint32_t n_ok[CT_N];
@@ -54,7 +55,7 @@ struct CellTempStatus {
 
 class CellTemp {
  public:
-  /* Trả về false nếu không đủ 8 cảm biến, hoặc có ROM trong bảng không tìm
+  /* Trả về false nếu không đủ CT_N cảm biến, hoặc có ROM trong bảng không tìm
      thấy trên bus. Gọi trong setup(); KHÔNG được bỏ qua giá trị trả về. */
   bool begin(uint8_t pin);
 

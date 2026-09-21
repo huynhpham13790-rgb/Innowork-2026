@@ -11,7 +11,7 @@
  *
  *  ================== PHẠM VI ÁP DỤNG (cập nhật 14/09/2026) ================
  *  Hệ số hiện tại train trên NASA PCoE: pin 18650 ĐƠN, 2,0 Ah, sạc 1,5 A (0,75C).
- *  Pack của đội: 8S × 18650 **2,55 Ah** (2 đế 4 cell nối tiếp).
+ *  Pack của đội: 6S × 18650 **2,55 Ah** (đổi từ 8S ngày 21/09, QĐ-038).
  *
  *  Tin tốt: CÙNG loại cell 18650, dung lượng chỉ lệch 27 % — gần hơn nhiều so
  *  với giả định cũ trong tài liệu (LG HG2 3 Ah, nay đã biết là sai). Nghĩa là
@@ -33,9 +33,11 @@
  * ========================================================================== */
 #pragma once
 #include <stdint.h>
+#include "pack_config.h"
 
 #define CC_N_FEATURES 9
-#define CC_N_CELLS    8      // pack 8S: quy điện áp pack về trung bình mỗi cell
+// Quy điện áp pack về trung bình mỗi cell. Số cell lấy từ pack_config.h.
+#define CC_N_CELLS    PACK_N_CELLS
 
 // Ngưỡng tính theo ĐIỆN ÁP MỖI CELL, khớp ai/nasa_prepare.py
 #define CC_V_LO     3.90f    // mốc bắt đầu tính khoảng điện áp cố định

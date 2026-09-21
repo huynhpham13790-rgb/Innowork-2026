@@ -35,12 +35,23 @@
  * ========================================================================== */
 #pragma once
 #include <stdint.h>
+#include "pack_config.h"
 
-#define DS_N_PROBES 8
+#define DS_N_PROBES PACK_N_CELLS
 
-// Địa chỉ ROM — dán nhãn đúng thứ tự này lên từng sợi dây.
-// Đọc theo index thay vì theo ROM sẽ hoán vị dữ liệu 8 cell mà KHÔNG có lỗi
-// nào báo: Lớp 1 vẫn chạy, vẫn ra số, chỉ là sai cell.
+/* Địa chỉ ROM — dán nhãn đúng thứ tự này lên từng sợi dây.
+   Đọc theo index thay vì theo ROM sẽ hoán vị dữ liệu giữa các cell mà KHÔNG có
+   lỗi nào báo: Lớp 1 vẫn chạy, vẫn ra số, chỉ là sai cell.
+
+   ⚠️ BẢNG NÀY LÀ ÁNH XẠ VẬT LÝ — không suy ra được từ số cell. Đổi
+   PACK_N_CELLS mà không kiểm bảng này là đang giả định điều chưa kiểm.
+
+   ⚠️ GIẢ ĐỊNH KHI XUỐNG 6 CELL (21/09/2026): lấy **P01..P06**, bỏ P07 và P08.
+   Đây là lựa chọn theo thứ tự đánh số, KHÔNG phải kết quả đo. Nếu sáu đầu dò
+   đang dán lên pack không phải P01..P06 thì phải sửa bảng dưới đây cho khớp
+   nhãn thật — sai chỗ này thì mọi thứ phía sau đều sai một cách im lặng.
+   Ghi chú hiện trạng: P05 đang KHÔNG có trên bus (xem bằng chứng bring-up
+   20/09), phải cắm lại trước khi lấy dữ liệu. */
 const uint8_t DS_ROM[DS_N_PROBES][8] = {
   { 0x28, 0x30, 0xF1, 0x01, 0x00, 0x00, 0x00, 0x17 },   // P01
   { 0x28, 0xB8, 0xC8, 0x01, 0x00, 0x00, 0x00, 0x2B },   // P02
@@ -48,14 +59,33 @@ const uint8_t DS_ROM[DS_N_PROBES][8] = {
   { 0x28, 0x46, 0xAF, 0x01, 0x00, 0x00, 0x00, 0x0A },   // P04
   { 0x28, 0xEE, 0x07, 0x03, 0x00, 0x00, 0x00, 0xFD },   // P05
   { 0x28, 0xD1, 0xF8, 0x03, 0x00, 0x00, 0x00, 0xFD },   // P06
-  { 0x28, 0x4D, 0x49, 0x04, 0x00, 0x00, 0x00, 0x35 },   // P07
-  { 0x28, 0x7F, 0xCD, 0x01, 0x00, 0x00, 0x00, 0xE3 },   // P08
+#if PACK_N_CELLS == 8
+  { 0x28, 0x4D, 0x49, 0x04, 0x00, 0x00, 0x00, 0x35 },   // P07 — chỉ bản 8S
+  { 0x28, 0x7F, 0xCD, 0x01, 0x00, 0x00, 0x00, 0xE3 },   // P08 — chỉ bản 8S
+#endif
 };
 
-// Nhiệt độ đã hiệu chỉnh = số đọc được - DS_OFFSET[i]
-// Tổng 8 hệ số bằng 0, nên phép hiệu chỉnh không làm dịch nhiệt độ trung bình
-// của pack — chỉ nắn lại chênh lệch giữa các kênh.
+/* Nhiệt độ đã hiệu chỉnh = số đọc được - DS_OFFSET[i]
+   Tổng các hệ số bằng 0, nên phép hiệu chỉnh không làm dịch nhiệt độ TRUNG
+   BÌNH của pack — chỉ nắn lại chênh lệch giữa các kênh.
+
+   ⚠️ BẢN 6 CELL PHẢI CĂN LẠI GỐC, KHÔNG ĐƯỢC CẮT BỚT BẢNG 8 CELL.
+   Bảng gốc căn theo trung bình của 8 kênh. Giữ nguyên 6 hệ số đầu thì tổng
+   thành +0,0406 °C, nghĩa là phép hiệu chỉnh sẽ dịch nhiệt độ trung bình của
+   cả pack đi +0,0068 °C. Bản thân độ dịch đó vô hại với Lớp 1 (nó nhìn chênh
+   lệch tương đối), nhưng nó phá mất tính chất "hiệu chỉnh không đụng tới giá
+   trị tuyệt đối" — mà ngưỡng cứng 60 °C thì lại đọc giá trị tuyệt đối.
+   Nên: mỗi hệ số trừ đi trung bình của sáu hệ số (0,006767).
+   Chênh lệch GIỮA các kênh không đổi, nên không cần hiệu chuẩn lại bằng nước. */
 const float DS_OFFSET[DS_N_PROBES] = {
+#if PACK_N_CELLS == 6
+  -0.0430f,   // P01
+  -0.1653f,   // P02  <- lạnh nhất
+  +0.1607f,   // P03  <- nóng nhất
+  -0.0498f,   // P04
+  +0.0745f,   // P05
+  +0.0227f,   // P06
+#else
   -0.0362f,   // P01
   -0.1585f,   // P02  <- lạnh nhất
   +0.1675f,   // P03  <- nóng nhất
@@ -64,6 +94,7 @@ const float DS_OFFSET[DS_N_PROBES] = {
   +0.0295f,   // P06
   -0.0719f,   // P07
   +0.0313f,   // P08
+#endif
 };
 
 // Độ rộng thật của sai số chế tạo: 0,3260 °C (P03 - P02).

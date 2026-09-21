@@ -59,7 +59,7 @@ bool CellTemp::begin(uint8_t pin) {
 
   s_dallas.setWaitForConversion(false);   // bắt buộc: xem chú thích ở cell_temp.h
 
-  // Số cảm biến MONG ĐỢI = 8 cell + 1 môi trường (nếu có mặt). So với CT_N
+  // Số cảm biến MONG ĐỢI = CT_N cell + 1 môi trường (nếu có mặt). So với CT_N
   // là sai: cắm thêm con thứ 9 thành ra báo "thiếu cảm biến". Điều thật sự
   // cần kiểm là từng ROM trong bảng có mặt hay không (biến `all`), còn tổng
   // số chỉ dùng để phát hiện có con LẠ trên bus.
@@ -132,7 +132,7 @@ bool CellTemp::update() {
 
   // Vòng 2: kênh hỏng thay bằng trung bình các kênh khoẻ. Làm vậy để đặc trưng
   // tương đối của nó ra ~0 ("trông bình thường") thay vì thành số rác kéo lệch
-  // trung bình pack và làm sai điểm của CẢ 8 cell. Việc báo hỏng đã do
+  // trung bình pack và làm sai điểm của CẢ pack. Việc báo hỏng đã do
   // healthy[] và publishSensorHealth() lo.
   for (uint8_t i = 0; i < CT_N; i++) t_[i] = good[i] ? raw[i] : mean;
 
