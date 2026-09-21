@@ -33,6 +33,7 @@
 #include "alarm.h"
 #include "pack_meter.h"
 #include "broker_find.h"
+#include "demo_heater.h"
 
 // ---------------------------------------------------------------- Nguồn nhiệt độ
 // 1 = đọc 8 con DS18B20 thật · 0 = quay lại giả lập (khi tháo cảm biến ra)
@@ -98,7 +99,7 @@ const char* DEVICE_ID = "BatteryPack01";
 // Để TEST_USER = "" thì nối ẩn danh (dùng cho HiveMQ công cộng).
 // Broker của đội (Plan B). IP phải khớp LAN_IP trong planb_cloud/.env — ĐỔI
 // MỖI KHI ĐỔI MẠNG. Xem IP máy chủ bằng: hostname -I
-const char* TEST_HOST = "172.172.5.2";
+const char* TEST_HOST = "172.172.3.126";   // cap nhat 21/09; chi la duong lui cuoi, mDNS di truoc
 const int   TEST_PORT = 1883;
 
 // Mật khẩu KHÔNG nằm trong file này — nó bị commit lên GitHub.
@@ -178,6 +179,7 @@ int    gAlarmCell    = -1;
 CellTemp gTemp;
 Alarm    gAlarm;
 PackMeter gMeter;
+DemoHeater gHeater;
 bool      gMeterOk = false;
 
 // Chân I2C mặc định của ESP32-S3-DevKitC-1.
@@ -649,6 +651,13 @@ void publishSensorHealth() {
   dev["Pack_ChargeAh"]    = pm.valid ? round(pm.charge_ah * 10000) / 10000.0 : -99.0;
   dev["Meter_ErrCount"]   = (int)gMeter.errorCount();
 
+  /* Trạng thái sưởi demo. Đẩy lên dashboard vì người xem PHẢI phân biệt được
+     "cell nóng vì đội đang cố ý sưởi để diễn" với "cell nóng thật". Giấu chuyện
+     này đi là biến một màn demo trung thực thành một màn gây hiểu nhầm. */
+  dev["Heater_On"]        = gHeater.on() ? 1 : 0;
+  dev["Heater_State"]     = (int)gHeater.state();
+  dev["Heater_Delta"]     = round(gHeater.delta() * 100) / 100.0;
+
   doc["ts"] = isoTimestampUtc();
   String out; serializeJson(doc, out);
   bool linkReady = mqtt.connected() && millis() >= linkTrustedAt;
@@ -792,6 +801,12 @@ bool mqttTryConnect() {
 
 // ============================================================ setup / loop
 void setup() {
+  /* Sưởi về LOW là lệnh ĐẦU TIÊN, trước cả Serial.begin(). Chân ESP32 lúc reset
+     thả nổi; nếu Serial.begin() hay USB CDC kẹt vài trăm ms thì trong khoảng đó
+     gate MOSFET có thể được kéo lên và điện trở bắt đầu nóng khi chương trình
+     còn chưa chạy tới dòng nào điều khiển nó. Bài học từ bring-up 21/09. */
+  gHeater.begin();
+
   Serial.begin(115200);
   delay(1500);
   Serial.println("\n\n===== Hu Tieu | Test duong truyen ESP32-S3 -> WISE-IoT =====");
@@ -911,6 +926,27 @@ void loop() {
     publishSensorHealth();
   }
 #endif
+
+  /* Sưởi demo: NUÔI MỖI VÒNG, không phải theo nhịp 1 Hz của AI.
+     Hạn mức an toàn phải được nuôi liên tục — đây đúng là chỗ đã sai ở bench
+     ngày 21/09, khi đồng hồ hạn mức đứng yên trong lúc chương trình ngồi chờ và
+     phép cắt không bao giờ tới. */
+  gHeater.update(gCellTemp, AI_N_CELLS,
+                 gTempOk && gTemp.status().n_healthy >= CT_N);
+
+  // Lệnh bằng tay qua Serial. MQTT (phần B) sẽ gọi đúng hai hàm này, không có
+  // đường tắt nào khác vào gHeater.
+  if (Serial.available()) {
+    const int c = Serial.read();
+    if (c == 'h' || c == 'H') {
+      gHeater.request();
+      Serial.printf("[HEAT] xin bat %lu s (goi lai de gia han)\n",
+                    (unsigned long)(DH_DEADMAN_MS / 1000));
+    } else if (c == 's' || c == 'S' || c == '0') {
+      gHeater.stop();
+      Serial.println("[HEAT] da thu hoi lenh");
+    }
+  }
 
   // AI chạy 1 Hz, độc lập với nhịp gửi dữ liệu. Chạy cả khi MẤT MẠNG —
   // đây là lý do đặt AI on-device: an toàn không được phụ thuộc đường truyền.

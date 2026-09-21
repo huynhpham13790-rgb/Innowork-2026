@@ -24,7 +24,18 @@ void Alarm::begin() {
 
   // Nút BOOT đã có điện trở kéo lên trên board, nhưng khai báo INPUT_PULLUP
   // vẫn đúng và cần thiết nếu sau này dời sang chân khác.
-  if (AL_PIN_MUTE >= 0) pinMode(AL_PIN_MUTE, INPUT_PULLUP);
+  if (AL_PIN_MUTE >= 0) {
+    pinMode(AL_PIN_MUTE, INPUT_PULLUP);
+    /* Nạp mức THẬT của chân làm trạng thái ban đầu, thay vì giả định "nhả".
+       GPIO0 là chân strapping: ngay sau khi nạp hoặc reset, nó có thể còn ở mức
+       thấp trước khi điện trở kéo lên ổn định. Bản cũ khởi tạo mute_prev_ = true
+       nên lần đọc đầu tiên trông y hệt một cú nhấn nút, và còi TỰ TẮT TIẾNG ngay
+       giây đầu — báo động vẫn leo mức, đèn vẫn đỏ, chỉ có tiếng là không bao giờ
+       kêu. Đã xảy ra thật trong lần chạy kịch bản đầu-cuối 21/09. */
+    delay(5);                              // cho điện trở kéo lên kịp ổn định
+    mute_prev_ = digitalRead(AL_PIN_MUTE);
+    t_mute_dbnc_ = millis();
+  }
 
   setLed(0, 0, 0);
 
@@ -66,8 +77,11 @@ void Alarm::setBuzzer(bool on) {
  * bắt mức thì giữ nút một giây sẽ đảo trạng thái vài chục lần. */
 void Alarm::pollMute() {
   if (AL_PIN_MUTE < 0) return;
-  const bool now = digitalRead(AL_PIN_MUTE);        // nhả = HIGH
   const uint32_t t = millis();
+  // Bỏ qua 300 ms đầu sau khởi động: chân strapping còn đang ổn định, mọi
+  // chuyển tiếp trong khoảng này là nhiễu chứ không phải người nhấn nút.
+  if (t < 300) return;
+  const bool now = digitalRead(AL_PIN_MUTE);        // nhả = HIGH
   if (now != mute_prev_ && t - t_mute_dbnc_ > 50) {
     t_mute_dbnc_ = t;
     mute_prev_   = now;

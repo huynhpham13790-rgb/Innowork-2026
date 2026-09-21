@@ -169,10 +169,21 @@ static bool hardCut() {
 
 static void logLine(uint32_t t0, const char* st) {
   float i_ma, p_w; inaPower(i_ma, p_w);
-  Serial.printf("%6lu\t%s\t%7.3f\t%7.3f\t%7.2f\t%8.1f\t%6.3f\t%8.2f\n",
+  Serial.printf("%6lu\t%s\t%7.3f\t%7.3f\t%7.2f\t%8.1f\t%6.3f\t%8.2f",
                 (unsigned long)((millis()-t0)/100)*100/1000, st,
                 t_heater, t_ref, isnan(t_heater)||isnan(t_ref) ? NAN : t_heater-t_ref,
                 i_ma, p_w, energy_j);
+  /* In chênh lệch của TỪNG đầu dò so với nền. Cần cái này để biết đầu dò nào
+     thật sự đang được hơ — nhìn một con số trung bình thì không phân biệt được
+     "đã quấn đúng chỗ" với "quấn vào con điện trở không có điện". */
+  for (int i = 0; i < ds.getDeviceCount(); i++) {
+    DeviceAddress a;
+    if (!ds.getAddress(a, i)) continue;
+    float t = ds.getTempC(a);
+    if (!(t > -40 && t < 125 && t != 85.0f)) { Serial.printf("\t%02X:xx", a[1]); continue; }
+    Serial.printf("\t%02X:%+.2f", a[1], isnan(t_ref) ? NAN : t - t_ref);
+  }
+  Serial.println();
 }
 
 /* Vòng lấy mẫu chung: đọc nhiệt, cộng dồn năng lượng, kiểm an toàn.

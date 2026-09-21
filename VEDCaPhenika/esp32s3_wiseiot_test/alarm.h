@@ -42,7 +42,11 @@
  * Đặt -1 = chưa có linh kiện đó, module tự bỏ qua. Nhờ vậy cùng một firmware
  * chạy được cả trên bàn (chưa có còi) lẫn trên pack thật, không cần #ifdef rải
  * khắp nơi. */
-#define AL_PIN_BUZZER   -1      // còi: đang đặt mua, chưa về
+/* Còi SFM-27 qua module D4184 #2. Trước 21/09 chỗ này là -1 ("còi đang đặt mua")
+   và không ai sửa lại sau khi còi về — nên firmware chính báo động mà LOA IM.
+   Chỉ lộ ra khi chạy trọn kịch bản đầu-cuối, không lộ ra ở bất kỳ bench nào.
+   Còi đã nghiệm thu ở T4 (bring-up 20/09, tai người xác nhận). */
+#define AL_PIN_BUZZER    5
 #define AL_PIN_LED_R    -1      // LED đỏ rời; -1 => dùng LED RGB trên board
 #define AL_PIN_LED_G    -1
 #define AL_PIN_MUTE      0      // nút BOOT sẵn có trên DevKitC-1 (nhấn = mức 0)

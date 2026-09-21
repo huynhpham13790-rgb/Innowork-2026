@@ -153,9 +153,17 @@ song song (~1,2 A), và OFF về đúng 0,0 mA.
 Dòng tính từ điện áp shunt khớp thanh ghi `CURRENT` tới 0,1 mA — hai đường
 tính độc lập cho cùng kết quả, nên thanh ghi `CAL` đã nạp đúng.
 
-**Trị số điện trở thật:** 11,43 V / 0,6215 A = **18,4 Ω**, không phải 20 Ω.
-Trong dung sai thì hơi rộng, nên nhiều khả năng là điện trở 18 Ω. Không nguy
-hiểm, nhưng T8 dùng con số này để gán nhãn dataset nên phải ghi lại.
+**Trị số điện trở thật:** 11,43 V / 0,6215 A = **18,4 Ω**.
+
+⚠️ Đây là **HAI điện trở sứ 10 Ω / 10 W nối tiếp**, không phải một con 20 Ω
+(xác nhận 21/09). Bảng chẩn đoán của T3 ở trên chỉ phân biệt "một con 20 Ω" với
+"hai con 20 Ω **song song**" (10 Ω, ~1,2 A) — **thiếu mất khả năng hai con 10 Ω
+nối tiếp**, cũng cho ra 20 Ω và ~600 mA. Số đo luôn đúng; chỗ thiếu nằm ở bảng
+giải thích.
+
+Cách đấu này **tốt hơn** một con 20 Ω: 7,5 W chia đôi, mỗi con **3,75 W trên
+định mức 10 W** = 37 %, dư biên nhiệt thoải mái. Nối tiếp nên cùng dòng, hai
+con nóng bằng nhau — đo được P03 +13,56 °C và P07 +12,81 °C sau 97 s.
 
 ## T8 — Tích phân năng lượng ✅ ĐẠT (sau khi sửa một lỗi của chính phép đo)
 
@@ -485,6 +493,64 @@ nhìn chênh lệch tương đối, nên cell còn ấm sẽ gây báo giả ho�
 ⚠️ Cả hai con số trên đo trên **điện trở + đầu dò quấn ngoài**, không phải trên
 cell. Phải đo lại sau khi dán đầu dò lên pack rồi mới quyết có hạ `AL_T_CRIT`
 hay không.
+
+---
+
+## Bổ sung 21/09 — Kịch bản đầu-cuối ĐÃ CHẠY THÔNG
+
+P03 và P07 cùng quấn lên cụm điện trở sứ (**hai con 10 Ω nối tiếp**). P03 đóng
+vai "cell lỗi", P07 canh quá nhiệt. Firmware chính chạy thật: 6 cảm biến →
+Lớp 1 → báo động → MQTT → Node-RED → InfluxDB → Grafana.
+
+### Kết quả
+
+```
+[ALRM] OK -> THEO DOI -> BAO DONG
+[AI  ] *** BAT THUONG *** cell 3, diem 24.697 (nguong 1.071), giu 30s
+
+AI_Score01 0.733   AI_Score02 0.559   AI_Score03 24.697
+AI_Score04 0.717   AI_Score05 0.626   AI_Score06 0.771
+```
+
+Cell 3 đạt **24,697** so với ngưỡng **1,071** — gấp 23 lần, trong khi năm cell
+còn lại nằm trong 0,56–0,77 (chưa tới ngưỡng). Mô hình chỉ đúng cell, không mập
+mờ, và leo đúng bậc thang OK → THEO DÕI → BÁO ĐỘNG với quy tắc giữ 30 giây.
+
+Đã xác nhận dữ liệu tới InfluxDB (truy vấn trực tiếp, timestamp khớp). mDNS tự
+tìm broker `172.172.3.126:1883` — không cần IP ghim sẵn.
+
+⚠️ **Đây là kiểm thông chuỗi, KHÔNG phải minh chứng "phát hiện cell pin hỏng".**
+Đầu dò đang quấn trên điện trở sứ, chưa dán lên cell pin nào. Nói đúng thì đây
+là bằng chứng mạnh cho "thuật toán + đường dữ liệu chạy đúng đầu-cuối"; nói quá
+thành "phát hiện được pin lỗi" là bị bẻ ngay.
+
+Cell 3 lúc bắt đầu đã ấm sẵn +3,4 °C từ đợt đo trước, nên lần chạy này không
+dùng làm ảnh/clip demo được — bản đẹp phải đợi cell 3 nguội về sát các cell kia.
+
+### Vọt lố xuất hiện lại, đúng như đã đo
+
+Giới hạn sưởi đặt +6 °C nhưng cell 3 lên tới **+9,8 °C** — chính là vọt lố
++5,62 °C đo ở QĐ-040. **Cắt không phải là trần.** Thiết kế nhiều lớp làm đúng
+việc: giới hạn mềm vọt qua, trần cứng 50 °C không bị đụng tới (đỉnh 36,65 °C).
+
+### ⚠️ Ba lỗi chỉ lộ ra khi chạy trọn chuỗi, không bench nào thấy
+
+1. **`AL_PIN_BUZZER` vẫn là `-1`.** Comment ghi "còi đang đặt mua, chưa về" và
+   không ai sửa lại sau khi còi về. Firmware chính báo động mà **loa im**. Còi
+   đã nghiệm thu từ T4 (20/09) nhưng chỉ trong sketch bench. Đã nối vào GPIO5.
+2. **Còi tự tắt tiếng ngay giây đầu.** `[ALRM] TAT TIENG coi` xuất hiện ở dòng
+   log đầu tiên. Nút tắt tiếng là nút BOOT (GPIO0) — chân strapping, sau khi nạp
+   hoặc reset có thể còn ở mức thấp trước khi điện trở kéo lên ổn định, và code
+   khởi tạo `mute_prev_ = true` nên lần đọc đầu trông y hệt một cú nhấn. Kết
+   quả: báo động vẫn leo mức, đèn vẫn đỏ, chỉ tiếng là không bao giờ kêu. Đã sửa
+   bằng cách nạp mức thật của chân lúc `begin()` và bỏ qua 300 ms đầu.
+3. **`DemoHeater` tự chốt vĩnh viễn lúc khởi động.** Bản đầu kiểm mọi hạn mức ở
+   mọi vòng lặp, nên ngay lúc `gCellTemp[]` còn toàn NAN (cảm biến chưa có số
+   đọc đầu tiên) nó chốt luôn, dù 6 cảm biến đều khoẻ và chẳng ai xin sưởi. Đã
+   sửa: không ai xin và đang tắt thì nằm im, không chốt.
+
+Lỗi 1 và 2 cộng lại đúng bằng "màn demo mất phần gây ấn tượng nhất mà không ai
+biết vì sao". Cả ba đều là loại **không có lỗi nào báo**.
 
 ## Việc còn lại
 
