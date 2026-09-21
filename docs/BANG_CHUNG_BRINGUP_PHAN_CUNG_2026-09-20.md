@@ -631,3 +631,78 @@ giống hệt "hệ thống không nhận lệnh".
 - [ ] **Khi dán lên pack: đặt đúng sợi 1 lên cell 1, ... sợi 6 lên cell 6.**
       Bảng `DS_ROM[]` giả định thế, và sau khi dán thì không phép đo nào kiểm
       lại được (QĐ-038)
+
+---
+
+## 21/09/2026 — Kênh BLE cho thợ kỹ thuật, và lỗi "cổng USB tự bấm nút tắt tiếng"
+
+Phần cứng: ESP32-S3 + 6× DS18B20 (6/6 khoẻ, tỉ lệ lỗi 0,000 %).
+INA226 **không thấy trên I2C** trong cả đợt đo này — adapter 12 V chưa cắm.
+Không ảnh hưởng tới điều đang nghiệm thu; BLE báo đúng `chua do duoc (khong
+thay INA)` chứ không bịa số.
+
+### Chi phí thêm BLE
+
+| | Flash | RAM tĩnh | Heap lúc chạy |
+|---|---|---|---|
+| Không BLE (`-DUSE_BLE=0`) | 1 133 707 B (33 %) | 54 524 B | — |
+| Có BLE | 1 370 879 B (41 %) | 56 696 B | tốn ~80 KB, còn trống ~122 KB |
+
+### `test/ble_check.py` — cả bốn phép đều đạt
+
+```
+thay: 7C:E8:B1:B2:7C:D5
+(1) DOC
+  Trang thai                : BINH THUONG
+  Nhiet do tung cell (degC) : 1:26.5 2:26.3 3:26.5 4:26.5 5:26.2 6:26.5
+  Lop 1 - cell nghi ngo     : khong co cell bat thuong (cao nhat 0.14 / 1.07)
+  Dien ap / dong / SoC      : chua do duoc (khong thay INA)
+  Tinh trang he thong       : cam bien 6/6  wifi OK  cloud OK  chay 1 phut
+(2) AN TOAN  ✓ DAT — 5 dac tinh, tat ca chi READ/NOTIFY
+(3) NOTIFY   5 goi tu 2 dac tinh trong 15 s
+(4) QUANG BA LAI sau khi ngat  ✓ DAT
+```
+
+### Lỗi tìm ra: mở Serial Monitor làm còi tắt tiếng
+
+Đo bằng ba cấu hình cổng, mỗi lần 6 giây:
+
+| Cấu hình | Dòng serial | Tắt tiếng bị đảo |
+|---|---|---|
+| `dtr=True,  rts=False` | 4 | **có** |
+| `dtr=False, rts=False` | 25 | không |
+| `dtr=False, rts=True` | 0 | không |
+
+Hai kết luận:
+
+- Script đọc serial của đội đang dùng `dtr=True` — **sai**, và làm **mất phần
+  lớn dữ liệu** (4 dòng so với 25).
+- `dtr=True` ghì GPIO0 (= `AL_PIN_MUTE`) xuống **liên tục suốt phiên**, kèm
+  reset board. Ai mở rồi đóng Serial Monitor là còi bị tắt tiếng, không dấu
+  hiệu gì ra ngoài.
+
+Diễn biến vá — ghi cả hai lần sai vì cách sai mới là bài học:
+
+| Lần | Cách vá | Kết quả |
+|---|---|---|
+| 1 | Đòi giữ nút ≥ 600 ms ("xung DTR chỉ vài chục ms") | **TRƯỢT 6/6** — đo lại xung dài 998 ms |
+| 2 | Khoá nút 3 s đầu sau khởi động | **TRƯỢT 6/6** — chân bị giữ vĩnh viễn, không phải nhấn lúc boot |
+| 3 | Đảo lúc **NHẢ** + phải **thấy nút nhả ít nhất một lần** trước | **ĐẠT 3/3** |
+
+**Phép thử cũng từng sai.** Bản đầu đọc dòng `[ALRM]` trên chính serial và báo
+"6/6 đạt" — sai, vì cú đảo xảy ra đúng lúc **đóng cổng**. Bản hiện tại quan sát
+qua BLE, là kênh không đụng vào GPIO0:
+
+```
+  lan 1: ✓ con bat tieng — BINH THUONG
+  lan 2: ✓ con bat tieng — BINH THUONG
+  lan 3: ✓ con bat tieng — BINH THUONG
+  3/3 dat. DAT
+```
+
+### Còn nợ ở mục này
+
+- **Chưa kiểm nút BOOT thật.** Mới chứng minh cổng USB không bấm được hộ; chưa
+  chứng minh người bấm thì vẫn ăn. Phải nhấn giữ ~1 giây rồi đối chiếu
+  `Trang thai` trên BLE.
+- Cắm adapter 12 V rồi đo lại để đặc tính `Dien ap / dong / SoC` có số thật.

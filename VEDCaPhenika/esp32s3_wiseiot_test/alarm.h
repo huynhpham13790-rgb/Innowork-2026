@@ -51,6 +51,37 @@
 #define AL_PIN_LED_G    -1
 #define AL_PIN_MUTE      0      // nút BOOT sẵn có trên DevKitC-1 (nhấn = mức 0)
 
+/* Phải GIỮ nút đủ lâu mới đảo tắt tiếng — không bắt sườn xuống.
+ *
+ * VÌ SAO: GPIO0 cũng là chân mà mạch tự động nạp trên board điều khiển qua
+ * DTR/RTS. Mở cổng serial (Serial Monitor của Arduino IDE, hay bất cứ script
+ * nào) sẽ kéo GPIO0 xuống một nhịp ngắn, và bản bắt-sườn-xuống đọc cái đó y
+ * hệt một cú nhấn nút. Đo ngày 21/09: mở cổng 3 lần thì 2 lần đảo trạng thái.
+ * Ngẫu nhiên nên còn khó tìm hơn là luôn xảy ra.
+ *
+ * Hậu quả nếu để nguyên: ai mở Serial Monitor lúc demo là còi có thể đã tắt
+ * tiếng mà không ai biết — báo động vẫn leo mức, đèn vẫn đỏ, chỉ có tiếng là
+ * không kêu. Đúng họ hàng với lỗi AL_PIN_BUZZER = -1 tìm ra hôm trước.
+ *
+ * ĐO LẠI 21/09 SAU KHI SỬA LẦN 1: giả định "xung DTR chỉ vài chục ms" là SAI.
+ * Đo thật: GPIO0 bị giữ thấp tới 998 ms, nên riêng ngưỡng giữ 600 ms không
+ * chặn được gì. Nhật ký còn cho thấy mở cổng serial làm board RESET — dòng
+ * [BLE] quảng bá hiện ra trước dòng [ALRM] — nên cú nhấn giả luôn rơi vào
+ * ngay sau khi khởi động, chứ không rải rác giữa chừng.
+ *
+ * Vì vậy dùng HAI lớp, mỗi lớp chặn một kiểu:
+ *   AL_MUTE_ARM_MS  — khoá nút hẳn trong 3 s đầu. Diệt đúng cửa sổ mà mạch tự
+ *                     động nạp còn đang giữ GPIO0. Không ai nhấn nút tắt tiếng
+ *                     trong 3 giây đầu bật máy; nếu có thì nhấn lại là xong.
+ *   AL_MUTE_HOLD_MS — sau khi mở khoá thì vẫn đòi giữ, chặn nhiễu lẻ tẻ.
+ *
+ * Lưu ý: pollMute() chạy theo nhịp gAlarm.update(), tức 1 Hz, nên độ phân giải
+ * của phép giữ chỉ khoảng 1 giây. Đó là lý do nhật ký in "giu nut 998 ms" chứ
+ * không phải 600. Đủ dùng cho một cái nút bấm tay. */
+#define AL_MUTE_HOLD_MS  600     // giữ ít hơn => nhiễu, bỏ qua
+#define AL_MUTE_MAX_MS   5000    // giữ lâu hơn => máy ghì chân, KHÔNG phải người
+#define AL_MUTE_ARM_MS   3000    // khoá hẳn nút trong 3 s đầu sau khởi động
+
 /* Còi chủ động (active) chỉ cần cấp điện là kêu. Còi thụ động (passive) phải
  * đưa xung vào mới kêu. Mua nhầm loại là chuyện rất hay xảy ra, nên hỗ trợ cả
  * hai — nếu cắm vào mà im, đổi số này trước khi nghi ngờ còi hỏng. */
@@ -125,6 +156,7 @@ class Alarm {
   uint32_t n_events_     = 0;
   uint32_t t_blink_      = 0;
   bool     blink_        = false;
-  uint32_t t_mute_dbnc_  = 0;
-  bool     mute_prev_    = true;   // nút nhả = mức cao (có điện trở kéo lên)
+  uint32_t t_begin_      = 0;      // mốc begin(), để khoá nút lúc mới khởi động
+  bool     mute_seen_up_ = false;  // đã từng thấy nút ở trạng thái NHẢ chưa
+  uint32_t t_mute_down_  = 0;      // lúc bắt đầu giữ nút; 0 = đang nhả
 };

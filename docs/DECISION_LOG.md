@@ -1244,3 +1244,89 @@ hai chuyện xấu sẽ xảy ra:
 - Tốc độ lên 0,115 °C/s là **trên điện trở**. Trên cell 18650 khối nhiệt lớn hơn
   nhiều nên sẽ chậm hơn hẳn. Demo 90 giây chỉ chốt được **sau khi đo lại trên
   pack thật**.
+
+---
+
+## QĐ-041 — BLE cho thợ kỹ thuật: chỉ đọc, và nút tắt tiếng dời khỏi kiểu bắt sườn
+
+**21/09/2026 · Đã chốt, đã đo trên phần cứng**
+
+### Làm gì
+
+Thêm `ble_view.h/.cpp`: một dịch vụ GATT quảng bá tên `HuTieu-BMS`, 5 đặc tính
+**chỉ đọc + notify**, mỗi cái có nhãn tiếng Việt (descriptor `0x2901`) để đọc
+được bằng **nRF Connect**, không phải viết app. Đây đúng là bản tối giản mà
+QĐ-021 đã hẹn làm.
+
+### Phục vụ ai — và không phục vụ ai
+
+`docs/NGUOI_DUNG_VA_KICH_BAN.md` xếp BLE vào **NGƯỜI DÙNG B: thợ kỹ thuật đứng
+cạnh pack**. Không phải người lái xe — tài liệu nói thẳng người lái gần như
+không bao giờ mở app, giao diện của họ là còi và đèn. Vì phục vụ B nên nội dung
+hiển thị là **đủ 6 cell + điểm AI + ngưỡng**, tức đủ để chẩn đoán tại chỗ, chứ
+không phải một đèn xanh/đỏ.
+
+Wi-Fi vẫn là kênh chính (QĐ-021 không đổi). BLE khởi động **sau cùng** trong
+`setup()`: Bluedroid ngốn ~80 KB heap, và nếu phải tranh RAM thì MQTT phải
+thắng — hỏng BLE là mất tiện nghi, hỏng MQTT là mất phần được chấm điểm.
+
+### Không có đặc tính nào ghi được — và điều đó được KIỂM, không chỉ được định
+
+BLE quảng bá công khai, không xác thực. Một đặc tính ghi được là cho bất kỳ ai
+trong bán kính 10 m bật sưởi của một pack lithium, không mật khẩu, không dấu
+vết. Đường điều khiển đã có và nó đi qua MQTT có tài khoản, cộng công tắc chết
+người 15 s ở phía thiết bị (QĐ-040).
+
+`test/ble_check.py` kiểm tự động chuyện này thay vì tin vào ý định, cùng ba thứ
+khác mà nhìn nRF Connect không chứng minh được: đọc đủ 5 đặc tính, notify có
+bắn khi số đổi, và **có quảng bá lại sau khi ngắt kết nối không** — thiếu vế
+cuối thì người thứ hai tới kiểm pack sẽ không quét thấy gì, thiết bị vẫn chạy
+nhưng vô hình. Kết quả 21/09: **cả bốn đạt.**
+
+### Lỗi tìm ra khi làm: cổng USB tự bấm nút tắt tiếng
+
+`AL_PIN_MUTE = 0`, mà GPIO0 cũng là chân DTR của mạch nạp trên board. Đo được:
+
+| Cấu hình cổng | Dòng serial đọc được | Tắt tiếng bị đảo |
+|---|---|---|
+| `dtr=True, rts=False` | 4 | **có, 6/6 lần** |
+| `dtr=False, rts=False` | 25 | không |
+
+Hai phát hiện, cái thứ hai quan trọng hơn:
+
+1. Script đọc serial của đội vẫn dùng `dtr=True` — **sai suốt từ đầu**, và nó
+   còn làm mất dữ liệu (4 dòng so với 25).
+2. `dtr=True` **ghì GPIO0 xuống liên tục suốt phiên**, không phải một xung, và
+   mở cổng còn làm board reset. Nên bất kỳ ai mở Serial Monitor rồi đóng lại là
+   **còi bị tắt tiếng** — đèn vẫn đỏ, mức vẫn leo, chỉ tiếng là không kêu.
+   Cùng họ với lỗi `AL_PIN_BUZZER = -1` tìm ra ngày 21/09.
+
+**Ba lần sửa, hai lần đầu sai — ghi lại vì cách sai mới là bài học:**
+
+- *Lần 1* — đòi giữ nút 600 ms, với lập luận "xung DTR chỉ vài chục ms". Đo
+  lại: **998 ms**. Lập luận sai nên bản vá vô dụng.
+- *Lần 2* — khoá nút 3 s đầu sau khởi động. Vẫn trượt 6/6, vì chân không bị
+  nhấn lúc khởi động mà bị **giữ vĩnh viễn**.
+- *Lần 3, đạt* — đảo lúc **NHẢ**, và chỉ nhận cú nhấn sau khi đã **thấy nút ở
+  trạng thái nhả ít nhất một lần**. Chân bị ghì từ lúc boot không bao giờ qua
+  được vạch đó; người dùng thật thì nút vốn đang nhả nên qua ngay vòng đầu.
+
+**Phép thử cũng từng sai và đó là phần đáng nhớ nhất.** Bản đầu của
+`test/dtr_mute_check.py` đọc dòng `[ALRM]` trên chính serial và báo "6/6 đạt" —
+sai, vì cú đảo xảy ra đúng lúc **đóng cổng**, tức sau khi đã thôi đọc. Phải
+quan sát bằng kênh không đụng vào GPIO0, nên bản hiện tại **đọc trạng thái qua
+BLE**. Chạy lại: 3/3 đạt.
+
+### Hệ quả thiết kế được rút ra
+
+Trạng thái tắt tiếng bây giờ **hiện trên đặc tính `Trang thai` của BLE**
+(`[COI DANG TAT TIENG]`). Một cú tắt tiếng mà không ai thấy là chế độ hỏng nguy
+hiểm nhất của cả khối báo động, và người đứng cạnh pack lại chính là người duy
+nhất có cơ hội nhận ra.
+
+### Còn nợ
+
+- Nút BOOT vẫn là chân chung với DTR. Bản vá phần mềm đã đủ an toàn, nhưng nếu
+  có board rời thì **dời nút tắt tiếng sang chân khác** vẫn sạch hơn.
+- `pollMute()` chạy theo nhịp `Alarm::update()`, tức 1 Hz, nên độ phân giải của
+  phép giữ chỉ ~1 giây. Đủ cho nút bấm tay, nhưng là con số cần biết.

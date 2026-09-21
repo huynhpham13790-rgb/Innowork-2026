@@ -34,6 +34,7 @@
 #include "pack_meter.h"
 #include "broker_find.h"
 #include "demo_heater.h"
+#include "ble_view.h"
 
 // ---------------------------------------------------------------- Nguồn nhiệt độ
 // 1 = đọc 8 con DS18B20 thật · 0 = quay lại giả lập (khi tháo cảm biến ra)
@@ -180,7 +181,14 @@ CellTemp gTemp;
 Alarm    gAlarm;
 PackMeter gMeter;
 DemoHeater gHeater;
+BleView   gBle;
 bool      gMeterOk = false;
+
+/* Kết quả Lớp 1 của bước gần nhất, để BLE hiển thị. Phải có cờ valid và phải
+   được HẠ XUỐNG khi mất cảm biến — nếu không, thợ cầm điện thoại đứng cạnh
+   pack sẽ đọc được kết luận AI cũ trong lúc AI thực ra đã mù. Đó đúng là kiểu
+   hỏng âm thầm mà cell_temp.h được viết ra để chống. */
+static CellAIResult gLastAi = {};
 
 // Chân I2C mặc định của ESP32-S3-DevKitC-1.
 #define I2C_SDA 8
@@ -567,7 +575,11 @@ void runAI() {
   // sẽ làm đèn ĐỨNG HÌNH ở trạng thái cũ — nghĩa là mất hết cảm biến trông y
   // hệt mọi thứ bình thường. Đó đúng là kiểu hỏng âm thầm mà cell_temp.h được
   // viết ra để chống; đừng mở lại cửa đó ở đây.
-  if (isnan(gCellTemp[0])) { gAlarm.update(false, false, NAN, true); return; }
+  if (isnan(gCellTemp[0])) {
+    gLastAi.valid = false;      // mất cảm biến thì BLE phải nói "chưa kết luận"
+    gAlarm.update(false, false, NAN, true);
+    return;
+  }
 
   // Nhiệt độ môi trường: cảm biến thứ 9 nếu có. Không có thì lùi về hằng số —
   // và mã hoá chuyện đó thành tag riêng lên dashboard, chứ không im lặng dùng
@@ -583,7 +595,8 @@ void runAI() {
   const float soc     = pm.valid ? crudeSocFromVoltage(pm.cell_v) : 80.0f;
 
   CellAIResult r = gAI.update(gCellTemp, ambient, current, soc);
-  if (!r.valid) {                 // còn trong giai đoạn khởi động (AI chưa đủ
+  gLastAi = r;                  // nguồn duy nhất cho màn hình BLE
+  if (!r.valid) {               // còn trong giai đoạn khởi động (AI chưa đủ
     // cửa sổ lịch sử). AI chưa nói được gì, nhưng ngưỡng cứng 60 °C thì KHÔNG
     // cần lịch sử — nó phải có hiệu lực ngay từ giây đầu tiên.
     float t0 = -1000.0f;
@@ -957,6 +970,12 @@ void setup() {
 
   mqttTryConnect();
   lastReconnect = millis();
+
+  /* BLE khởi động SAU CÙNG, cố ý. Bluedroid ngốn vài chục KB heap; nếu nó
+     tranh RAM với bộ đệm MQTT 4 KB và LittleFS thì phải để MQTT thắng —
+     Wi-Fi là kênh chính lên cloud và là phần được chấm điểm (QĐ-021), BLE chỉ
+     là kênh phụ cho thợ. Hỏng BLE thì mất tiện nghi; hỏng MQTT thì mất bài. */
+  gBle.begin(DEVICE_ID);
 }
 
 void loop() {
@@ -1015,6 +1034,17 @@ void loop() {
   if (now - lastAi >= AI_PERIOD_MS) {
     lastAi = now;
     runAI();
+
+    /* Cập nhật màn hình BLE ngay sau runAI(), trong cùng một nhịp — để thứ thợ
+       đọc trên điện thoại và thứ còi đang kêu luôn là CÙNG MỘT bước tính. Đặt
+       ở nhịp khác là mở cửa cho cảnh còi hét mà điện thoại vẫn xanh. */
+    const PackMeasurement pmv = gMeter.read();
+    gBle.update(gCellTemp, gLastAi, gAlarm.level(),
+                gAlarm.muted(), gAlarm.quiet(),
+                pmv.valid, pmv.voltage, pmv.current,
+                pmv.valid ? crudeSocFromVoltage(pmv.cell_v) : 0.0f,  // đã là 0..100
+                gTempOk ? gTemp.status().n_healthy : 0,
+                WiFi.status() == WL_CONNECTED, mqtt.connected());
   }
 
   // Lớp 2: mô phỏng một chu kỳ sạc theo nhịp, chỉ khi đã có mạng để gửi

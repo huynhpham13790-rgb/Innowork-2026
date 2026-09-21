@@ -26,16 +26,13 @@ void Alarm::begin() {
   // vẫn đúng và cần thiết nếu sau này dời sang chân khác.
   if (AL_PIN_MUTE >= 0) {
     pinMode(AL_PIN_MUTE, INPUT_PULLUP);
-    /* Nạp mức THẬT của chân làm trạng thái ban đầu, thay vì giả định "nhả".
-       GPIO0 là chân strapping: ngay sau khi nạp hoặc reset, nó có thể còn ở mức
-       thấp trước khi điện trở kéo lên ổn định. Bản cũ khởi tạo mute_prev_ = true
-       nên lần đọc đầu tiên trông y hệt một cú nhấn nút, và còi TỰ TẮT TIẾNG ngay
-       giây đầu — báo động vẫn leo mức, đèn vẫn đỏ, chỉ có tiếng là không bao giờ
-       kêu. Đã xảy ra thật trong lần chạy kịch bản đầu-cuối 21/09. */
+    /* Không cần nạp mức ban đầu nữa: pollMute() bây giờ đòi GIỮ nút liên tục
+       AL_MUTE_HOLD_MS mới đảo, nên mọi mức lúc khởi động — kể cả GPIO0 còn
+       đang thấp sau khi nạp — chỉ làm bộ đếm bắt đầu chạy rồi bị huỷ ngay khi
+       chân lên cao. Không còn đường nào để một xung ngắn thành một cú nhấn. */
     delay(5);                              // cho điện trở kéo lên kịp ổn định
-    mute_prev_ = digitalRead(AL_PIN_MUTE);
-    t_mute_dbnc_ = millis();
   }
+  t_begin_ = millis();
 
   setLed(0, 0, 0);
 
@@ -73,23 +70,61 @@ void Alarm::setBuzzer(bool on) {
 #endif
 }
 
-/* Đọc nút tắt tiếng, có chống rung 50 ms. Bắt SƯỜN XUỐNG chứ không bắt mức:
- * bắt mức thì giữ nút một giây sẽ đảo trạng thái vài chục lần. */
+/* Đọc nút tắt tiếng: phải GIỮ đủ AL_MUTE_HOLD_MS mới đảo, và mỗi lần giữ chỉ
+ * đảo MỘT lần (mute_fired_) — không thì giữ nút một giây sẽ đảo vài chục lần.
+ * Lý do dùng nhấn-giữ thay vì bắt sườn xuống: xem chú thích ở AL_MUTE_HOLD_MS. */
 void Alarm::pollMute() {
   if (AL_PIN_MUTE < 0) return;
   const uint32_t t = millis();
-  // Bỏ qua 300 ms đầu sau khởi động: chân strapping còn đang ổn định, mọi
-  // chuyển tiếp trong khoảng này là nhiễu chứ không phải người nhấn nút.
-  if (t < 300) return;
-  const bool now = digitalRead(AL_PIN_MUTE);        // nhả = HIGH
-  if (now != mute_prev_ && t - t_mute_dbnc_ > 50) {
-    t_mute_dbnc_ = t;
-    mute_prev_   = now;
-    if (!now) {                                     // vừa nhấn xuống
-      muted_ = !muted_;
-      Serial.printf("[ALRM] %s coi\n", muted_ ? "TAT TIENG" : "BAT LAI TIENG");
-    }
+
+  /* Khoá nút trong 3 s đầu: đây đúng là cửa sổ mà mạch tự động nạp còn giữ
+     GPIO0 xuống sau khi mở cổng serial (đo 21/09: giữ tới 998 ms, kèm reset
+     board). Bỏ cả cửa sổ đi thì không cần đoán xung dài bao nhiêu nữa. */
+  if (t - t_begin_ < AL_MUTE_ARM_MS) { t_mute_down_ = 0; return; }
+
+  const bool down = !digitalRead(AL_PIN_MUTE);   // nhấn = LOW (có kéo lên)
+
+  /* CHỐT QUAN TRỌNG NHẤT: chưa từng thấy nút ở trạng thái NHẢ thì không tính
+     cú nhấn nào hết.
+
+     Vì sao cần: DTR của cổng USB ghì GPIO0 xuống NGAY TỪ LÚC KHỞI ĐỘNG và giữ
+     suốt phiên, nên nếu chỉ dựa vào "giữ rồi nhả" thì lúc đóng Serial Monitor
+     sẽ sinh ra đúng một cú nhả trông y hệt người vừa buông tay — đo 21/09:
+     khoảng giữ ~3 s, lọt gọn vào khoảng hợp lệ 0,6–5 s. Bản trước của tớ
+     không chặn được chỗ này, và phép thử cũng không thấy vì board reset lúc
+     mở cổng khiến hai đầu đo bằng nhau.
+
+     Đòi thấy mức NHẢ trước thì cửa đó đóng hẳn: chân bị ghì từ lúc boot sẽ
+     không bao giờ qua được vạch này, còn người dùng thật thì nút vốn đang nhả
+     nên qua ngay ở vòng lặp đầu tiên. */
+  if (!mute_seen_up_) {
+    if (!down) mute_seen_up_ = true;   // đã thấy nhả: từ giờ mới nhận nhấn
+    t_mute_down_ = 0;
+    return;
   }
+
+  if (down) {                                   // đang giữ: chỉ ghi mốc
+    if (t_mute_down_ == 0) t_mute_down_ = t;
+    return;
+  }
+  if (t_mute_down_ == 0) return;                // vốn đang nhả, không có gì
+
+  const uint32_t held = t - t_mute_down_;
+  t_mute_down_ = 0;
+
+  /* Đảo lúc NHẢ, và chỉ khi thời gian giữ nằm trong khoảng của một bàn tay
+     người. Chặn được cả hai kiểu nhấn giả:
+       - giữ quá NGẮN : nhiễu điện
+       - giữ quá DÀI  : không phải người, mà là máy đang ghì chân xuống
+     Vế thứ hai mới là vế quan trọng. Đo 21/09 bằng test/dtr_mute_check.py:
+     GPIO0 cũng là chân DTR của cổng USB, nên hễ có ai mở Serial Monitor là
+     chân bị kéo thấp LIÊN TỤC cho tới lúc đóng cổng — không phải một xung.
+     Không bao giờ có cú nhả thì không bao giờ đảo. */
+  if (held < AL_MUTE_HOLD_MS || held > AL_MUTE_MAX_MS) return;
+
+  muted_ = !muted_;
+  Serial.printf("[ALRM] %s coi (giu nut %lu ms)\n",
+                muted_ ? "TAT TIENG" : "BAT LAI TIENG", (unsigned long)held);
 }
 
 void Alarm::setMuted(bool m) {
