@@ -28,7 +28,7 @@ Một file duy nhất, cố ý. Đây là sketch *test đường truyền*, khô
 | **Store-and-forward** | `spoolBegin/Append/Compact/Flush/Size()` | Đệm xuống LittleFS khi mất mạng. Có test riêng. |
 | Mạng | `ensureWifi()`, `mqttTryConnect()` | **Không chặn.** Chặn ở đây là loop() đứng và mất luôn khả năng đệm. |
 | Cloud WISE-IoT | `fetchCredentialFromDccs()` | Chỉ dùng ở STAGE 2. Lấy host/user/pass từ Credential Key. |
-| **BLE cho thợ** | `ble_view.h/.cpp` → `BleView` | Dịch vụ GATT `HuTieu-BMS`, 5 đặc tính **CHỈ ĐỌC**, xem bằng nRF Connect. Phục vụ NGƯỜI DÙNG B (đứng cạnh pack), **không** thay Wi-Fi. Thêm đặc tính ghi được = mở cửa cho người lạ bật sưởi → phải qua QĐ. Xem QĐ-041. |
+| **BLE cho thợ** | `ble_view.h/.cpp` → `BleView` | Dịch vụ GATT `HuTieu-BMS`: **6 đặc tính chỉ đọc + 1 đặc tính lệnh**, xem bằng nRF Connect. Phục vụ NGƯỜI DÙNG B (đứng cạnh pack), **không** thay Wi-Fi. Đặc tính lệnh chỉ nhận `mute`/`quiet`, đòi **ghép đôi + PIN**, tự hết hạn 5 phút. **Sưởi cố ý KHÔNG có mặt.** Thêm lệnh mới = phải qua QĐ. Xem QĐ-041, QĐ-042. |
 | Giao thức | `buildTopics()`, `publishConfig/Data/ConnState/Heartbeat()` | Sửa mấy hàm này là **đụng data contract** → phải đọc `docs/DATA_CONTRACT.md` trước. |
 | Vòng chính | `setup()`, `loop()` | `loop()` luôn lấy mẫu đúng nhịp bất kể có mạng hay không. |
 
@@ -43,7 +43,7 @@ Thư viện: `PubSubClient`, `ArduinoJson` v7.
 |---|---|
 | `run_test.sh` | Cắt code spool **thật** từ `.ino` rồi biên dịch cùng test. Chạy trên PC, không cần board. |
 | `test_spool.cpp` | Giả lập LittleFS + MQTT, kiểm 5 nhóm tình huống mất mạng. |
-| `ble_check.py` | Nghiệm thu BLE **từ PC**: đọc 5 đặc tính, khẳng định **không có đặc tính ghi được**, notify có bắn, và có quảng bá lại sau khi ngắt. |
+| `ble_check.py` | Nghiệm thu BLE **từ PC**: đọc đủ các đặc tính, khẳng định **chỉ đúng một đặc tính ghi được**, notify có bắn, và có quảng bá lại sau khi ngắt. |
 | `ble_write_check.py` | Nối mà **không ghép đôi** rồi thử ghi lệnh tắt còi. Phải bị chặn. Xem QĐ-042. |
 | `dtr_mute_check.py` | Mở cổng serial với `dtr=True` (kịch bản xấu nhất) rồi **đọc trạng thái qua BLE** để chắc còi không bị tự tắt tiếng. Xem QĐ-041. |
 

@@ -758,3 +758,67 @@ Hai điều cần biết về con số này:
 ### Còn nợ ở mục này
 
 - Dời nút tắt tiếng sang chân không dùng chung với DTR, nếu có board rời.
+
+---
+
+## 21/09/2026 — Bản demo SẠCH: nền phẳng → báo động, đủ cả ba kênh
+
+Khác lần chạy trước trong cùng ngày: lần đó cell 3 đã ấm sẵn +3,4 °C nên không
+dùng làm ảnh được. Lần này bắt đầu từ nền phẳng thật. **Dùng bản này cho hồ sơ.**
+
+Điều khiển qua đúng đường người trình bày sẽ bấm: `POST /hutieu/cmd`.
+
+```
+[   0s] === nen phang 60s ===
+[   5s] 26.36  26.29  26.28  26.49  25.74  26.54
+[  35s] 26.36  26.29  26.34  26.49  25.74  26.48
+[  60s] === BAT SUOI (gia han moi 10s) ===
+[  95s] 26.36  26.29  28.46  26.49  25.74  26.48
+[  95s] [ALRM] OK -> THEO DOI
+[ 124s] [ALRM] THEO DOI -> BAO DONG
+[ 124s] *** BAT THUONG *** cell 3, diem 26.974 (nguong 1.071), giu 30s
+[ 155s] 26.29  26.29  37.09  26.49  25.74  26.48
+[ 169s] === DA CAT SUOI ===
+[ 185s] 26.29  26.23  38.15  26.55  25.68  26.48   <- VAN CON TANG sau khi cat
+[ 245s] 26.23  26.23  37.21  26.55  25.68  26.48
+```
+
+| Chỉ số | Giá trị |
+|---|---|
+| Bật sưởi → **THEO DOI** | **35 s** |
+| Bật sưởi → **BAO DONG** | **65 s** |
+| Khoảng THEO DOI → BAO DONG | **29 s** (khớp quy tắc giữ 30 s) |
+| Điểm cell 3 / ngưỡng | **26,974 / 1,071** — gấp **25 lần** |
+
+**Năm cell còn lại đứng yên tuyệt đối** suốt 275 giây: 26,29 / 26,29 / 26,49 /
+25,74 / 26,48. Đây mới là bằng chứng Lớp 1 chỉ đúng MỘT cell chứ không hoảng cả
+cụm — thứ lần chạy trước không cho thấy được.
+
+### Đã lên cloud thật (InfluxDB, bucket `battery`)
+
+```
+_time            Cell01_Temp   Cell03_Temp   AI_WorstScore
+11:30 .. 11:39      26.4          26.4          -          <- nen phang
+11:41               26.36        38.03          26.974
+11:43               26.29        37.34
+```
+
+⚠️ Lược đồ **không phải** `_measurement="pack"`. Đúng là `_measurement="cell"`,
+`_field="value"`, tên cảm biến ở **tag `tag`**. Query sai lược đồ trả về RỖNG và
+trông y hệt "đường ống hỏng" — đã mất một vòng vì chuyện này.
+
+### Hai cái bẫy cho ngày thi
+
+**1. Cắt sưởi KHÔNG làm nhiệt giảm ngay, và báo động không tự hạ cấp.** Sau khi
+cắt ở giây 169, cell 3 vẫn **tiếp tục tăng** lên đỉnh 38,15 °C rồi hạ rất chậm.
+Hết 275 giây thiết bị **vẫn ở mức BAO DONG**, đúng vì cell vẫn nóng hơn 11 °C.
+Hành vi ĐÚNG, khớp τ ≈ 359 s của QĐ-040. Hệ quả: **không diễn được hai lần liên
+tiếp**, phải chờ ~10 phút. Nói trước điều này, đừng để bị hỏi rồi lúng túng.
+
+*Chưa ghi được đoạn hạ cấp — cell chưa kịp nguội trong cửa sổ đo.*
+
+**2. Tắt tiếng CÒN NGUYÊN sau khi hết báo động.** Đã chứng kiến trực tiếp: lần
+chạy nghiệm thu TH-1 ngay sau đó có dòng `BAO DONG` nằm cạnh `[COI DANG TAT
+TIENG]` — **còi im suốt lúc báo động**. Từ QĐ-042, tắt tiếng qua BLE **tự hết
+hạn sau 5 phút**, nhưng tắt tiếng bằng nút BOOT hoặc MQTT thì vẫn giữ nguyên.
+**Kiểm trước mỗi lần diễn.**
