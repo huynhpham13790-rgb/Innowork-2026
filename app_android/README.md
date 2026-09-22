@@ -69,9 +69,19 @@ lại được gì.
 | Cài và mở được, không crash | ✅ 22/09 (Waydroid) |
 | Giao diện vẽ đủ 7 ô, tiếng Việt đúng | ✅ 22/09 (ảnh chụp) |
 | Xin quyền đúng lúc | ✅ 22/09 |
-| **Nối BLE thật tới ESP32** | ⬜ **CHƯA** — Waydroid không có Bluetooth thật |
-| **Nút tắt còi + ghép đôi PIN** | ⬜ **CHƯA** |
+| Nối BLE thật tới ESP32 | ✅ 22/09 (Galaxy M34, **Android 16**) |
+| 7 ô có số thật, notify nhiều đặc tính | ✅ 22/09 |
+| Nút tắt còi đi tới chip | ✅ 22/09 — kiểm bằng 3 đường độc lập |
+| **Thấy tận mắt màn hỏi PIN** | ⬜ **CHƯA** — máy đã ghép đôi từ trước |
 
-⚠️ Hai dòng cuối phải làm trên **điện thoại thật** trước ngày thi. Đường dữ
-liệu GATT thì đã kiểm bằng `test/ble_check.py` từ máy tính và đạt, nên phần
-chưa chắc là **phía Android**, không phải phía firmware.
+Bằng chứng đầy đủ: `docs/BANG_CHUNG_APP_ANDROID_2026-09-22.md`.
+
+⚠️ **Chưa thấy màn hỏi PIN** vì điện thoại đã ghép đôi với pack từ trước (qua
+nRF Connect), và PIN chỉ hỏi ở lần ghép đôi ĐẦU TIÊN. Muốn trình diễn phần bảo
+mật thì *Quên thiết bị* trong Cài đặt Bluetooth trước, rồi mới bấm tắt còi.
+
+⚠️ **Chip ngừng quảng bá khi đã có một máy nối vào.** ESP32 chỉ nhận một kết
+nối. Đo được: máy tính quét thấy 91 thiết bị mà không có `HuTieu-BMS`, trong
+khi chip vẫn chạy ngon. App đã né bằng cách nối thẳng theo địa chỉ khi đã ghép
+đôi, nhưng **máy lạ vẫn phải quét và vẫn sẽ không thấy gì**. Hôm thi: ngắt máy
+đội trước khi giám khảo nối máy của họ.
