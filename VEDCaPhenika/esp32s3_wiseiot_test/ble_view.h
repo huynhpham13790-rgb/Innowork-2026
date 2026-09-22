@@ -58,6 +58,7 @@
 #include "pack_config.h"
 #include "alarm.h"
 #include "cell_ai.h"
+#include "rul_onboard.h"
 
 /* Bật/tắt cả khối BLE khi biên dịch. Để 0 thì firmware quay về đúng như trước,
    không tốn RAM/flash nào của Bluedroid — hữu ích khi cần chỗ để gỡ lỗi. */
@@ -96,6 +97,10 @@ class BleView {
               bool muted, bool quiet,
               bool meter_ok, float pack_v, float pack_a, float soc_pct,
               int n_healthy, bool wifi_ok, bool cloud_ok);
+
+  /* Lớp 2 tính trên chip. Tách khỏi update() vì nó chỉ đổi MỘT LẦN mỗi chu kỳ
+     sạc — gọi kèm nhịp 1 Hz là ghi lại cùng một chuỗi vài nghìn lần vô ích. */
+  void setLayer2(const RulResult& r, int cycles_logged, float soh_slope);
 
   /* Gắn hai hàm mà lệnh BLE được phép gọi. KHÔNG có đường nào khác từ BLE vào
      thiết bị — muốn thêm lệnh phải thêm ở đây, nên không thể vô tình mở một

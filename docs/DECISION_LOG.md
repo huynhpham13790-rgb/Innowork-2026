@@ -1460,3 +1460,79 @@ Lặp lại đúng bài học của QĐ-041 ở một chỗ khác: **một lớp
 thì chưa tồn tại**. Lần này nó còn im lặng hơn — hàm có thật, biên dịch sạch,
 và không làm gì. Không có phép thử thì nó đã lên sân khấu nguyên vẹn dưới dạng
 một dòng bình luận nói rằng hệ thống an toàn.
+
+---
+
+## QĐ-043 — Lớp 2 chạy ở CẢ HAI nơi: cloud giữ bản chuẩn, chip có bản dự phòng
+
+**22/09/2026 · Đã chốt, đã kiểm bằng test đối chiếu**
+
+### Bối cảnh: một lập luận cũ vừa bị bác bỏ
+
+QĐ ban đầu đặt Lớp 2 ở cloud với **hai** lý do. Lý do thứ hai —
+*"cloud thành nơi tính toán thật, đúng thứ WISE-IoT được chấm điểm"* — **SAI**.
+Barem thật của BTC (`docs/BAREM_CHAM_BAN_KET.md`) không nhắc tới WISE-IoT một
+lần nào. Xem thêm: barem còn chấm riêng *"tính khả thi và mức độ hoàn thiện"*
+15 điểm, mục nặng nhất.
+
+Lý do thứ nhất thì **vẫn đứng vững**: đổi hệ số không phải nạp lại firmware.
+Điều này quan trọng thật, vì hệ số đang mượn của NASA và **chắc chắn phải hiệu
+chỉnh** cho pack thật (`charge_cycle.h`). Chỉ chip tính thì mỗi lần chỉnh hệ số
+là phải đi tới từng thiết bị ngoài hiện trường.
+
+### Quyết định
+
+Chạy **cả hai**. Cloud vẫn là bản chuẩn và vẫn đổi được không cần nạp lại
+firmware; chip có bản dự phòng để trả lời được khi mất mạng và để app BLE có số.
+
+Giá phải trả: **10 phép nhân cộng, một lần mỗi chu kỳ sạc** (vài tiếng). So với
+Lớp 1 — autoencoder 271 tham số chạy 1 Hz — đây là hạt cát. Và giữ cloud tốn
+**0 công**: `rul_predict.js` đã chạy sẵn, ESP32 đã gửi `CYC_*` sẵn. Gỡ đi mới
+là làm thêm việc.
+
+### Chỗ nguy hiểm nhất, và cách chặn
+
+Cùng một mô hình chạy hai nơi thì **sẽ lệch nhau** — không phải nếu, mà là khi.
+Và lúc lệch thì không ai biết, vì cả hai đều trả về một con số trông hợp lý.
+
+Chặn bằng hai lớp:
+
+1. **Hệ số chung một nguồn.** `ai/export_rul_c.py` sinh `rul_model.h` từ chính
+   `ai/models/rul_model.json` mà `rul_predict.js` dùng. Không bao giờ gõ số tay.
+2. **Logic được đối chiếu tự động.** `ai/test_rul_c_vs_js.py` sinh 500 chu kỳ
+   sạc ngẫu nhiên — **có cả trường hợp ngoài dải huấn luyện**, vì chỉ thử điểm
+   ở giữa thì không bao giờ chạm tới nhánh cờ ngoại suy — rồi chạy qua cả hai
+   bản và đòi khớp:
+
+   ```
+   500 chu ky sac ngau nhien
+     lech RUL lon nhat : 0.000032 chu ky
+     lech SOH lon nhat : 0.000066 diem phan tram
+     co ngoai suy lech : 0 truong hop
+   DAT — chip va cloud ra cung mot so
+   ```
+
+   Chênh lệch còn lại đúng bằng sai số float32 của chip so với float64.
+
+Firmware còn gửi kèm kết quả tính trên chip dưới tiền tố `ONB_*`, để dashboard
+hiện **cả hai** — lệch nhau là nhìn ra ngay, thay vì tin là chúng giống nhau.
+
+### Lịch sử chu kỳ trên flash
+
+**RUL không cần lịch sử để tính** — mô hình chỉ đọc đặc trưng của chu kỳ hiện
+tại (`t_cv`). Lịch sử chỉ để vẽ **xu hướng**, mà xu hướng mới là thứ phân biệt
+TH-6 (*"SOH tụt dần đều, lão hoá tự nhiên"*) với TH-7 (*"SOH tụt đột ngột, có
+cell hỏng"*) — hai trường hợp dẫn tới hai hành động khác hẳn nhau.
+
+Chi phí: 32 byte/chu kỳ. Cả đời pin (~1000 chu kỳ) hết ~32 KB trên phân vùng
+1,5 MB. Chip chứa được **toàn bộ lịch sử cả đời quả pin** mà không đánh đổi gì.
+
+Ghi nối đuôi rồi cắt đầu, **không** ghi đè tại chỗ theo vòng: vòng tiết kiệm hơn
+nhưng khi file hỏng giữa chừng thì không còn cách nào biết bản ghi nào mới. Ghi
+nối đuôi thì hỏng là mất đuôi chứ không mất nghĩa.
+
+### Vẫn chưa thay đổi: con số Lớp 2 CHƯA CÓ THẬT
+
+Chuyển tính toán xuống chip làm nó **chạy offline**, không làm nó **thật hơn**.
+Chu kỳ sạc vẫn đang mô phỏng vì chưa có bộ sạc CC/CV 25,2 V. Trên sân khấu vẫn
+phải nói đúng như `HAI_LOP_AI_HOAT_DONG_THE_NAO.md` §giới hạn đã ghi.

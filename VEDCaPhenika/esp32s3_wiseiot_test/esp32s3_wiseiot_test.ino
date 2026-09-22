@@ -35,6 +35,7 @@
 #include "broker_find.h"
 #include "demo_heater.h"
 #include "ble_view.h"
+#include "rul_onboard.h"
 
 // ---------------------------------------------------------------- Nguồn nhiệt độ
 // 1 = đọc 8 con DS18B20 thật · 0 = quay lại giả lập (khi tháo cảm biến ra)
@@ -166,8 +167,12 @@ void publishCycleSummary(const ChargeSummary& s);
 CellAI gAI;
 
 // ---------------------------------------------------------------- Lớp 2: tóm tắt chu kỳ sạc
-// ESP32 KHÔNG chạy mô hình RUL. Nó chỉ quan sát quá trình sạc rồi gửi 9 con số
-// lên cloud; Node-RED nhân với hệ số đã train ra RUL/SOH. Xem charge_cycle.h.
+// ESP32 quan sát quá trình sạc, rút ra 9 con số, rồi LÀM HAI VIỆC (QĐ-043):
+//   1. gửi 9 số lên cloud — Node-RED vẫn là nơi giữ mô hình CHUẨN, và đổi hệ
+//      số ở đó không phải nạp lại firmware cho từng thiết bị ngoài hiện trường
+//   2. tự tính RUL/SOH ngay trên chip, để còn trả lời được KHI MẤT MẠNG
+// Hai bên dùng chung hệ số (sinh từ ai/models/rul_model.json) và đã kiểm là ra
+// cùng một số: ai/test_rul_c_vs_js.py, lệch 0,00003 chu kỳ trên 500 ca.
 ChargeCycle gCharge;
 int  gSimCycle = 0;                 // số chu kỳ sạc đã MÔ PHỎNG
 const long SIM_CHARGE_EVERY_MS = 45000;   // cứ 45s lại mô phỏng 1 chu kỳ sạc
@@ -183,6 +188,7 @@ PackMeter gMeter;
 DemoHeater gHeater;
 BleView   gBle;
 bool      gMeterOk = false;
+RulResult gLastRul = {};          // Lớp 2 tính trên chip, để BLE và dashboard dùng
 
 /* Kết quả Lớp 1 của bước gần nhất, để BLE hiển thị. Phải có cờ valid và phải
    được HẠ XUỐNG khi mất cảm biến — nếu không, thợ cầm điện thoại đứng cạnh
@@ -685,6 +691,18 @@ void publishCycleSummary(const ChargeSummary& s) {
     dev[name] = round(s.f[i] * 10000) / 10000.0;
   }
   dev["CYC_duration_s"] = (double)s.duration_s;
+
+  /* Gửi kèm kết quả TÍNH TRÊN CHIP, tiền tố ONB_ để phân biệt với bản cloud
+     tính. Có cả hai trên dashboard thì lệch nhau là nhìn ra ngay — nếu chỉ gửi
+     đặc trưng rồi tin cả hai bên giống nhau thì lúc lệch sẽ không ai biết. */
+  if (gLastRul.valid) {
+    dev["ONB_RUL_Cycles"]   = round(gLastRul.rul_cycles * 100) / 100.0;
+    dev["ONB_SOH_Percent"]  = round(gLastRul.soh * 10000) / 100.0;
+    dev["ONB_Extrapolating"] = gLastRul.extrapolating ? 1 : 0;
+    const float sl = rulHistSohSlope(20);
+    if (!isnan(sl)) dev["ONB_SOH_Slope"] = round(sl * 10000) / 10000.0;
+    dev["ONB_Cycles_Logged"] = rulHistCount();
+  }
   doc["ts"] = isoTimestampUtc();
 
   String out; serializeJson(doc, out);
@@ -788,7 +806,16 @@ void simulateChargeCycle() {
     // Nhiệt độ: hiệu chỉnh để T_mean rơi quanh 26,7 °C như bộ NASA
     const float temp = 25.5f + 1.8f * (i / I0);
     ChargeSummary s = gCharge.update(v_cell * CC_N_CELLS, i, temp);
-    if (s.valid) { publishCycleSummary(s); return; }
+    if (s.valid) {
+      /* Tính ngay trên chip TRƯỚC khi gửi. Thứ tự này có chủ đích: mất mạng thì
+         publishCycleSummary() rơi vào spool, nhưng gLastRul vẫn có số mới và
+         app BLE vẫn hiện được. Gọi sau thì mất mạng là mất luôn cả hai. */
+      gLastRul = rulPredict(s);
+      rulHistAppend(gLastRul, s, timeIsValid() ? (uint32_t)time(nullptr) : 0);
+      gBle.setLayer2(gLastRul, rulHistCount(), rulHistSohSlope(20));
+      publishCycleSummary(s);
+      return;
+    }
     if (i < CC_I_END && t > t_cc) break;
   }
   Serial.println("[CYC ] mo phong khong ra summary hop le");
@@ -1017,6 +1044,7 @@ void setup() {
      tranh RAM với bộ đệm MQTT 4 KB và LittleFS thì phải để MQTT thắng —
      Wi-Fi là kênh chính lên cloud và là phần được chấm điểm (QĐ-021), BLE chỉ
      là kênh phụ cho thợ. Hỏng BLE thì mất tiện nghi; hỏng MQTT thì mất bài. */
+  rulHistBegin();
   gBle.begin(DEVICE_ID);
   /* Hai hàm DUY NHẤT mà lệnh BLE chạm tới được. Sưởi không có mặt ở đây, cố ý:
      nó là thứ duy nhất bơm năng lượng vào pack nên vẫn chỉ đi qua MQTT có tài

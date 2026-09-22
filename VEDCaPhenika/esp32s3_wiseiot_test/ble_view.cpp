@@ -8,6 +8,7 @@ void BleView::update(const float*, const CellAIResult&, AlarmLevel, bool, bool,
 bool BleView::connected() const { return false; }
 int  BleView::clientCount() const { return 0; }
 void BleView::onCommand(void (*)(bool), void (*)(bool)) {}
+void BleView::setLayer2(const RulResult&, int, float) {}
 void BleView::tick() {}
 #else
 
@@ -17,6 +18,7 @@ void BleView::tick() {}
 #include <BLE2901.h>
 #include <BLE2902.h>
 #include <math.h>
+#include "rul_model.h"   // RUL_N_FEAT, cho dong canh bao ngoai suy
 
 /* UUID tự đặt. Bốn byte đầu là "HUTI" trong ASCII (0x48 0x55 0x54 0x49) để khi
    nhìn danh sách quét giữa một rừng thiết bị lạ thì nhận ra ngay của mình. */
@@ -28,8 +30,9 @@ void BleView::tick() {}
 #define UUID_SYS   "48555449-4555-4d53-0006-000000000000"
 #define UUID_DIAG  "48555449-4555-4d53-0007-000000000000"
 #define UUID_CMD   "48555449-4555-4d53-0008-000000000000"
+#define UUID_L2    "48555449-4555-4d53-0009-000000000000"
 
-static const int N_CHAR = 6;
+static const int N_CHAR = 7;
 static BLEServer         *sServer = nullptr;
 static BLECharacteristic *sCh[N_CHAR] = {nullptr};
 static String             sLast[N_CHAR];
@@ -126,6 +129,7 @@ bool BleView::begin(const char* device_id) {
   sCh[3] = mkChar(svc, UUID_PACK,  "Dien ap / dong / SoC");
   sCh[4] = mkChar(svc, UUID_SYS,   "Tinh trang he thong");
   sCh[5] = mkChar(svc, UUID_DIAG,  "So do da dung de chan doan");
+  sCh[6] = mkChar(svc, UUID_L2,    "Lop 2 - suc khoe va tuoi tho pack");
 
   /* Đặc tính DUY NHẤT ghi được, và nó đòi liên kết đã mã hoá + xác thực. Điện
      thoại chưa ghép đôi ghi vào sẽ bị từ chối ngay ở tầng GATT, không tới được
@@ -162,6 +166,28 @@ bool BleView::begin(const char* device_id) {
                 (unsigned)(heap0 - ESP.getFreeHeap()), (unsigned)ESP.getFreeHeap());
   Serial.println("[BLE ] doc bang nRF Connect - CHI DOC, khong co lenh ghi nao");
   return true;
+}
+
+void BleView::setLayer2(const RulResult& r, int cycles_logged, float soh_slope) {
+  if (!ready_) return;
+  char b[256];
+  if (!r.valid) {
+    put(6, "chua co chu ky sac nao duoc ghi nhan");
+    return;
+  }
+  /* Cờ ngoại suy đi TRƯỚC con số, không phải sau. Mô hình tuyến tính không bao
+     giờ từ chối trả lời, nên con số luôn trông hợp lý — người đọc phải thấy
+     lời cảnh báo trước khi kịp tin vào nó (QĐ-019). */
+  int n = 0;
+  if (r.extrapolating)
+    n += snprintf(b, sizeof(b), "⚠️ NGOAI DAI HUAN LUYEN (%u/%d dac trung) - ",
+                  r.n_outliers, RUL_N_FEAT);
+  n += snprintf(b + n, sizeof(b) - n,
+                "SOH %.1f%% | con ~%.0f chu ky | da ghi %d chu ky",
+                r.soh * 100.0f, r.rul_cycles, cycles_logged);
+  if (!isnan(soh_slope))
+    snprintf(b + n, sizeof(b) - n, " | xu huong %+.3f %%/chu ky", soh_slope);
+  put(6, b);
 }
 
 void BleView::onCommand(void (*mute_fn)(bool), void (*quiet_fn)(bool)) {

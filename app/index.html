@@ -97,6 +97,11 @@ button.big{background:var(--accent);border-color:var(--accent);color:#fff;font-s
 
   <div class="card"><h2>Pack</h2><div id="pack"></div></div>
 
+  <div class="card hide" id="l2card"><h2>Sức khoẻ &amp; tuổi thọ pack</h2>
+    <div id="l2"></div>
+    <div class="warn" id="l2warn"></div>
+  </div>
+
   <div class="card"><h2>Còi báo động</h2>
     <div class="row">
       <button id="bmute" onclick="cmd('mute')">Tắt tiếng</button>
@@ -124,6 +129,7 @@ const CH = {
   pack :'48555449-4555-4d53-0005-000000000000',
   sys  :'48555449-4555-4d53-0006-000000000000',
   diag :'48555449-4555-4d53-0007-000000000000',
+  l2   :'48555449-4555-4d53-0009-000000000000',
   cmd  :'48555449-4555-4d53-0008-000000000000',
 };
 const D = {}, chars = {};
@@ -154,7 +160,7 @@ $('btnConnect').onclick = async () => {
       try { chars[k] = await srv.getCharacteristic(u); } catch(e){ chars[k]=null; }
     }
     // Đọc một lượt để có số ngay, rồi bật notify để tự cập nhật.
-    for (const k of ['state','temps','ai','pack','sys','diag']) {
+    for (const k of ['state','temps','ai','pack','sys','diag','l2']) {
       if (!chars[k]) continue;
       D[k] = dec.decode(await chars[k].readValue()).trim();
       chars[k].addEventListener('characteristicvaluechanged',
@@ -257,6 +263,29 @@ function draw(){
        sp.length ? (Math.max(...sp)-Math.min(...sp)).toFixed(2)+' °C' : '—') +
     kv('Điện áp / dòng', D.pack||'—') +
     kv('Hệ thống', D.sys||'—');
+
+  // Lớp 2 — tính ngay trên thiết bị, nên có số cả khi không có mạng.
+  const l2 = D.l2||'';
+  if (l2 && !/chua co chu ky/.test(l2)) {
+    $('l2card').classList.remove('hide');
+    const soh  = l2.match(/SOH ([\d.]+)%/);
+    const cyc  = l2.match(/con ~([\d.]+) chu ky/);
+    const log  = l2.match(/da ghi (\d+) chu ky/);
+    const tr   = l2.match(/xu huong ([+\-\d.]+) %\/chu ky/);
+    const ngoai = /NGOAI DAI/.test(l2);
+    $('l2').innerHTML =
+      kv('Sức khoẻ (SOH)', soh?soh[1]+' %':'—') +
+      kv('Còn lại (RUL)',  cyc?'~'+cyc[1]+' chu kỳ':'—') +
+      (tr ? kv('Xu hướng', tr[1]+' %/chu kỳ') : '') +
+      kv('Chu kỳ đã ghi', log?log[1]:'—');
+    // Cảnh báo ngoại suy phải NỔI BẬT hơn con số. Mô hình tuyến tính không bao
+    // giờ từ chối trả lời — nó luôn ra một số trông hợp lý.
+    $('l2warn').innerHTML = ngoai
+      ? '<b style="color:var(--alarm)">⚠️ Đầu vào nằm ngoài dải mô hình đã học — '+
+        'con số trên KHÔNG đáng tin.</b>'
+      : 'Hệ số hiệu chỉnh trên bộ chuẩn NASA (cùng loại cell 18650), '+
+        'sai số ±12 chu kỳ. Tính ngay trên thiết bị nên không cần mạng.';
+  } else $('l2card').classList.add('hide');
 
   tog('bmute', muted, 'Bật lại tiếng','Tắt tiếng');
   tog('bquiet',quiet, 'Đang bíp thưa','Bíp thưa');
