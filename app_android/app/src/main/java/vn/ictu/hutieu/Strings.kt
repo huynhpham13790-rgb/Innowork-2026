@@ -64,6 +64,12 @@ object L {
         "buzzOff"      to ("Còi: ĐÃ TẮT"                  to "Buzzer: MUTED"),
         "buzzBack"     to ("còi tự kêu lại sau"           to "unmutes automatically in"),
         "tapUnmute"    to ("chạm để bật lại"              to "tap to unmute"),
+        /* Câu này là thứ THAY THẾ tiếng còi. Bất thường Lớp 1 tắt tiếng là tắt
+           hẳn (QĐ-047), nên màn hình trở thành lời nhắc duy nhất còn lại — nó
+           phải nói rõ "chưa xử lý", không chỉ một biểu tượng loa gạch chéo. */
+        "unresolved"   to ("BẤT THƯỜNG CHƯA ĐƯỢC XỬ LÝ — còi đã tắt"
+                        to "ANOMALY NOT RESOLVED — buzzer is off"),
+        "critRemind"   to ("còi sẽ kêu lại để nhắc"        to "the buzzer will sound again as a reminder"),
         "quietOn"      to ("Bíp thưa: ĐANG BẬT — chạm để tắt" to "Sparse beep: ON — tap to disable"),
         "quietOff"     to ("Bíp thưa: TẮT — chạm để bật"  to "Sparse beep: OFF — tap to enable"),
 

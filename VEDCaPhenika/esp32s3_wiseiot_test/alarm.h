@@ -196,4 +196,5 @@ class Alarm {
   bool     mute_seen_up_ = false;  // đã từng thấy nút ở trạng thái NHẢ chưa
   uint32_t t_mute_down_  = 0;      // lúc bắt đầu giữ nút; 0 = đang nhả
   uint32_t t_muted_at_   = 0;      // lúc bắt đầu tắt tiếng; 0 = đang kêu
+  AlarmLevel mute_lvl_   = AL_OK;  // mức lúc người dùng bấm tắt (xem update())
 };

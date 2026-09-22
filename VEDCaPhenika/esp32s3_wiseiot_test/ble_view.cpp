@@ -40,7 +40,6 @@ static String             sLast[N_CHAR];
 
 static void (*sMuteFn)(bool)  = nullptr;
 static void (*sQuietFn)(bool) = nullptr;
-static uint32_t sMuteUntil    = 0;      // 0 = không có hẹn giờ đang chạy
 
 /* Đặc tính lệnh. Chỉ nhận ĐÚNG bốn chuỗi — danh sách trắng, không phân tích
    cú pháp gì cả. Không có chỗ cho lệnh lạ lọt vào, và thêm lệnh mới thì phải
@@ -56,15 +55,17 @@ class CmdCb : public BLECharacteristicCallbacks {
 
     if (v == "mute on"  && sMuteFn)  {
       sMuteFn(true);
-      sMuteUntil = millis() + BLE_MUTE_TTL_MS;   // tự hết hạn
       /* KHÔNG hứa "5 phút": ở mức NGUY KỊCH hạn thật là 2 phút (QĐ-045) và
          CmdCb không biết mức hiện tại. Đo 22/09 trên máy thật: chip trả lời
          "TU BAT LAI sau 5 phut" rồi tự bật lại sau đúng 2 phút — con số đó là
          lời hứa sai với người đang đứng cạnh pack đang cháy. Nói chung chung
          và để app hiện đồng hồ đếm lùi thật từ `ttl` trong đặc tính 000A. */
-      reply = "da tat tieng - TU BAT LAI khi het han (xem dong ho tren app)";
+      /* Không nói con số ở đây: hạn phụ thuộc MỨC, mà CmdCb không biết mức.
+         Bất thường Lớp 1 thì tắt là tắt hẳn; mức NGUY KỊCH thì còi tự kêu lại
+         sau 2 phút để nhắc (QĐ-047). App hiện đồng hồ thật từ `ttl` (000A). */
+      reply = "da tat tieng (xem trang thai tren app)";
     } else if (v == "mute off" && sMuteFn)  {
-      sMuteFn(false);  sMuteUntil = 0;  reply = "da bat lai tieng";
+      sMuteFn(false);  reply = "da bat lai tieng";
     } else if (v == "quiet on"  && sQuietFn) {
       sQuietFn(true);  reply = "da chuyen sang bip thua";
     } else if (v == "quiet off" && sQuietFn) {
@@ -211,14 +212,18 @@ void BleView::onCommand(void (*mute_fn)(bool), void (*quiet_fn)(bool)) {
   sMuteFn = mute_fn; sQuietFn = quiet_fn;
 }
 
-/* Cho tắt tiếng từ BLE tự hết hạn. Lớp chặn số 3: im lặng không bao giờ vĩnh
-   viễn, kể cả khi bị lạm dụng — và người dùng thật cũng khỏi quên bật lại,
-   đúng cái bẫy đã gặp ngày 21/09 (tắt tiếng còn nguyên sang lần demo sau). */
-void BleView::tick() {
-  if (!sMuteUntil || (int32_t)(sMuteUntil - millis()) > 0) return;
-  sMuteUntil = 0;
-  if (sMuteFn) { sMuteFn(false); Serial.println("[BLE ] het han tat tieng - coi bat lai"); }
-}
+/* Trước đây hàm này cho tắt tiếng từ BLE tự hết hạn sau 5 phút — ở MỌI mức.
+   Bỏ đi (QĐ-047): tắt tiếng một bất thường Lớp 1 rồi 5 phút sau còi lại kêu là
+   đúng cái khiến người dùng tháo hẳn còi ra cho xong. Hạn giờ giờ chỉ còn ở mức
+   NGUY KỊCH và do alarm.cpp giữ (AL_CRIT_MUTE_TTL_MS), nên nó áp cho CẢ nút bấm
+   lẫn lệnh BLE thay vì chỉ một đường.
+
+   Đánh đổi: tắt tiếng ở mức BÁO ĐỘNG giờ kéo dài tới khi người dùng bật lại
+   hoặc mức leo thang. Bù lại bằng màn hình — app hiện "BẤT THƯỜNG CHƯA ĐƯỢC
+   XỬ LÝ" suốt thời gian đó, vì nó là lời nhắc duy nhất còn lại.
+
+   Giữ hàm rỗng để chỗ gọi trong .ino khỏi phải sửa. */
+void BleView::tick() {}
 
 bool BleView::connected()  const { return sServer && sServer->getConnectedCount() > 0; }
 int  BleView::clientCount() const { return sServer ? (int)sServer->getConnectedCount() : 0; }
@@ -305,15 +310,10 @@ void BleView::update(const float* temps, const CellAIResult& ai, AlarmLevel lvl,
   /* Trạng thái còi cho máy đọc. Gửi cả `lvl` để app biết có đang báo động
      thật không mà đổi màu nút cho đúng. */
   {
-    /* Hai hẹn giờ chạy song song và chúng KHÔNG thay nhau được: đường BLE hết
-       hạn sau 5 phút, còn mức NGUY KỊCH thì hết hạn sau 2 phút bất kể tắt bằng
-       đường nào (QĐ-045). Lấy cái SẮP HẾT TRƯỚC, vì đó mới là lúc còi kêu lại
-       — hiện số lớn hơn là hứa với người dùng một sự im lặng không có thật. */
-    const int32_t ble_ms = sMuteUntil ? (int32_t)(sMuteUntil - millis()) : 0;
-    const uint32_t ble_s = ble_ms > 0 ? (uint32_t)(ble_ms / 1000) : 0;
-    uint32_t left_s;
-    if (ble_s && crit_mute_left_s) left_s = ble_s < crit_mute_left_s ? ble_s : crit_mute_left_s;
-    else                           left_s = ble_s ? ble_s : crit_mute_left_s;
+    /* ttl = 0 nghĩa là KHÔNG có hẹn giờ nào: tắt tiếng kéo dài tới khi người
+       dùng bật lại hoặc mức leo thang. Chỉ mức NGUY KỊCH mới có hạn, và hạn đó
+       do alarm.cpp giữ nên áp cho cả nút bấm lẫn lệnh BLE. */
+    const uint32_t left_s = crit_mute_left_s;
 
     char c[96];
     snprintf(c, sizeof(c), "mute=%d quiet=%d lvl=%d ttl=%lu",

@@ -136,6 +136,7 @@ void Alarm::pollMute() {
 
   muted_ = !muted_;
   t_muted_at_ = muted_ ? millis() : 0;
+  if (muted_) mute_lvl_ = lvl_;
   Serial.printf("[ALRM] %s coi (giu nut %lu ms)\n",
                 muted_ ? "TAT TIENG" : "BAT LAI TIENG", (unsigned long)held);
 }
@@ -144,6 +145,7 @@ void Alarm::setMuted(bool m) {
   if (muted_ == m) return;
   muted_ = m;
   t_muted_at_ = m ? millis() : 0;
+  if (m) mute_lvl_ = lvl_;
   Serial.printf("[ALRM] %s coi (lenh tu xa)\n", m ? "TAT TIENG" : "BAT LAI TIENG");
 }
 
@@ -191,13 +193,24 @@ void Alarm::update(bool ai_alarm, bool ai_watch, float t_max, bool sensor_bad) {
   sensor_bad_ = sensor_bad;
 
   if (lvl_ != prev) {
-    // Leo thang thì huỷ tắt tiếng — xem quyết định (3) ở alarm.h. Người dùng
-    // tắt tiếng cảnh báo AI không có nghĩa là họ chấp nhận im lặng khi sau đó
-    // pin vượt 60 °C.
-    // Leo thang huỷ CẢ tắt tiếng lẫn bíp thưa. Người dùng chấp nhận nghe ít
-    // hơn khi AI nghi ngờ, không có nghĩa là họ chấp nhận nghe ít hơn khi pin
-    // đã vượt 60 °C.
-    if (lvl_ > prev) { muted_ = false; quiet_ = false; t_muted_at_ = 0; }
+    /* Huỷ tắt tiếng khi mức VƯỢT QUA MỨC LÚC NGƯỜI DÙNG BẤM TẮT — không phải
+       khi mức chỉ đơn thuần tăng so với vòng trước.
+
+       Bản cũ dùng `lvl_ > prev` và nó SAI trong thực tế. Đo 22/09 trên phần
+       cứng: điểm AI dao động quanh ngưỡng nên mức tụt xuống rồi lên lại
+       (BAO DONG -> OK -> THEO DOI -> BAO DONG), và mỗi lần lên lại đều bị tính
+       là leo thang. Còi kêu lại sau 98 giây dù người dùng đã tắt, cùng một sự
+       cố chưa hề nặng thêm. Tắt tiếng như vậy là vô dụng, và người dùng sẽ
+       tháo hẳn còi ra.
+
+       So với `mute_lvl_` thì BÁO ĐỘNG -> OK -> BÁO ĐỘNG giữ nguyên im lặng,
+       còn BÁO ĐỘNG -> NGUY KỊCH vẫn kêu ngay. Đúng ý: im lặng cho tới khi
+       tình hình thật sự XẤU ĐI. */
+    if (muted_ && lvl_ > mute_lvl_) {
+      muted_ = false; t_muted_at_ = 0;
+      Serial.println("[ALRM] nang muc so voi luc tat tieng - coi bat lai");
+    }
+    if (quiet_ && lvl_ > mute_lvl_) quiet_ = false;
     if (lvl_ >= AL_ALARM && prev < AL_ALARM) n_events_++;
     Serial.printf("[ALRM] %s -> %s%s\n",
                   prev == AL_OK ? "OK" : (prev == AL_WATCH ? "THEO DOI" :

@@ -29,7 +29,10 @@
  *   2. CHỈ TẮT TIẾNG, KHÔNG BẬT SƯỞI. Danh sách lệnh qua BLE chỉ có mute và
  *      quiet. Sưởi vẫn chỉ đi qua MQTT có tài khoản + công tắc chết người.
  *      Kẻ xấu ghép đôi được cũng không làm nóng được pack.
- *   3. TỰ HẾT HẠN. Tắt tiếng từ BLE tự hết sau BLE_MUTE_TTL_MS. Kể cả bị lạm
+ *   3. TỰ HẾT HẠN — CHỈ Ở MỨC NGUY KỊCH (QĐ-047). Trước đây tắt tiếng từ BLE
+ *      tự hết sau 5 phút ở MỌI mức; bỏ đi vì tắt tiếng một bất thường Lớp 1
+ *      rồi 5 phút sau còi lại kêu là đúng cái làm người dùng tháo còi ra cho
+ *      xong. Hạn giờ giờ nằm ở alarm.cpp nên áp cho cả nút bấm. Kể cả bị lạm
  *      dụng thì im lặng cũng không vĩnh viễn — và người dùng thật cũng khỏi
  *      quên bật lại, đúng cái bẫy đã gặp ngày 21/09.
  *

@@ -943,6 +943,14 @@ bool mqttTryConnect() {
     return false;
 }
 
+/* Đếm số lần nối MQTT hỏng LIÊN TIẾP. Xem khối tự cứu trong loop() (QĐ-048). */
+static uint16_t gMqttFails = 0;
+/* Với RECONNECT_MS = 5 s: ép nối lại Wi-Fi sau ~30 s, khởi động lại sau ~2 phút.
+   Đủ lâu để không phản ứng với một cú rớt mạng bình thường, đủ nhanh để không
+   ai kịp nhận ra trên sân khấu. */
+#define MQTT_FAILS_REWIFI   6
+#define MQTT_FAILS_REBOOT  24
+
 // ============================================================ setup / loop
 void setup() {
   /* Sưởi về LOW là lệnh ĐẦU TIÊN, trước cả Serial.begin(). Chân ESP32 lúc reset
@@ -1063,7 +1071,40 @@ void loop() {
   if (!mqtt.connected() && WiFi.status() == WL_CONNECTED &&
       now - lastReconnect >= RECONNECT_MS) {
     lastReconnect = now;
-    mqttTryConnect();
+    if (mqttTryConnect()) {
+      gMqttFails = 0;
+    } else {
+      gMqttFails++;
+      /* --------------------------------------------------------------------
+         TỰ CỨU KHI WI-FI "NÓI DỐI" (QĐ-048)
+
+         Đo được 2 lần ngày 22/09: WiFi.status() trả WL_CONNECTED, RSSI tốt,
+         nhưng máy khác KHÔNG ping tới được ESP32 và MQTT lặp rc=-2 hàng chục
+         phút. Vòng lặp cũ chỉ thử lại MQTT mãi mãi và KHÔNG BAO GIỜ đụng tới
+         Wi-Fi, vì điều kiện ở trên vẫn đúng. Không có nấc leo thang nào, nên
+         chỉ rút điện cắm lại mới chữa được.
+
+         Lần thứ hai nó xảy ra đúng lúc đang chạy thử: lệnh sưởi đi qua MQTT
+         nên cả bài thử đứng hình. Hôm thi thì đó là "mất cloud" cho tới khi
+         có người chạy lên sân khấu.
+
+         Hai nấc, cả hai đều AN TOÀN VỚI DỮ LIỆU: spool nằm trên flash nên
+         khởi động lại không mất gói nào (đang giữ 215 KB lúc đo).
+         -------------------------------------------------------------------- */
+      if (gMqttFails == MQTT_FAILS_REWIFI) {
+        Serial.printf("[NET ] %d lan lien tiep khong noi duoc MQTT du WiFi bao OK "
+                      "- ep noi lai WiFi\n", gMqttFails);
+        WiFi.disconnect();
+        wifiStart();
+      } else if (gMqttFails >= MQTT_FAILS_REBOOT) {
+        Serial.printf("[NET ] %d lan lien tiep van hong - KHOI DONG LAI "
+                      "(spool %u byte con nguyen tren flash)\n",
+                      gMqttFails, (unsigned)spoolSize());
+        Serial.flush();
+        delay(200);
+        ESP.restart();
+      }
+    }
   }
 
   if (mqtt.connected()) {

@@ -1618,3 +1618,91 @@ nó dựng từ `lvl` trong `000A`.
 
 **Grafana CHƯA song ngữ** — tiêu đề panel do `make_dashboard.py` sinh, vẫn tiếng
 Việt. Đó là màn cho quản lý đội xe, không phải màn đưa cho giám khảo cầm.
+
+## QĐ-047 — Tắt tiếng: vĩnh viễn ở bất thường Lớp 1, có hạn ở NGUY KỊCH (22/09/2026)
+
+**Chủ dự án quyết định.** Hai mức, hai hành vi khác hẳn nhau:
+
+| Mức | Tắt tiếng | Vì sao |
+|---|---|---|
+| THEO DÕI / BÁO ĐỘNG (Lớp 1) | **tắt hẳn**, tới khi người dùng bật lại hoặc mức leo thang | Tắt tiếng một cảnh báo AI rồi 5 phút sau còi lại kêu là đúng cái khiến người dùng **tháo hẳn còi ra** cho xong. Lúc đó mất luôn cả lớp báo động thật. |
+| NGUY KỊCH | **tự kêu lại sau 2 phút** | Vượt ngưỡng cứng 60 °C là chuyện đang xảy ra, không phải nghi ngờ. Im lặng chỉ để người ta nói chuyện được với nhau, không phải để quên. |
+
+**Bỏ hẳn hẹn giờ 5 phút của đường BLE.** Trước đây nó áp cho **mọi mức** và là
+đường duy nhất có hạn — nút bấm thì không có hạn nào. Nay hạn nằm ở
+`alarm.cpp` (`AL_CRIT_MUTE_TTL_MS`) nên **áp cho cả nút bấm lẫn lệnh BLE**, và
+chỉ ở mức NGUY KỊCH. Một cơ chế thay cho hai, và cơ chế còn lại là cơ chế đúng.
+
+**Cái giá, và cách trả.** Tắt tiếng ở mức BÁO ĐỘNG giờ kéo dài vô hạn — nguy cơ
+là người dùng quên. Bù bằng **màn hình**: app hiện
+`🔇 BẤT THƯỜNG CHƯA ĐƯỢC XỬ LÝ — còi đã tắt` ngay dưới băng trạng thái, suốt
+thời gian đó. Khi còi đã im, màn hình là **lời nhắc duy nhất còn lại**, nên nó
+phải nói thành câu chứ không chỉ là một biểu tượng loa gạch chéo.
+
+Ở mức NGUY KỊCH thì nói thêm *"còi sẽ kêu lại để nhắc"*, để người dùng biết sự
+im lặng này có hạn.
+
+**Chip không còn hứa con số nữa.** `CmdCb::onWrite` không biết mức hiện tại nên
+trả lời chung chung; đồng hồ đếm lùi thật lấy từ `ttl` trong đặc tính `000A`.
+Bản trước hứa "5 phút" rồi tự bật lại sau 2 phút — xem QĐ-045.
+
+### QĐ-047b — Luật "leo thang xoá tắt tiếng" phải so với MỨC LÚC BẤM TẮT
+
+Phát hiện khi **chạy thử thật**, không phải khi đọc code. Sau khi bỏ hẹn giờ 5
+phút, tắt tiếng ở mức BÁO ĐỘNG vẫn **kêu lại sau 98 giây**:
+
+```
+  4s  TAT TIENG coi
+ 27s  BAO DONG -> OK
+ 72s  OK -> THEO DOI
+101s  THEO DOI -> BAO DONG
+102s  coi: KEU              ← kêu lại, dù sự cố không hề nặng thêm
+```
+
+Nguyên nhân là luật cũ `if (lvl_ > prev) muted_ = false`. Điểm AI dao động
+quanh ngưỡng nên mức **tụt xuống rồi lên lại**, và mỗi lần lên lại đều bị tính
+là "leo thang". Với một sự cố dai dẳng thì tắt tiếng không bao giờ giữ được quá
+vài phút — đúng thứ khiến người dùng tháo hẳn còi ra.
+
+**Sửa:** nhớ `mute_lvl_` — mức tại lúc người dùng bấm tắt — và chỉ xoá tắt tiếng
+khi `lvl_ > mute_lvl_`.
+
+| Diễn biến | Trước | Sau |
+|---|---|---|
+| BÁO ĐỘNG → OK → BÁO ĐỘNG | còi kêu lại ❌ | vẫn im ✅ |
+| BÁO ĐỘNG → NGUY KỊCH | còi kêu lại ✅ | còi kêu lại ✅ |
+
+Ý nghĩa giữ nguyên và còn đúng hơn: im lặng cho tới khi tình hình **thật sự xấu
+đi**, chứ không phải tới khi con số nhấp nháy.
+
+**Bài học:** luật cũ đọc thì hợp lý và đã qua 11/11 ca bench. Cái nó thiếu là
+một tín hiệu **dao động** — bench chỉ có các mức đi lên đều. Chỉ phần cứng thật
+với điểm AI thật mới lộ ra.
+
+## QĐ-048 — Nấc tự cứu khi Wi-Fi "nói dối" (22/09/2026)
+
+**Đo được 2 lần trong ngày.** `WiFi.status()` trả `WL_CONNECTED`, RSSI −52 dBm,
+nhưng máy khác **không ping tới được** ESP32 và MQTT lặp `rc=-2` hàng chục phút.
+Lần thứ hai xảy ra **giữa lúc đang chạy thử** và chặn luôn bài thử, vì lệnh sưởi
+đi qua MQTT.
+
+**Nguyên nhân trong code:** vòng thử nối lại bị chặn bởi chính điều kiện
+`WiFi.status() == WL_CONNECTED`. Điều kiện đó vẫn đúng, nên nó thử lại MQTT mãi
+mãi và **không bao giờ đụng tới Wi-Fi**. Không có nấc leo thang nào — chỉ rút
+điện cắm lại mới chữa được.
+
+**Sửa:** đếm số lần hỏng liên tiếp rồi leo thang.
+
+| Mốc | Sau khoảng | Hành động |
+|---|---|---|
+| 6 lần | ~30 giây | `WiFi.disconnect()` + nối lại |
+| 24 lần | ~2 phút | `ESP.restart()` |
+
+Đủ lâu để không phản ứng với một cú rớt mạng bình thường, đủ nhanh để không ai
+kịp nhận ra trên sân khấu.
+
+**An toàn với dữ liệu:** spool nằm trên flash nên khởi động lại không mất gói
+nào — lúc đo đang giữ 215 KB.
+
+⚠️ **CHƯA chứng kiến nấc tự cứu chạy thật.** Lỗi xuất hiện ngẫu nhiên và nạp lại
+firmware đã vô tình chữa nó. Nếu tái hiện thì log có dòng `[NET ]`.

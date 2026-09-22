@@ -543,7 +543,16 @@ class MainActivity : android.app.Activity() {
         banner.text = L.level(stLevel)
         val color = when (stLevel) { 0 -> C_OK; 1 -> C_WATCH; 2 -> C_ALARM; else -> C_CRIT }
         (banner.parent as LinearLayout).background = round(color)
-        subBanner.text = if (stMuted) "🔇 " + L["buzzOff"] else ""
+        /* Còi tắt rồi thì màn hình là lời nhắc DUY NHẤT còn lại — nói rõ là
+           chưa xử lý, đừng chỉ hiện biểu tượng loa gạch chéo. Ở mức NGUY KỊCH
+           thì nói thêm rằng còi sẽ tự kêu lại, để người dùng biết im lặng này
+           có hạn. */
+        subBanner.text = when {
+            !stMuted -> ""
+            stLevel >= 3 -> "🔇 " + L["unresolved"] + " · " + L["critRemind"]
+            stLevel >= 1 -> "🔇 " + L["unresolved"]
+            else -> "🔇 " + L["buzzOff"]
+        }
     }
 
     private fun renderButtons() {
