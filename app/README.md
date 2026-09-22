@@ -6,14 +6,26 @@ Store, không máy chủ trung gian. Sửa gì thì tải lại là xong.
 ## Mở thế nào
 
 1. Điện thoại và máy chủ **cùng một mạng Wi-Fi** (chỉ cần để TẢI trang).
-2. Mở Chrome, vào `http://<IP máy chủ>:1880/hutieu/app` — hiện tại là
-   **`http://192.168.2.16:1880/hutieu/app`**. IP đổi theo mạng, xem bằng
-   `hostname -I`.
-3. **Khai báo origin tin cậy** (làm một lần trên mỗi điện thoại):
+2. Trên máy chủ, phục vụ thư mục này ra LAN:
+
+   ```bash
+   cd app && python3 -m http.server 8088 --bind $(ip -4 -br addr show wlo1 | awk '{print $3}' | cut -d/ -f1)
+   ```
+
+   ⚠️ **ĐỪNG mở cổng 1880 của Node-RED ra LAN để lấy trang này.** Bản cũ của
+   file hướng dẫn đúng như vậy và nó **vi phạm ràng buộc cứng #4** trong
+   `CLAUDE.md`: ai vào được 1880 là deploy được function node, tức chạy code
+   tuỳ ý trên máy chủ, mà Node-RED không có mật khẩu mặc định. Trang này là
+   **file tĩnh thuần**, không gọi mạng lần nào — phục vụ riêng là đủ và an
+   toàn.
+
+3. Mở Chrome, vào `http://<IP máy chủ>:8088/` — xem IP bằng `hostname -I`
+   (đổi theo mạng, nên đừng chép cứng vào slide).
+4. **Khai báo origin tin cậy** (làm một lần trên mỗi điện thoại):
    - Vào `chrome://flags/#unsafely-treat-insecure-origin-as-secure`
-   - Dán `http://192.168.2.16:1880` vào ô, chọn **Enabled**
+   - Dán `http://<IP máy chủ>:8088` vào ô, chọn **Enabled**
    - Bấm **Relaunch**
-4. Quay lại trang → **Kết nối tới pack** → chọn `HuTieu-BMS`.
+5. Quay lại trang → **Kết nối tới pack** → chọn `HuTieu-BMS`.
 
 Từ lúc kết nối xong, **dữ liệu không đi qua mạng nữa** — tắt Wi-Fi và 4G vẫn
 chạy. Mạng chỉ cần để tải trang.
@@ -44,14 +56,18 @@ Muốn bỏ bước này thì đưa trang lên một nơi có HTTPS (ví dụ Gi
 | Node-RED `/hutieu` | Người trình diễn, điều khiển sưởi | Có |
 | **App này** | Thợ / chủ xe đứng cạnh pack | **Không** |
 
-## Lớp 2 (RUL/SOH) không có ở đây — cố ý
+## Lớp 2 (RUL/SOH) — ĐÃ có ở đây, từ QĐ-043
 
-RUL/SOH hiện được tính **trên cloud**, và hồ sơ đã nộp ghi đúng như vậy
-(*"remaining-useful-life prediction in the cloud"*).
+Mục này từng ghi *"Lớp 2 không có ở đây — cố ý"*, và điều đó **hết đúng** từ
+khi chip tự tính được RUL/SOH: app đọc đặc tính BLE `0009` nên có số **kể cả
+khi mất mạng**. Cloud vẫn tính song song, kết quả trên chip đi kèm dưới tiền tố
+`ONB_*` để lệch nhau là nhìn ra ngay.
 
-⚠️ Lý do "làm mỏng phần WISE-IoT nên mất điểm" từng được viết ở đây là **SAI** —
+⚠️ Lý do "làm mỏng phần WISE-IoT nên mất điểm" từng được viết ở đây cũng **SAI** —
 barem thật không chấm nền tảng cloud (`docs/BAREM_CHAM_BAN_KET.md`).
 
-Về mặt sử dụng thì cũng không thiệt: RUL là thông tin **bảo dưỡng**, không phải
-thông tin khẩn cấp. Thứ cần ngay khi đứng cạnh pack là *cell nào đang có vấn
-đề* — và Lớp 1 chạy hoàn toàn trên thiết bị, có sẵn ở đây.
+**Đọc con số này phải kèm cảnh báo.** Hệ số đang là của NASA (18650 đơn,
+2,0 Ah) và chu kỳ sạc vẫn mô phỏng, nên app hiển thị cờ ngoại suy **trước** con
+số chứ không phải dưới nó. RUL là thông tin **bảo dưỡng**, không phải thông tin
+khẩn cấp — thứ cần ngay khi đứng cạnh pack vẫn là *cell nào đang có vấn đề*,
+và đó là Lớp 1.
