@@ -53,7 +53,7 @@ Ba lựa chọn, xếp theo mức khuyến nghị:
 - RUL không cần real-time. Chạy 1 lần/chu kỳ sạc hoặc 1 lần/ngày là quá đủ.
 - ESP32 chỉ cần đẩy lên ~10–20 con số tóm tắt sau mỗi chu kỳ sạc (dung lượng phóng, nhiệt độ đỉnh/trung bình, thời gian CC/CV, nội trở ước lượng). Vài trăm byte.
 - Cloud chạy LSTM/CNN-LSTM thoải mái, không giới hạn RAM.
-- **Bonus lớn cho cuộc thi:** điều này khiến WISE-IoT trở thành **nơi tính toán thật**, không chỉ là chỗ vẽ biểu đồ. Mà điểm bán kết/chung kết phụ thuộc lớn vào mức độ dùng WISE-IoT.
+- ~~**Bonus lớn cho cuộc thi:** ... điểm bán kết phụ thuộc lớn vào mức độ dùng WISE-IoT.~~ **LẬP LUẬN NÀY ĐÃ BỊ BÁC BỎ 22/09/2026** — barem thật không chấm nền tảng cloud, xem `docs/BAREM_CHAM_BAN_KET.md`. Các lý do kỹ thuật ở trên vẫn đứng vững; chỉ lý do "ăn điểm" là sai.
 
 **(B) Chạy RUL ngay trên ESP32**
 - Nghiên cứu 2025–2026 cho thấy khả thi: LSTM lượng hóa động cho RUL pin đạt **97,8 KB, inference 1,72 giây** trên ESP32.
@@ -71,7 +71,7 @@ Ba lựa chọn, xếp theo mức khuyến nghị:
 - Ít điểm hỏng hóc, ít nguồn điện, ít dây, dễ đóng hộp chống rung/chống nước
 - Pi 4 ăn 3–6W liên tục — không thể gắn trên xe máy điện chạy pin
 - Không cần quản lý OS, cập nhật, thẻ SD hỏng (thẻ SD Pi hỏng là lỗi kinh điển)
-- Đẩy tính toán lên WISE-IoT → **tăng điểm thi**
+- ~~Đẩy tính toán lên WISE-IoT → **tăng điểm thi**~~ — **SAI**, barem không chấm chuyện này (`docs/BAREM_CHAM_BAN_KET.md`)
 
 **Bỏ Pi — hại:**
 - ESP32 nối trực tiếp WISE-IoT IoT Hub cần MQTT over TLS + đúng định dạng payload của WISE-PaaS — **cần thử nghiệm sớm, có rủi ro tốn thời gian**. Đây là rủi ro kỹ thuật lớn nhất của phương án này.

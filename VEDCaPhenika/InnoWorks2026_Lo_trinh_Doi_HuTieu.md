@@ -30,7 +30,7 @@
 
 1. **Chứng chỉ WISE-IoT bắt buộc:** đội qua Sơ loại phải tự học và lấy chứng chỉ WISE-IoT trên Advantech IoT Academy để đủ điều kiện vào Bán kết. → Làm NGAY trong tuần này.
 2. **Phải có hoạt động trên tài khoản WISE-IoT (tối thiểu 1 Dashboard) chậm nhất 2 tuần trước Bán kết (~01/09/2026).** Không có hoạt động = bị hủy tài khoản và loại.
-3. **Điểm Bán kết/Chung kết phụ thuộc lớn vào mức độ dùng WISE-IoT.** → WISE-IoT phải là lớp cloud thật, không phải để "cho có".
+3. ~~**Điểm Bán kết/Chung kết phụ thuộc lớn vào mức độ dùng WISE-IoT.**~~ **SAI — đã đính chính 22/09/2026.** Barem thật (`docs/PHIẾU CHẤM BÁN KẾT AIOT.docx`, chép lại ở `docs/BAREM_CHAM_BAN_KET.md`) **không nhắc tới WISE-IoT một lần nào**. Mục 1 và 2 ở trên vẫn đúng — đó là **điều kiện dự thi**, không phải thang điểm.
 
 **Suy ra ưu tiên 1 tháng tới:** (a) lấy chứng chỉ, (b) đẩy được dữ liệu thật/giả lập lên WISE-IoT và dựng dashboard, (c) có 2 mô hình AI chạy được (dù chưa tối ưu). Tối ưu độ chính xác để dành cho giai đoạn Chung kết.
 
@@ -237,7 +237,7 @@ Mua ở: các cửa hàng linh kiện điện tử VN (Hshop, Nshop, ICdayroi, �
 
 ## 9. Tiêu chí chấm & mẹo ghi điểm
 
-- **WISE-IoT chiếm phần lớn điểm Bán kết/Chung kết** → dashboard phải đẹp, dữ liệu chạy thật, dùng đúng dịch vụ WISE-IoT (IoT Hub + Dashboard).
+- ⚠️ **PHẦN NÀY ĐÃ LỖI THỜI.** Barem thật ở **`docs/BAREM_CHAM_BAN_KET.md`** — đọc file đó, đừng dùng mục này. Cụ thể: ~~"WISE-IoT chiếm phần lớn điểm"~~ là **SAI**, barem không có mục nào chấm nền tảng cloud. Mục nặng nhất là **"tính khả thi và mức độ hoàn thiện" (15đ)**, và **25đ nằm ở thuyết trình/phản biện/làm việc nhóm**.
 - **Mô hình kinh doanh + ROI rõ ràng:** đội vô địch 2025 (VGU) thắng nhờ ROI cụ thể. Chuẩn bị con số: chi phí module ~300–500k + 50k/tháng SaaS vs. chi phí thay pin 3–10 triệu → tiết kiệm/ngăn cháy.
 - **Edge AI thật:** nhấn mạnh hệ thống chạy được **khi mất mạng** (inference tại thiết bị) — điểm khác biệt so với giải pháp chỉ-cloud.
 - **Demo trực quan:** có kịch bản "cell nóng bất thường → cảnh báo sớm" chạy live.

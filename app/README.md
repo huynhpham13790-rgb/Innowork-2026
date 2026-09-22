@@ -46,10 +46,11 @@ Muốn bỏ bước này thì đưa trang lên một nơi có HTTPS (ví dụ Gi
 
 ## Lớp 2 (RUL/SOH) không có ở đây — cố ý
 
-RUL/SOH được tính **trên cloud**, và hồ sơ đã nộp ghi đúng như vậy
-(*"remaining-useful-life prediction in the cloud"*). Đưa nó xuống thiết bị sẽ
-mâu thuẫn với văn bản đã gửi, và làm mỏng đi phần WISE-IoT — mà
-`KHUNG_NGHIEN_CUU_v2` §1 nói rõ điểm thi phụ thuộc lớn vào mức độ dùng WISE-IoT.
+RUL/SOH hiện được tính **trên cloud**, và hồ sơ đã nộp ghi đúng như vậy
+(*"remaining-useful-life prediction in the cloud"*).
+
+⚠️ Lý do "làm mỏng phần WISE-IoT nên mất điểm" từng được viết ở đây là **SAI** —
+barem thật không chấm nền tảng cloud (`docs/BAREM_CHAM_BAN_KET.md`).
 
 Về mặt sử dụng thì cũng không thiệt: RUL là thông tin **bảo dưỡng**, không phải
 thông tin khẩn cấp. Thứ cần ngay khi đứng cạnh pack là *cell nào đang có vấn

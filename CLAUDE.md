@@ -26,6 +26,7 @@ Bán kết: **26/09/2026**. Mọi quyết định kỹ thuật đều bị chi p
 | Requirement nối tới code/test ở đâu | `docs/RTM.md` |
 | Phương án cloud dự phòng | `VEDCaPhenika/PLAN_B_CLOUD.md` |
 | **Hồ sơ + slide Bán kết: dùng sao, còn thiếu gì** | `docs/HUONG_DAN_HO_SO_VA_SLIDE_BAN_KET.md` |
+| **Thi được chấm theo cái gì — ĐỌC TRƯỚC KHI LẬP LUẬN VỀ "ĐIỂM"** | `docs/BAREM_CHAM_BAN_KET.md` |
 
 ---
 
@@ -35,7 +36,8 @@ Bán kết: **26/09/2026**. Mọi quyết định kỹ thuật đều bị chi p
 2. **KHÔNG bỏ ghim version image** trong `planb_cloud/docker-compose.yml`. Ba tag đã ghim đều có lý do ghi ngay tại chỗ (`eclipse-mosquitto:2.0.22`, `influxdb:2.7`, `nodered/node-red:4.1`). Nâng lên là hỏng.
 3. **KHÔNG commit secret.** `.env`, `mosquitto/passwd`, credential key WISE-IoT. `.gitignore` đã chặn — đừng dùng `git add -f` để lách.
 4. **KHÔNG mở Node-RED (1880) hay InfluxDB (8086) ra 0.0.0.0.** Node-RED không có mật khẩu mặc định; mở ra là mất máy chủ. Chỉ 1883 (MQTT, có auth) và 3000 (Grafana, có auth) được ra ngoài.
-5. **KHÔNG dùng `ts` do server tự đóng dấu.** Timestamp phải do ESP32 sinh, vì màn demo store-and-forward phụ thuộc vào nó.
+5. **KHÔNG lập luận về "điểm thi" từ trí nhớ hay từ tài liệu cũ của đội.** Barem duy nhất đúng là `docs/BAREM_CHAM_BAN_KET.md`, chép từ phiếu chấm của BTC. Đội đã từng tự suy ra "WISE-IoT chiếm phần lớn điểm" và lấy đó làm căn cứ cho nhiều quyết định kiến trúc — barem thật **không nhắc tới WISE-IoT một lần nào**. Chọn kỹ thuật theo kỹ thuật.
+6. **KHÔNG dùng `ts` do server tự đóng dấu.** Timestamp phải do ESP32 sinh, vì màn demo store-and-forward phụ thuộc vào nó.
 
 ## Gate — phải dừng lại hỏi người
 

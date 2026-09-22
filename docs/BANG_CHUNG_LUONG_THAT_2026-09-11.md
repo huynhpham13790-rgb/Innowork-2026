@@ -22,8 +22,9 @@ Vì sao chia như vậy:
 - RUL không cần real-time — 1 lần mỗi chu kỳ sạc là đủ
 - Đổi mô hình không phải nạp lại firmware. Quan trọng, vì mô hình **còn phải
   hiệu chỉnh lại** cho pack thật (xem §4)
-- Cloud thành nơi tính toán thật, không chỉ là chỗ vẽ biểu đồ — đúng thứ
-  WISE-IoT được chấm điểm
+- ~~Cloud thành nơi tính toán thật ... đúng thứ WISE-IoT được chấm điểm~~
+  **SAI, đính chính 22/09/2026:** barem không chấm nền tảng cloud
+  (`docs/BAREM_CHAM_BAN_KET.md`). Hai lý do kỹ thuật ở trên vẫn đúng.
 
 Mô hình chỉ là **tích vô hướng** (RUL: 2 tham số; SOH: 10), nên nhúng thẳng hệ
 số vào một node function của Node-RED. Không thêm container, không thêm phụ

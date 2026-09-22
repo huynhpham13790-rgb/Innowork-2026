@@ -102,9 +102,11 @@ Dữ liệu vẫn phải tới NGƯỜI DÙNG A ở văn phòng. BLE chỉ thay 
 `ESP32 → internet` bằng `ESP32 → điện thoại → internet`. Cloud vẫn còn nguyên,
 và giờ phụ thuộc thêm một thiết bị nữa có mặt hay không.
 
-**3. Lộ trình nói rõ điểm Bán kết phụ thuộc lớn vào mức độ dùng WISE-IoT.**
-Đây là ràng buộc cứng của cuộc thi. Phương án nào làm dữ liệu lên cloud trở nên
-đứt quãng là tự bỏ điểm.
+**3.** ~~Lộ trình nói rõ điểm Bán kết phụ thuộc lớn vào mức độ dùng WISE-IoT.~~
+**SAI — đính chính 22/09/2026**, xem `docs/BAREM_CHAM_BAN_KET.md`. Lý do thật
+vẫn còn: NGƯỜI DÙNG A ngồi ở văn phòng nên **bắt buộc** phải có cloud, và
+phương án nào làm dữ liệu lên cloud đứt quãng là bỏ rơi đúng khách hàng chính.
+Đó là lý do sản phẩm, không phải lý do điểm thi.
 
 ### Kết luận
 
