@@ -76,6 +76,15 @@ Nạp `hw_bringup_6s` (board cắm cổng USB-Serial-JTAG, `/dev/ttyACM0`):
 FQBN="esp32:esp32:esp32s3:USBMode=hwcdc,CDCOnBoot=default,PSRAM=opi,FlashSize=16M"
 ```
 
+⚠️ FQBN trên là của `hw_bringup_6s`. Sketch chính `esp32s3_wiseiot_test` phải
+thêm **`PartitionScheme=default_8MB`**, nếu không build trượt với
+`text section exceeds available space in board` — app đã 1,37 MB, không lọt
+phân vùng mặc định:
+
+```
+FQBN="esp32:esp32:esp32s3:USBMode=hwcdc,CDCOnBoot=default,PSRAM=opi,FlashSize=16M,PartitionScheme=default_8MB"
+```
+
 ⚠️ `CDCOnBoot=cdc` **nạp được, chạy được, nhưng serial câm tịt**. Máy này không
 có `arduino-cli` trên PATH; bản đi kèm nằm trong AppImage của Arduino IDE
 (`--appimage-extract`).

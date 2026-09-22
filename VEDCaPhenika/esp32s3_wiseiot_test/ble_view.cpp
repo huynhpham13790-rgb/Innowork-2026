@@ -164,7 +164,11 @@ bool BleView::begin(const char* device_id) {
   Serial.printf("[BLE ] quang ba \"%s\" (%s), RAM ton %u byte, con trong %u\n",
                 BLE_DEV_NAME, device_id,
                 (unsigned)(heap0 - ESP.getFreeHeap()), (unsigned)ESP.getFreeHeap());
-  Serial.println("[BLE ] doc bang nRF Connect - CHI DOC, khong co lenh ghi nao");
+  /* Dòng này từng ghi "CHI DOC, khong co lenh ghi nao" và đã thành SAI từ lúc
+     thêm đặc tính lệnh 0008. Log sai nguy hiểm hơn không log: người soi bảo mật
+     đọc được câu đó sẽ kết luận thiết bị không có bề mặt ghi nào, rồi thôi. */
+  Serial.println("[BLE ] doc bang nRF Connect. 7 dac tinh CHI DOC + 1 dac tinh "
+                 "LENH (tat coi) - ghi doi ghep doi co PIN");
   return true;
 }
 

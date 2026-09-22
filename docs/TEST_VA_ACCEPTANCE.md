@@ -106,7 +106,7 @@ Ký hiệu: ✅ đã kiểm chứng · ⬜ chưa làm · 🔶 làm rồi nhưng 
 | 6.20 | Lớp 1 im lặng khi 8 cell cùng nhiệt độ | 0/251 mẫu báo động; điểm 0,32 vs ngưỡng 1,85 | ✅ 14/09 |
 | 6.21 | `runAI()` và `publishData()` dùng chung một bộ số đo | `sampleCellTemps()` | ✅ 14/09 |
 
-## AC-07 — Lớp 2: Dự báo tuổi thọ (RUL/SOH) trên cloud
+## AC-07 — Lớp 2: Dự báo tuổi thọ (RUL/SOH), chạy ở CẢ cloud và chip
 
 | # | Tiêu chí | Cách kiểm | Trạng thái |
 |---|---|---|---|
@@ -121,6 +121,13 @@ Ký hiệu: ✅ đã kiểm chứng · ⬜ chưa làm · 🔶 làm rồi nhưng 
 | 7.9 | Bản C của đặc trưng sạc khớp bản Python | `test_charge_cycle.py` | ✅ 11/09 |
 | 7.10 | Cảnh báo khi mô hình ngoại suy | cờ `Extrapolating` + log | ✅ 11/09 |
 | 7.11 | Hiệu chỉnh lại hệ số trên pack THẬT của đội | — | ⬜ **bắt buộc trước khi tin con số RUL** |
+| 7.12 | Chip tự tính RUL/SOH khi mất mạng | log `[RUL ] tren chip` trên board thật | ✅ 22/09 |
+| 7.13 | Chip và cloud ra CÙNG một số | `test_rul_c_vs_js.py`, 500 chu kỳ, lệch 3,2e-5 | ✅ 22/09 |
+| 7.14 | Kết quả trên chip lên tới cloud (`ONB_*`) | bắt bằng `mosquitto_sub` | ✅ 22/09 |
+| 7.15 | Lịch sử chu kỳ sống qua mất điện | reset cứng → `lich su: 7 chu ky` | ✅ 22/09 |
+| 7.16 | Không báo xu hướng khi chưa đủ dữ liệu | `ONB_SOH_Slope` vắng ở n=2, có ở n=3 | ✅ 22/09 |
+
+Bằng chứng 7.12–7.16: `docs/BANG_CHUNG_LOP2_TREN_CHIP_2026-09-22.md`.
 
 ---
 
