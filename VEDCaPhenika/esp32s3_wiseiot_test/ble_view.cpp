@@ -57,7 +57,12 @@ class CmdCb : public BLECharacteristicCallbacks {
     if (v == "mute on"  && sMuteFn)  {
       sMuteFn(true);
       sMuteUntil = millis() + BLE_MUTE_TTL_MS;   // tự hết hạn
-      reply = "da tat tieng - TU BAT LAI sau 5 phut";
+      /* KHÔNG hứa "5 phút": ở mức NGUY KỊCH hạn thật là 2 phút (QĐ-045) và
+         CmdCb không biết mức hiện tại. Đo 22/09 trên máy thật: chip trả lời
+         "TU BAT LAI sau 5 phut" rồi tự bật lại sau đúng 2 phút — con số đó là
+         lời hứa sai với người đang đứng cạnh pack đang cháy. Nói chung chung
+         và để app hiện đồng hồ đếm lùi thật từ `ttl` trong đặc tính 000A. */
+      reply = "da tat tieng - TU BAT LAI khi het han (xem dong ho tren app)";
     } else if (v == "mute off" && sMuteFn)  {
       sMuteFn(false);  sMuteUntil = 0;  reply = "da bat lai tieng";
     } else if (v == "quiet on"  && sQuietFn) {

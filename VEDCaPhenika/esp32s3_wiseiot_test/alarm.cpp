@@ -62,6 +62,11 @@ void Alarm::setLed(uint8_t r, uint8_t g, uint8_t b) {
 void Alarm::setBuzzer(bool on) {
   if (on == buzz_on_) return;          // tránh ghi chân mỗi vòng lặp vô ích
   buzz_on_ = on;
+  /* In MỖI LẦN ĐỔI trạng thái còi. Nhờ hàng rào ở trên, đây là vài dòng mỗi
+     phút chứ không phải mỗi vòng lặp. Không có dòng này thì "còi có thật sự im
+     không" chỉ suy được từ logic, mà logic tắt tiếng chính là chỗ đã sai ba
+     lần rồi (21/09) — và cả ba lần đều trông đúng khi đọc code. */
+  Serial.printf("[ALRM] coi: %s\n", on ? "KEU" : "IM");
   if (AL_PIN_BUZZER < 0) return;
 #if AL_BUZZER_ACTIVE
   digitalWrite(AL_PIN_BUZZER, on ? HIGH : LOW);

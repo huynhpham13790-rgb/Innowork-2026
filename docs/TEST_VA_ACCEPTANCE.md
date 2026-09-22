@@ -145,3 +145,20 @@ arduino-cli compile --fqbn esp32:esp32:esp32s3:PartitionScheme=default_8MB,Flash
 ```
 
 **Test đường truyền cloud (cần Docker):** làm theo `VEDCaPhenika/PLAN_B_CLOUD.md`, rồi bắn thử một gói bằng `mosquitto_pub` và query lại InfluxDB. Các bước cụ thể và kết quả mong đợi nằm trong `docs/BANG_CHUNG_KIEM_THU_2026-09-06.md`.
+
+## AC-08 — Tắt tiếng ở mức NGUY KỊCH và song ngữ (QĐ-045, QĐ-046)
+
+| # | Tiêu chí | Cách kiểm | Trạng thái |
+|---|---|---|---|
+| 8.1 | Vào được mức NGUY KỊCH | hạ tạm ngưỡng xuống 27 °C | ✅ 22/09 |
+| 8.2 | Còi kêu ở mức NGUY KỊCH | log `[ALRM] coi: KEU` | ✅ 22/09 |
+| 8.3 | Tắt được tiếng từ app ở mức NGUY KỊCH | log `coi: IM` | ✅ 22/09 |
+| 8.4 | Tự bật lại sau 2 phút | log `het han tat tieng o muc NGUY KICH` | ✅ 22/09 |
+| 8.5 | Ngưỡng đã trả về 60 °C sau khi thử | MQTT `Alarm_Level = 0` @ 27,7 °C | ✅ 22/09 |
+| 8.6 | Nút trên app phản ánh trạng thái chip | đặc tính `000A`, đếm lùi 4:54 | ✅ 22/09 |
+| 8.7 | App song ngữ Việt/Anh | ảnh chụp cả hai ngôn ngữ | ✅ 22/09 |
+| 8.8 | Dashboard song ngữ | `/hutieu`, nhớ trong localStorage | ✅ 22/09 |
+| 8.9 | Grafana bản tiếng Anh | `make_dashboard.py --lang en` → `hutieu-pin-en` | ✅ 22/09 |
+| 8.10 | Thử ở **60 °C thật** bằng sưởi | — | ⬜ **chưa** — bài 8.1 xác nhận đường đi, không xác nhận ngưỡng |
+
+Bằng chứng: `docs/BANG_CHUNG_NGUY_KICH_2026-09-22.md`.

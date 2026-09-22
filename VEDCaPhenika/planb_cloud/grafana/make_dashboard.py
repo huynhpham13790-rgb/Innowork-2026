@@ -80,7 +80,7 @@ def thresholds(steps):
     return {"mode": "absolute", "steps": steps}
 
 
-def main():
+def main(lang="vi"):
     P = []
     pid = 0
 
@@ -331,7 +331,20 @@ def main():
         "panels": P,
     }
 
-    out = HERE / "dashboards" / "hutieu-pin.json"
+    # --- Bản tiếng Anh: CÙNG bố cục, CÙNG truy vấn, chỉ khác chữ (QĐ-046).
+    #     Grafana không đổi được ngôn ngữ theo người xem — tiêu đề panel là chuỗi
+    #     tĩnh trong JSON — nên bản tiếng Anh phải là một dashboard thứ hai. Sinh
+    #     từ cùng mã nguồn thì hai bản không bao giờ lệch nhau về bố cục.
+    if lang == "en":
+        import i18n_en
+        miss = i18n_en.translate(dash)
+        if miss:
+            print(f"⚠️ {miss} chuoi chua co ban dich — xem canh bao o tren")
+        name = "hutieu-pin-en"
+    else:
+        name = "hutieu-pin"
+
+    out = HERE / "dashboards" / f"{name}.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(dash, ensure_ascii=False, indent=2))
     print(f"da ghi {out}  ({len(P)} panel)")
@@ -352,4 +365,6 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # --lang en sinh THÊM bản tiếng Anh; không có cờ thì giữ nguyên hành vi cũ.
+    lang = "en" if "--lang" in sys.argv and "en" in sys.argv else "vi"
+    main(lang)

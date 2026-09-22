@@ -1,0 +1,1151 @@
+{
+  "uid": "hutieu-pin-en",
+  "title": "Hu Tieu — 6S battery pack monitoring",
+  "tags": [
+    "hutieu",
+    "pin"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "refresh": "5s",
+  "time": {
+    "from": "now-30m",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "PACK STATUS",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "cfxg34mlaudxce"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 6,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "cfxg34mlaudxce"
+          },
+          "query": "from(bucket: \"battery\")\n  |> range(start: -6h)\n  |> filter(fn: (r) => r._measurement == \"cell\" and r._field == \"value\" and r.tag == \"Alarm_Level\")\n  |> last()",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "text": {
+          "valueSize": 40
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "SAFE",
+                  "color": "green",
+                  "index": 0
+                },
+                "1": {
+                  "text": "WATCH",
+                  "color": "yellow",
+                  "index": 1
+                },
+                "2": {
+                  "text": "ALARM",
+                  "color": "orange",
+                  "index": 2
+                },
+                "3": {
+                  "text": "CRITICAL",
+                  "color": "red",
+                  "index": 3
+                }
+              }
+            }
+          ],
+          "noValue": "LINK LOST",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "description": "Escalation level from alarm.cpp. No data = the ESP32 is offline, NOT that all is well."
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Suspect cell",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "cfxg34mlaudxce"
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 0,
+        "w": 4,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "cfxg34mlaudxce"
+          },
+          "query": "from(bucket: \"battery\")\n  |> range(start: -6h)\n  |> filter(fn: (r) => r._measurement == \"cell\" and r._field == \"value\" and r.tag == \"AI_WorstCell\")\n  |> last()",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "text": {
+          "valueSize": 48
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "noValue": "—",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "description": "Cell with the largest reconstruction error. Only meaningful when PACK STATUS is not normal."
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Hottest cell",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "cfxg34mlaudxce"
+      },
+      "gridPos": {
+        "x": 10,
+        "y": 0,
+        "w": 5,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "cfxg34mlaudxce"
+          },
+          "query": "from(bucket: \"battery\")\n  |> range(start: -6h)\n  |> filter(fn: (r) => r._measurement == \"cell\" and r._field == \"value\" and r.tag =~ /^Cell0[1-6]_Temp$/)\n  |> last()\n  |> group()\n  |> max()",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "text": {
+          "valueSize": 48
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "celsius",
+          "decimals": 1,
+          "noValue": "—",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 45
+              },
+              {
+                "color": "orange",
+                "value": 55
+              },
+              {
+                "color": "red",
+                "value": 60.0
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "description": "Red from 60.0 °C — a hard limit, entirely independent of the AI."
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Healthy sensors",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "cfxg34mlaudxce"
+      },
+      "gridPos": {
+        "x": 15,
+        "y": 0,
+        "w": 4,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "cfxg34mlaudxce"
+          },
+          "query": "from(bucket: \"battery\")\n  |> range(start: -6h)\n  |> filter(fn: (r) => r._measurement == \"cell\" and r._field == \"value\" and r.tag == \"Sensor_Healthy\")\n  |> last()",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "text": {
+          "valueSize": 48
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "max": 6,
+          "noValue": "0",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 5
+              },
+              {
+                "color": "green",
+                "value": 6
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "description": "Out of 6 (QĐ-036). Fewer than 6 means the data is INCOMPLETE — see docs/HAI_LOP_AI."
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Current/voltage: REAL?",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "cfxg34mlaudxce"
+      },
+      "gridPos": {
+        "x": 19,
+        "y": 0,
+        "w": 5,
+        "h": 5
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "cfxg34mlaudxce"
+          },
+          "query": "from(bucket: \"battery\")\n  |> range(start: -6h)\n  |> filter(fn: (r) => r._measurement == \"cell\" and r._field == \"value\" and r.tag == \"Meter_IsReal\")\n  |> last()",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "text": {
+          "valueSize": 28
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "1": {
+                  "text": "REAL MEASUREMENT",
+                  "color": "green",
+                  "index": 0
+                },
+                "0": {
+                  "text": "STILL ASSUMED",
+                  "color": "red",
+                  "index": 1
+                }
+              }
+            }
+          ],
+          "noValue": "STILL ASSUMED",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "description": "0 = no INA228 yet; current and SoC are assumed constants. Do not trust the Layer 2 charts."
+    },
+    {
+      "id": 6,
+      "type": "bargauge",
+      "title": "Layer 1 — Per-cell temperature right now",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "cfxg34mlaudxce"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 5,
+        "w": 10,
+        "h": 9
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "cfxg34mlaudxce"
+          },
+          "query": "from(bucket: \"battery\")\n  |> range(start: -6h)\n  |> filter(fn: (r) => r._measurement == \"cell\" and r._field == \"value\" and r.tag =~ /^Cell0[1-6]_Temp$/)\n  |> last()\n  |> keep(columns: [\"_value\",\"tag\"])",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "displayMode": "gradient",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": true
+        },
+        "showUnfilled": true,
+        "minVizHeight": 16
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "celsius",
+          "decimals": 2,
+          "min": 15,
+          "max": 65,
+          "displayName": "${__field.labels.tag}",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 45
+              },
+              {
+                "color": "orange",
+                "value": 55
+              },
+              {
+                "color": "red",
+                "value": 60.0
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "description": "A SPATIAL comparison across the 6 cells at one instant — the odd cell stands out immediately, instead of reading 6 overlapping lines."
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Layer 1 — Per-cell anomaly score",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "cfxg34mlaudxce"
+      },
+      "gridPos": {
+        "x": 10,
+        "y": 5,
+        "w": 14,
+        "h": 9
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "cfxg34mlaudxce"
+          },
+          "query": "from(bucket: \"battery\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"cell\" and r._field == \"value\" and r.tag =~ /^AI_Score0[1-6]$/)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> keep(columns: [\"_time\",\"_value\",\"tag\"])",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 3,
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "thresholdsStyle": {
+              "mode": "line"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1.0707
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "description": "Red line = the 1.0707 threshold. Crossing it must PERSIST for 60 seconds to raise an alarm — this rejects noise-driven false alarms."
+    },
+    {
+      "id": 8,
+      "type": "stat",
+      "title": "Layer 1 — Anomaly PATTERN",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "cfxg34mlaudxce"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 14,
+        "w": 9,
+        "h": 6
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "cfxg34mlaudxce"
+          },
+          "query": "from(bucket: \"battery\")\n  |> range(start: -6h)\n  |> filter(fn: (r) => r._measurement == \"cell\" and r._field == \"value\" and r.tag == \"AI_Pattern\")\n  |> last()",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "text": {
+          "valueSize": 22
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "Pattern unclear",
+                  "color": "green",
+                  "index": 0
+                },
+                "1": {
+                  "text": "HEATING FAST (TH-1)",
+                  "color": "red",
+                  "index": 1
+                },
+                "2": {
+                  "text": "Hotter but steady (TH-2)",
+                  "color": "orange",
+                  "index": 2
+                },
+                "3": {
+                  "text": "Abnormally COLD (TH-3)",
+                  "color": "orange",
+                  "index": 3
+                }
+              }
+            }
+          ],
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "description": "Looks up cases TH-1/2/3 from three already-computed features (dev_mean, dT_diff, dev_shock). This classifies the PATTERN, it does NOT diagnose a cause — the model was never taught the name of any fault. See QĐ-042."
+    },
+    {
+      "id": 9,
+      "type": "stat",
+      "title": "What to do",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "cfxg34mlaudxce"
+      },
+      "gridPos": {
+        "x": 9,
+        "y": 14,
+        "w": 8,
+        "h": 6
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "cfxg34mlaudxce"
+          },
+          "query": "from(bucket: \"battery\")\n  |> range(start: -6h)\n  |> filter(fn: (r) => r._measurement == \"cell\" and r._field == \"value\" and r.tag == \"AI_Pattern\")\n  |> last()",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "text": {
+          "valueSize": 18
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "Keep watching",
+                  "color": "green",
+                  "index": 0
+                },
+                "1": {
+                  "text": "STOP CHARGE · STOP LOAD · ISOLATE PACK",
+                  "color": "red",
+                  "index": 1
+                },
+                "2": {
+                  "text": "Log it, check at next service",
+                  "color": "orange",
+                  "index": 2
+                },
+                "3": {
+                  "text": "Check cell joints and the sensor",
+                  "color": "orange",
+                  "index": 3
+                }
+              }
+            }
+          ],
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "description": "Taken verbatim from the table in docs/HAI_LOP_AI_HOAT_DONG_THE_NAO.md. Telling TH-1 from TH-2 is the difference between isolating the pack now and noting it for tomorrow."
+    },
+    {
+      "id": 10,
+      "type": "stat",
+      "title": "The three numbers behind it",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "cfxg34mlaudxce"
+      },
+      "gridPos": {
+        "x": 17,
+        "y": 14,
+        "w": 7,
+        "h": 6
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "cfxg34mlaudxce"
+          },
+          "query": "from(bucket: \"battery\")\n  |> range(start: -6h)\n  |> filter(fn: (r) => r._measurement == \"cell\" and r._field == \"value\" and r.tag == \"AI_Dev\")\n  |> last()",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "cfxg34mlaudxce"
+          },
+          "query": "from(bucket: \"battery\")\n  |> range(start: -6h)\n  |> filter(fn: (r) => r._measurement == \"cell\" and r._field == \"value\" and r.tag == \"AI_DtDiff\")\n  |> last()",
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "cfxg34mlaudxce"
+          },
+          "query": "from(bucket: \"battery\")\n  |> range(start: -6h)\n  |> filter(fn: (r) => r._measurement == \"cell\" and r._field == \"value\" and r.tag == \"AI_Shock\")\n  |> last()",
+          "refId": "C"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value_and_name",
+        "colorMode": "none",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "vertical",
+        "text": {
+          "valueSize": 16,
+          "titleSize": 12
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 2
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "A"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Offset vs pack (°C)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Faster than pack (°C/min)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "C"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Sudden vs baseline (°C)"
+              }
+            ]
+          }
+        ]
+      },
+      "description": "The raw numbers sit next to the advice so a human can still CHECK it."
+    },
+    {
+      "id": 11,
+      "type": "gauge",
+      "title": "Layer 2 — SOH (pack health)",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "cfxg34mlaudxce"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 20,
+        "w": 6,
+        "h": 7
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "cfxg34mlaudxce"
+          },
+          "query": "from(bucket: \"battery\")\n  |> range(start: -6h)\n  |> filter(fn: (r) => r._measurement == \"cell\" and r._field == \"value\" and r.tag == \"SOH_Percent\")\n  |> last()",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 60,
+          "max": 100,
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 80
+              },
+              {
+                "color": "green",
+                "value": 90
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "description": "SOH at PACK level, not per cell — a series pack lives or dies by its weakest cell (QĐ-027). 80 % is the usual end-of-automotive-life mark."
+    },
+    {
+      "id": 12,
+      "type": "timeseries",
+      "title": "Layer 2 — RUL: cycles remaining",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "cfxg34mlaudxce"
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 20,
+        "w": 12,
+        "h": 7
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "cfxg34mlaudxce"
+          },
+          "query": "from(bucket: \"battery\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"cell\" and r._field == \"value\" and r.tag =~ /^RUL_Cycles$/)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> keep(columns: [\"_time\",\"_value\",\"tag\"])",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": {
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10
+          }
+        },
+        "overrides": []
+      },
+      "description": "Linear regression on t_cv (time spent in the constant-voltage phase). Rising internal resistance => CV starts earlier => t_cv grows."
+    },
+    {
+      "id": 13,
+      "type": "stat",
+      "title": "Is the model EXTRAPOLATING?",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "cfxg34mlaudxce"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 20,
+        "w": 6,
+        "h": 7
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "cfxg34mlaudxce"
+          },
+          "query": "from(bucket: \"battery\")\n  |> range(start: -6h)\n  |> filter(fn: (r) => r._measurement == \"cell\" and r._field == \"value\" and r.tag == \"Extrapolating\")\n  |> last()",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "text": {
+          "valueSize": 24
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "WITHIN\nTRAINING RANGE",
+                  "color": "green",
+                  "index": 0
+                },
+                "1": {
+                  "text": "EXTRAPOLATING\nNOT TRUSTWORTHY",
+                  "color": "red",
+                  "index": 1
+                }
+              }
+            }
+          ],
+          "noValue": "—",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "description": "Outside its training range a linear model's RUL figure is meaningless. Better to say so than to quietly serve a tidy number."
+    },
+    {
+      "id": 14,
+      "type": "timeseries",
+      "title": "Six-cell temperature over time",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "cfxg34mlaudxce"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 27,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "cfxg34mlaudxce"
+          },
+          "query": "from(bucket: \"battery\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"cell\" and r._field == \"value\" and r.tag =~ /_Temp$/)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> keep(columns: [\"_time\",\"_value\",\"tag\"])",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "celsius",
+          "decimals": 2,
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "thresholdsStyle": {
+              "mode": "line"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 60.0
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "description": "Includes Ambient_Temp (the 9th sensor, measuring the room — NOT attached to a cell)."
+    },
+    {
+      "id": 15,
+      "type": "timeseries",
+      "title": "1-Wire bus error rate (%)",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "cfxg34mlaudxce"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 27,
+        "w": 7,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "cfxg34mlaudxce"
+          },
+          "query": "from(bucket: \"battery\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"cell\" and r._field == \"value\" and r.tag =~ /^Sensor_ErrPct$/)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> keep(columns: [\"_time\",\"_value\",\"tag\"])",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": {
+          "showLegend": false
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 3,
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 20
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 5
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "description": "A 35 % error rate from probe moisture was once measured with no other symptom (QĐ-024). That is why this is counted and shown."
+    },
+    {
+      "id": 16,
+      "type": "stat",
+      "title": "Alarms raised\nsince power-on",
+      "datasource": {
+        "type": "influxdb",
+        "uid": "cfxg34mlaudxce"
+      },
+      "gridPos": {
+        "x": 19,
+        "y": 27,
+        "w": 5,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "cfxg34mlaudxce"
+          },
+          "query": "from(bucket: \"battery\")\n  |> range(start: -6h)\n  |> filter(fn: (r) => r._measurement == \"cell\" and r._field == \"value\" and r.tag == \"Alarm_Events\")\n  |> last()",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value",
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "text": {
+          "valueSize": 48
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "noValue": "0",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "description": "The only way to know something happened overnight with nobody there to hear the buzzer."
+    }
+  ]
+}
