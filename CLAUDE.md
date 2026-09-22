@@ -22,6 +22,7 @@ Bán kết: **26/09/2026**. Mọi quyết định kỹ thuật đều bị chi p
 | Thế nào là "chạy đúng" | `docs/TEST_VA_ACCEPTANCE.md` |
 | Vì sao chọn hướng hiện tại | `docs/DECISION_LOG.md` |
 | Ai dùng, dùng lúc nào, chọn kênh truyền nào | `docs/NGUOI_DUNG_VA_KICH_BAN.md` |
+| **Toàn cảnh hệ thống — đọc trước nếu chưa biết gì** | `docs/TONG_QUAN_HE_THONG.md` |
 | **Hai lớp AI hoạt động ra sao, gặp trường hợp nào thì làm gì** | `docs/HAI_LOP_AI_HOAT_DONG_THE_NAO.md` |
 | Requirement nối tới code/test ở đâu | `docs/RTM.md` |
 | Phương án cloud dự phòng | `VEDCaPhenika/PLAN_B_CLOUD.md` |
