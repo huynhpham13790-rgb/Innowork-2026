@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Android 12 trở lên: hai quyền này phải XIN LÚC CHẠY, khai ở đây chưa đủ.
+         usesPermissionFlags="neverForLocation" là lời cam kết với hệ thống rằng
+         app không dùng kết quả quét BLE để suy ra vị trí — nhờ nó mà KHÔNG phải
+         xin quyền vị trí. Bỏ thuộc tính này đi là app bắt đầu đòi quyền vị trí,
+         và người dùng có lý do chính đáng để từ chối. -->
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN"
+        android:usesPermissionFlags="neverForLocation" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+
+    <!-- Android 11 trở xuống: quét BLE bắt buộc phải có quyền vị trí, không có
+         cách nào tránh. maxSdkVersion để máy mới không bị đòi quyền thừa. -->
+    <uses-permission android:name="android.permission.BLUETOOTH"
+        android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN"
+        android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"
+        android:maxSdkVersion="30" />
+
+    <!-- required="true": máy không có BLE thì app này vô dụng hoàn toàn. Cho cài
+         rồi mới báo lỗi thì tệ hơn là không cho cài. -->
+    <uses-feature android:name="android.hardware.bluetooth_le" android:required="true" />
+
+    <application
+        android:label="Pack pin Hủ Tiếu"
+        android:icon="@android:drawable/ic_dialog_info"
+        android:supportsRtl="true"
+        android:theme="@android:style/Theme.Material">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:label="Pack pin Hủ Tiếu">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

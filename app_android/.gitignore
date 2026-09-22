@@ -1,0 +1,4 @@
+# Sinh ra lúc build, đừng commit
+build/
+.gradle/
+local.properties

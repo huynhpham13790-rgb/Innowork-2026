@@ -1536,3 +1536,34 @@ nối đuôi thì hỏng là mất đuôi chứ không mất nghĩa.
 Chuyển tính toán xuống chip làm nó **chạy offline**, không làm nó **thật hơn**.
 Chu kỳ sạc vẫn đang mô phỏng vì chưa có bộ sạc CC/CV 25,2 V. Trên sân khấu vẫn
 phải nói đúng như `HAI_LOP_AI_HOAT_DONG_THE_NAO.md` §giới hạn đã ghi.
+
+## QĐ-044 — Viết app Android thật, giữ nguyên bản web (22/09/2026)
+
+**Bối cảnh.** Bản web Bluetooth (`app/index.html`) chạy đúng trên máy tính,
+nhưng trên điện thoại ở Wi-Fi trường ICTU thì không mở được. Chẩn đoán ban đầu
+của AI là "sai bước khai báo origin trong `chrome://flags`" — **sai**. Log máy
+chủ tĩnh cho thấy **không có một request nào từ IP điện thoại**, trong khi máy
+tính tự gọi vẫn trả 200. Trang chưa bao giờ tải được, nên Web Bluetooth còn
+chưa tới lượt. Nguyên nhân là mạng trường chặn máy-nói-với-máy.
+
+**Quyết định.** Viết app Android gốc (Kotlin, `app_android/`), **không xoá bản
+web**.
+
+**Vì sao.** Bản web có một phụ thuộc mà bản gốc không có: **phải tải về từ một
+máy chủ qua mạng, mỗi lần mở**. Hôm thi không ai biết Wi-Fi hội trường thế nào,
+và đây là thứ đội không kiểm soát được. App cài một lần rồi chạy offline hoàn
+toàn.
+
+Giữ bản web vì nó không tốn gì để giữ, là phương án cho máy không cài được app,
+và cho giám khảo thấy cùng một GATT phục vụ hai loại client khác hẳn nhau.
+
+**Không dùng thư viện ngoài nào** (không AndroidX, không Compose): APK 790 KB,
+build được cả khi mất mạng. Đổi lại giao diện đơn giản hơn — chấp nhận được cho
+một màn hình đọc số.
+
+**Ký bằng khoá debug**, cố ý: app chỉ cài tay, không lên Play Store.
+
+**Chưa chứng minh được.** Mới kiểm trên Waydroid (cài được, mở được, vẽ đủ giao
+diện) — Waydroid **không có Bluetooth thật**, nên đường BLE và nút tắt còi
+CHƯA chạy thử lần nào trên Android. Phải làm trên điện thoại thật trước
+26/09. Phần firmware thì đã kiểm đạt bằng `test/ble_check.py`.
