@@ -8,12 +8,13 @@ import android.bluetooth.le.ScanSettings
 import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.Color
+import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.view.Gravity
-import android.view.View
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
 import android.widget.*
@@ -21,19 +22,13 @@ import java.util.ArrayDeque
 import java.util.UUID
 
 /* =============================================================================
- *  App xem pack pin qua BLE — bản Android thật (QĐ-044)
+ *  App xem pack pin qua BLE — bản Android thật (QĐ-044, QĐ-046)
  *
  *  VÌ SAO KHÔNG DÙNG BẢN WEB NỮA
- *  Bản Web Bluetooth (app/index.html) chạy đúng, nhưng nó phải TẢI VỀ từ một
- *  máy chủ trong mạng LAN. Trên Wi-Fi trường ICTU điện thoại không chạm được
- *  tới máy chủ (đo được: log máy chủ không hề có request nào từ điện thoại) —
- *  mạng chặn máy-nói-với-máy. Không sửa được từ phía đội.
- *
- *  App này cài một lần rồi KHÔNG CẦN MẠNG nữa, kể cả lúc mở. Đó là khác biệt
- *  duy nhất nhưng quyết định: hôm thi không ai biết Wi-Fi hội trường thế nào.
- *
- *  Bản web vẫn giữ, không xoá: nó là phương án cho máy không cài được app, và
- *  để giám khảo thấy cùng một GATT phục vụ được hai loại client.
+ *  Bản Web Bluetooth (app/index.html) chạy đúng, nhưng phải TẢI VỀ từ một máy
+ *  chủ trong mạng LAN. Trên Wi-Fi trường ICTU điện thoại không chạm được tới
+ *  máy chủ (đo được: log máy chủ không hề có request nào từ điện thoại). App
+ *  này cài một lần rồi không cần mạng nữa, kể cả lúc mở.
  * ========================================================================== */
 
 private const val DEV_NAME = "HuTieu-BMS"
@@ -48,138 +43,226 @@ private val UUID_SYS   = u("0006")
 private val UUID_DIAG  = u("0007")
 private val UUID_CMD   = u("0008")
 private val UUID_L2    = u("0009")
+private val UUID_CTL   = u("000a")
 
-/* Descriptor chuẩn để bật notify. Con số 2902 này do Bluetooth SIG quy định,
-   không phải do firmware đội đặt. */
 private val CCCD = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")
 
-/* Thứ tự hiện trên màn, và nhãn. Đặt ở một chỗ để đổi thứ tự không phải sửa
-   nhiều nơi — thứ tự này là thứ tự ƯU TIÊN ĐỌC của người đứng cạnh pack:
-   trạng thái trước, rồi cell nào hỏng, rồi mới tới số liệu nền. */
+/* Thứ tự hiện trên màn = thứ tự ƯU TIÊN ĐỌC của người đứng cạnh pack: cell nào
+   hỏng trước, rồi số đo, rồi mới tới thông tin nền. Trạng thái và nhiệt độ
+   không nằm đây vì chúng có ô riêng ở trên cùng. */
 private val ROWS = listOf(
-    UUID_STATE to "Trạng thái",
-    UUID_AI    to "Lớp 1 — cell nghi ngờ",
-    UUID_TEMPS to "Nhiệt độ từng cell (°C)",
-    UUID_DIAG  to "Số đo đã dùng để chẩn đoán",
-    UUID_PACK  to "Điện áp / dòng / SoC",
-    UUID_L2    to "Lớp 2 — sức khoẻ và tuổi thọ",
-    UUID_SYS   to "Tình trạng hệ thống"
+    UUID_AI   to "rowAi",
+    UUID_DIAG to "rowDiag",
+    UUID_PACK to "rowPack",
+    UUID_L2   to "rowL2",
+    UUID_SYS  to "rowSys"
 )
 
-class MainActivity : Activity_() {
+// Bảng màu — một chỗ duy nhất, để đổi tông không phải lùng khắp file.
+private const val C_BG     = "#0b0d12"
+private const val C_CARD   = "#161a22"
+private const val C_LABEL  = "#7d8798"
+private const val C_TEXT   = "#eef1f6"
+private const val C_OK     = "#1b6b45"
+private const val C_WATCH  = "#8a6d1f"
+private const val C_ALARM  = "#b3541e"
+private const val C_CRIT   = "#9b1c1c"
+private const val C_IDLE   = "#2b313d"
+
+class MainActivity : android.app.Activity() {
 
     private var gatt: BluetoothGatt? = null
     private val ui = Handler(Looper.getMainLooper())
     private val views = HashMap<UUID, TextView>()
+    private val labels = HashMap<UUID, TextView>()
 
     private lateinit var banner: TextView
+    private lateinit var subBanner: TextView
     private lateinit var connectBtn: Button
+    private lateinit var langBtn: Button
     private lateinit var muteBtn: Button
     private lateinit var quietBtn: Button
+    private lateinit var titleView: TextView
+    private lateinit var noteView: TextView
+    private lateinit var tempRow: LinearLayout
+    private lateinit var tempLabel: TextView
+    private val cellTiles = ArrayList<Pair<TextView, TextView>>()   // (số, nhãn)
 
     private var lastPacketAt = 0L
     private var connected = false
 
-    /* ---------------------------------------------------------------------
-     *  HÀNG ĐỢI GATT — thứ hay bị bỏ nhất khi viết BLE trên Android.
-     *
-     *  Android chỉ cho MỘT thao tác GATT chạy tại một thời điểm. Gọi cái thứ
-     *  hai khi cái thứ nhất chưa xong thì nó bị BỎ IM LẶNG: không lỗi, không
-     *  ngoại lệ, chỉ là callback không bao giờ tới. Bật notify cho 4 đặc tính
-     *  bằng 4 lời gọi liên tiếp sẽ chạy đúng 1 cái, và 3 ô còn lại đứng im —
-     *  trông hệt như firmware không gửi dữ liệu.
-     * ------------------------------------------------------------------ */
+    // Trạng thái điều khiển do CHIP báo về — nguồn sự thật duy nhất cho hai nút.
+    private var stMuted = false
+    private var stQuiet = false
+    private var stLevel = 0
+    private var stTtl = 0            // giây còn lại, app tự đếm lùi giữa hai notify
+
+    // ------------------------------------------------------------- hàng đợi GATT
+    /* Android chỉ cho MỘT thao tác GATT chạy tại một thời điểm. Gọi cái thứ hai
+       khi cái thứ nhất chưa xong thì nó bị BỎ IM LẶNG: không lỗi, không ngoại
+       lệ, callback không bao giờ tới. Bật notify cho 5 đặc tính bằng 5 lời gọi
+       liên tiếp sẽ chạy đúng 1 cái, 4 ô còn lại đứng im — trông hệt như firmware
+       không gửi dữ liệu. Đây là lỗi BLE Android phổ biến và khó đoán nhất. */
     private val queue = ArrayDeque<() -> Unit>()
     private var busy = false
-
-    private fun enqueue(op: () -> Unit) {
-        queue.add(op)
-        if (!busy) next()
-    }
-
-    private fun next() {
-        val op = queue.poll()
-        if (op == null) { busy = false; return }
-        busy = true
-        op()
-    }
-
+    private fun enqueue(op: () -> Unit) { queue.add(op); if (!busy) next() }
+    private fun next() { val op = queue.poll(); if (op == null) { busy = false; return }; busy = true; op() }
     private fun opDone() { busy = false; next() }
 
-    // ------------------------------------------------------------------ UI
+    // ---------------------------------------------------------------------- UI
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(16), dp(16), dp(16), dp(16))
-            setBackgroundColor(Color.parseColor("#0f1115"))
+            setPadding(dp(14), dp(10), dp(14), dp(24))
+            setBackgroundColor(Color.parseColor(C_BG))
         }
 
-        banner = TextView(this).apply {
-            text = "Chưa kết nối"
-            textSize = 20f
-            gravity = Gravity.CENTER
-            setPadding(dp(12), dp(16), dp(12), dp(16))
-            setTextColor(Color.WHITE)
-            setBackgroundColor(Color.parseColor("#3a3f4b"))
+        // --- thanh đầu: tên + nút đổi ngôn ngữ
+        val head = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
         }
-        root.addView(banner, lp())
+        titleView = TextView(this).apply {
+            textSize = 19f
+            setTypeface(null, Typeface.BOLD)
+            setTextColor(Color.parseColor(C_TEXT))
+        }
+        head.addView(titleView, LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f))
+        langBtn = Button(this).apply {
+            textSize = 12f
+            setOnClickListener {
+                L.cur = if (L.cur == Lang.VI) Lang.EN else Lang.VI
+                applyLang()
+            }
+        }
+        head.addView(langBtn, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT))
+        root.addView(head, lp())
+
+        // --- băng trạng thái
+        banner = TextView(this).apply {
+            textSize = 23f
+            gravity = Gravity.CENTER
+            setTypeface(null, Typeface.BOLD)
+            setPadding(dp(14), dp(20), dp(14), dp(6))
+            setTextColor(Color.WHITE)
+        }
+        subBanner = TextView(this).apply {
+            textSize = 13f
+            gravity = Gravity.CENTER
+            setPadding(dp(14), 0, dp(14), dp(18))
+            setTextColor(Color.parseColor("#e6e9ef"))
+        }
+        val bannerBox = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            background = round(C_IDLE)
+            addView(banner); addView(subBanner)
+        }
+        root.addView(bannerBox, lp(dp(10)))
 
         connectBtn = Button(this).apply {
-            text = "Kết nối tới pack"
+            isAllCaps = false            // chữ dài kèm số, viết hoa hết thì khó đọc
             setOnClickListener { if (connected) disconnect() else startScan() }
         }
-        root.addView(connectBtn, lp(dp(8)))
+        root.addView(connectBtn, lp(dp(10)))
 
-        for ((uuid, label) in ROWS) {
+        // --- lưới 6 cell: đọc được trong một cái liếc, không phải một dòng chữ dài
+        tempLabel = label()
+        tempRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        for (i in 1..6) {
+            val box = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                gravity = Gravity.CENTER
+                background = round(C_CARD)
+                setPadding(0, dp(10), 0, dp(10))
+            }
+            val v = TextView(this).apply {
+                text = "--"; textSize = 16f
+                setTypeface(null, Typeface.BOLD)
+                setTextColor(Color.parseColor(C_TEXT)); gravity = Gravity.CENTER
+            }
+            val n = TextView(this).apply {
+                text = "$i"; textSize = 10f
+                setTextColor(Color.parseColor(C_LABEL)); gravity = Gravity.CENTER
+            }
+            box.addView(v); box.addView(n)
+            cellTiles.add(v to n)
+            val p = LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f)
+            p.setMargins(if (i == 1) 0 else dp(4), 0, 0, 0)
+            tempRow.addView(box, p)
+        }
+        val tempCard = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            background = round(C_CARD)
+            setPadding(dp(12), dp(10), dp(12), dp(10))
+            addView(tempLabel); addView(tempRow, lp(dp(8)))
+        }
+        root.addView(tempCard, lp(dp(10)))
+
+        // --- các ô còn lại
+        for ((uuid, key) in ROWS) {
+            val lab = label()
+            val value = TextView(this).apply {
+                text = "—"; textSize = 15f
+                setTextColor(Color.parseColor(C_TEXT))
+                setPadding(0, dp(3), 0, 0)
+            }
             val card = LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
+                background = round(C_CARD)
                 setPadding(dp(12), dp(10), dp(12), dp(10))
-                setBackgroundColor(Color.parseColor("#1a1d24"))
+                addView(lab); addView(value)
             }
-            card.addView(TextView(this).apply {
-                text = label
-                textSize = 12f
-                setTextColor(Color.parseColor("#8b93a7"))
-            })
-            val value = TextView(this).apply {
-                text = "—"
-                textSize = 16f
-                setTextColor(Color.WHITE)
-            }
-            card.addView(value)
+            labels[uuid] = lab
+            lab.tag = key
             views[uuid] = value
             root.addView(card, lp(dp(8)))
         }
 
         muteBtn = Button(this).apply {
-            text = "Tắt tiếng còi (5 phút)"
             isEnabled = false
-            setOnClickListener { sendCmd("mute on") }
+            isAllCaps = false
+            /* Nút TRẠNG THÁI, không phải nút hành động: nó hiện còi đang thế nào
+               và chạm vào thì đảo. Bản trước chỉ báo "đã gửi lệnh" rồi thôi —
+               người dùng không biết lệnh có ăn không, mà đây là cái nút quyết
+               định còi báo cháy có kêu hay không. */
+            setOnClickListener { sendCmd(if (stMuted) "mute off" else "mute on") }
         }
-        root.addView(muteBtn, lp(dp(12)))
+        root.addView(muteBtn, lp(dp(16)))
 
         quietBtn = Button(this).apply {
-            text = "Chế độ yên lặng"
             isEnabled = false
-            setOnClickListener { sendCmd("quiet on") }
+            isAllCaps = false
+            setOnClickListener { sendCmd(if (stQuiet) "quiet off" else "quiet on") }
         }
         root.addView(quietBtn, lp(dp(8)))
 
-        root.addView(TextView(this).apply {
-            text = "Lần bấm đầu tiên máy sẽ hỏi ghép đôi và mã PIN — đó là cố ý " +
-                   "(QĐ-042): người đi ngang qua không tắt được còi báo cháy.\n\n" +
-                   "Còi mức NGUY HIỂM không tắt được bằng nút này."
+        noteView = TextView(this).apply {
             textSize = 12f
-            setTextColor(Color.parseColor("#8b93a7"))
-            setPadding(0, dp(16), 0, 0)
-        }, lp())
+            setTextColor(Color.parseColor(C_LABEL))
+            setPadding(dp(2), dp(16), dp(2), 0)
+        }
+        root.addView(noteView, lp())
 
-        setContentView(ScrollView(this).apply { addView(root) })
+        setContentView(ScrollView(this).apply {
+            setBackgroundColor(Color.parseColor(C_BG)); addView(root)
+        })
 
+        applyLang()
         ensurePermissions()
         startStaleWatch()
+        startTtlTick()
+    }
+
+    private fun label() = TextView(this).apply {
+        textSize = 11f
+        setTextColor(Color.parseColor(C_LABEL))
+    }
+
+    private fun round(color: String) = GradientDrawable().apply {
+        setColor(Color.parseColor(color))
+        cornerRadius = dp(14).toFloat()
     }
 
     private fun lp(topMargin: Int = 0) =
@@ -187,16 +270,32 @@ class MainActivity : Activity_() {
 
     private fun dp(v: Int) = (v * resources.displayMetrics.density).toInt()
 
+    /* Đổi ngôn ngữ KHÔNG dựng lại màn hình: chỉ ghi đè chữ. Dựng lại sẽ mất kết
+       nối BLE, và người dùng đổi ngôn ngữ giữa lúc đang xem pack báo động thì
+       mất kết nối là hỏng đúng lúc không được phép hỏng. */
+    private fun applyLang() {
+        titleView.text = L["title"]
+        langBtn.text = if (L.cur == Lang.VI) "EN" else "VI"
+        connectBtn.text = if (connected) L["disconnect"] else L["connect"]
+        tempLabel.text = L["rowTemps"] + " (°C)"
+        for ((uuid, v) in labels) v.text = L[v.tag as String]
+        noteView.text = L["note"] + "\n\n" + L["noteCrit"]
+        renderBanner()
+        renderButtons()
+        // Đọc lại để các ô chữ do chip gửi được dịch theo ngôn ngữ mới.
+        val g = gatt ?: return
+        val svc = g.getService(UUID_SVC) ?: return
+        for ((uuid, _) in ROWS) svc.getCharacteristic(uuid)?.let { c ->
+            enqueue { try { g.readCharacteristic(c) } catch (_: SecurityException) { opDone() } }
+        }
+    }
+
     // --------------------------------------------------------- quyền truy cập
     private fun ensurePermissions() {
         val need = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
             arrayOf(Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT)
-        else
-            arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)
-
-        val missing = need.filter {
-            checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED
-        }
+        else arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)
+        val missing = need.filter { checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED }
         if (missing.isNotEmpty()) requestPermissions(missing.toTypedArray(), 1)
     }
 
@@ -206,48 +305,35 @@ class MainActivity : Activity_() {
         return checkSelfPermission(p) == PackageManager.PERMISSION_GRANTED
     }
 
-    // ----------------------------------------------------------------- quét
+    // ------------------------------------------------------------------- quét
     private fun startScan() {
         if (!hasScanPerm()) { ensurePermissions(); return }
 
         val mgr = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
         val adapter = mgr.adapter
-        if (adapter == null || !adapter.isEnabled) {
-            setBanner("Hãy bật Bluetooth rồi thử lại", "#b3541e"); return
-        }
-        /* -------------------------------------------------------------------
-         *  ĐÃ GHÉP ĐÔI THÌ ĐỪNG QUÉT — nối thẳng theo địa chỉ.
-         *
-         *  Đo được ngày 22/09: app bị tắt nhưng Android vẫn giữ liên kết với
-         *  pack. ESP32 chỉ nhận MỘT kết nối nên lúc đó nó NGỪNG QUẢNG BÁ —
-         *  máy tính quét thấy 91 thiết bị khác mà không thấy HuTieu-BMS. Quét
-         *  kiểu gì cũng không ra, và app báo "Không thấy pack" trong khi pack
-         *  vẫn chạy ngon lành ngay cạnh.
-         *
-         *  Nối theo địa chỉ không cần quảng bá nên thoát hẳn cái bẫy đó. Nó
-         *  còn tránh luôn giới hạn của Android: quá 5 lần quét trong 30 giây
-         *  là hệ thống lặng lẽ bỏ qua, không báo lỗi gì.
-         * ---------------------------------------------------------------- */
+        if (adapter == null || !adapter.isEnabled) { setBanner(L["btOff"], C_ALARM); return }
+
+        /* ĐÃ GHÉP ĐÔI THÌ ĐỪNG QUÉT — nối thẳng theo địa chỉ.
+           Đo 22/09: app bị tắt nhưng Android vẫn giữ liên kết với pack. ESP32
+           chỉ nhận MỘT kết nối nên lúc đó nó NGỪNG QUẢNG BÁ — máy tính quét thấy
+           91 thiết bị khác mà không thấy HuTieu-BMS. Quét kiểu gì cũng không ra,
+           và app báo "không thấy pack" trong khi pack vẫn chạy ngay cạnh.
+           Nối theo địa chỉ không cần quảng bá nên thoát hẳn cái bẫy đó, và tránh
+           luôn giới hạn của Android: quá 5 lần quét trong 30 giây là hệ thống
+           lặng lẽ bỏ qua, không báo lỗi gì. */
         try {
             val known = adapter.bondedDevices?.firstOrNull { it.name == DEV_NAME }
-            if (known != null) {
-                setBanner("Đã ghép đôi trước đó — đang nối thẳng…", "#3a3f4b")
-                connect(known)
-                return
-            }
-        } catch (_: SecurityException) { /* thiếu quyền thì quay về quét */ }
+            if (known != null) { setBanner(L["bonded"], C_IDLE); connect(known); return }
+        } catch (_: SecurityException) { }
 
-        val scanner = adapter.bluetoothLeScanner
-        if (scanner == null) { setBanner("Máy không quét được BLE", "#b3541e"); return }
-
-        setBanner("Đang tìm $DEV_NAME…", "#3a3f4b")
+        val scanner = adapter.bluetoothLeScanner ?: return
+        setBanner(L["searching"], C_IDLE)
         connectBtn.isEnabled = false
 
         var done = false
         val cb = object : ScanCallback() {
             override fun onScanResult(type: Int, result: ScanResult) {
-                if (done) return
-                if (result.device?.name != DEV_NAME) return
+                if (done || result.device?.name != DEV_NAME) return
                 done = true
                 try { scanner.stopScan(this) } catch (_: SecurityException) {}
                 connect(result.device)
@@ -255,88 +341,61 @@ class MainActivity : Activity_() {
             override fun onScanFailed(errorCode: Int) {
                 if (done) return
                 done = true
-                runOnUiThread {
-                    setBanner("Quét thất bại (mã $errorCode)", "#b3541e")
-                    connectBtn.isEnabled = true
-                }
+                runOnUiThread { setBanner(L["notFound"], C_ALARM); connectBtn.isEnabled = true }
             }
         }
-
         try {
             scanner.startScan(null,
                 ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build(), cb)
         } catch (e: SecurityException) {
-            setBanner("Thiếu quyền Bluetooth", "#b3541e"); connectBtn.isEnabled = true; return
+            setBanner(L["noPerm"], C_ALARM); connectBtn.isEnabled = true; return
         }
-
-        /* Bỏ cuộc sau 15 s. Không có mốc này thì lúc pack tắt điện app quay mãi
-           và người dùng không biết là nên đi kiểm dây hay đứng chờ tiếp. */
+        /* Bỏ cuộc sau 15 s: không có mốc này thì lúc pack tắt điện app quay mãi
+           và người dùng không biết nên đi kiểm dây hay đứng chờ tiếp. */
         ui.postDelayed({
             if (done) return@postDelayed
             done = true
             try { scanner.stopScan(cb) } catch (_: SecurityException) {}
-            setBanner("Không thấy $DEV_NAME. Pack có đang bật không?", "#b3541e")
-            connectBtn.isEnabled = true
+            setBanner(L["notFound"], C_ALARM); connectBtn.isEnabled = true
         }, 15000)
     }
 
-    // -------------------------------------------------------------- kết nối
+    // ---------------------------------------------------------------- kết nối
     private fun connect(device: BluetoothDevice) {
-        setBanner("Đang kết nối…", "#3a3f4b")
-        try {
-            gatt = device.connectGatt(this, false, gattCb, BluetoothDevice.TRANSPORT_LE)
-        } catch (e: SecurityException) {
-            setBanner("Thiếu quyền kết nối", "#b3541e"); connectBtn.isEnabled = true
-        }
+        setBanner(L["connecting"], C_IDLE)
+        try { gatt = device.connectGatt(this, false, gattCb, BluetoothDevice.TRANSPORT_LE) }
+        catch (e: SecurityException) { setBanner(L["noPerm"], C_ALARM); connectBtn.isEnabled = true }
     }
 
     private fun disconnect() {
         try { gatt?.disconnect(); gatt?.close() } catch (_: SecurityException) {}
-        gatt = null
-        queue.clear(); busy = false
+        gatt = null; queue.clear(); busy = false
     }
 
-    /* -------------------------------------------------------------------------
-     *  XOÁ CACHE GATT CỦA ANDROID — không có hàm công khai, phải gọi qua reflection.
-     *
-     *  Android NHỚ bảng dịch vụ của thiết bị đã ghép đôi và KHÔNG dò lại ở lần
-     *  nối sau. Nạp lại firmware làm handle của các đặc tính đổi chỗ, nhưng
-     *  điện thoại vẫn dùng bảng cũ — nên nó ghi vào handle giờ đang trỏ sang
-     *  một đặc tính CHỈ ĐỌC, và firmware trả về 0x03 WRITE_NOT_PERMITTED.
-     *
-     *  Đo được đúng như vậy ngày 22/09: nút tắt còi báo "gửi lệnh thất bại",
-     *  KHÔNG hiện hộp nhập PIN — vì lỗi xảy ra trước cả bước xác thực. Ô Lớp 2
-     *  (đặc tính mới nhất) thì trống trơn.
-     *
-     *  Dùng reflection là chấp nhận rủi ro API biến mất ở bản Android sau, nên
-     *  bọc try/catch và coi thất bại là chuyện bình thường: cùng lắm quay về
-     *  đúng tình trạng cũ. Đây là cách xử lý tiêu chuẩn cho thiết bị BLE có
-     *  firmware còn đang sửa — và pack của đội thì còn sửa tới ngày thi.
-     * ---------------------------------------------------------------------- */
+    /* Xoá cache GATT — không có hàm công khai, phải gọi qua reflection.
+       Android NHỚ bảng dịch vụ của thiết bị đã ghép đôi và KHÔNG dò lại ở lần
+       nối sau. Nạp lại firmware làm handle đổi chỗ, nhưng điện thoại vẫn dùng
+       bảng cũ, nên nó ghi vào handle giờ trỏ sang một đặc tính CHỈ ĐỌC và nhận
+       0x03 WRITE_NOT_PERMITTED. Firmware của pack còn sửa tới ngày thi nên đây
+       là chuyện sẽ còn xảy ra. Thất bại thì coi như bình thường: cùng lắm quay
+       về đúng tình trạng cũ. */
     private fun refreshGattCache(g: BluetoothGatt) {
-        try {
-            val m = g.javaClass.getMethod("refresh")
-            val ok = m.invoke(g) as? Boolean
-            android.util.Log.i("HuTieu", "xoa cache GATT: $ok")
-        } catch (e: Exception) {
-            android.util.Log.w("HuTieu", "khong xoa duoc cache GATT: ${e.javaClass.simpleName}")
-        }
+        try { android.util.Log.i("HuTieu", "xoa cache GATT: ${g.javaClass.getMethod("refresh").invoke(g)}") }
+        catch (e: Exception) { android.util.Log.w("HuTieu", "khong xoa duoc cache: ${e.javaClass.simpleName}") }
     }
 
     private val gattCb = object : BluetoothGattCallback() {
 
         override fun onConnectionStateChange(g: BluetoothGatt, status: Int, newState: Int) {
             if (newState == BluetoothProfile.STATE_CONNECTED) {
-                runOnUiThread { setBanner("Đã kết nối, đang đọc…", "#3a3f4b") }
+                runOnUiThread { setBanner(L["reading"], C_IDLE) }
                 try { g.requestMtu(247) } catch (_: SecurityException) {}
             } else {
                 connected = false
                 runOnUiThread {
-                    setBanner("Mất kết nối — số đang hiện KHÔNG còn mới", "#b3541e")
-                    connectBtn.text = "Kết nối tới pack"
-                    connectBtn.isEnabled = true
-                    muteBtn.isEnabled = false
-                    quietBtn.isEnabled = false
+                    setBanner(L["lost"], C_ALARM)
+                    connectBtn.text = L["connect"]; connectBtn.isEnabled = true
+                    muteBtn.isEnabled = false; quietBtn.isEnabled = false
                 }
                 try { g.close() } catch (_: SecurityException) {}
             }
@@ -351,175 +410,200 @@ class MainActivity : Activity_() {
 
         override fun onServicesDiscovered(g: BluetoothGatt, status: Int) {
             val svc = g.getService(UUID_SVC)
-            if (svc == null) {
-                runOnUiThread { setBanner("Thiết bị không có dịch vụ của pack", "#b3541e") }
-                return
-            }
+            if (svc == null) { runOnUiThread { setBanner(L["noSvc"], C_ALARM) }; return }
             connected = true
             runOnUiThread {
-                connectBtn.text = "Ngắt kết nối"
-                connectBtn.isEnabled = true
-                muteBtn.isEnabled = true
-                quietBtn.isEnabled = true
+                connectBtn.text = L["disconnect"]; connectBtn.isEnabled = true
+                muteBtn.isEnabled = true; quietBtn.isEnabled = true
             }
 
-            /* In handle và cờ quyền của TỪNG đặc tính. Khi ghi thất bại, đây là
+            /* In handle và cờ quyền của từng đặc tính. Khi ghi thất bại, đây là
                thứ phân biệt "firmware chặn đúng" với "điện thoại đang dùng bảng
                GATT cũ" — hai nguyên nhân cho cùng một triệu chứng, và đoán mò
                giữa chúng đã tốn của đội một buổi. 0x08 = ghi được. */
-            for (c in svc.characteristics) {
+            for (c in svc.characteristics)
                 android.util.Log.i("HuTieu", "dac tinh %s handle=%d quyen=0x%02x"
                     .format(c.uuid.toString().substring(19, 23), c.instanceId, c.properties))
-            }
 
-            // Đọc một lượt để có số ngay, đừng bắt người dùng chờ gói notify đầu.
-            for ((uuid, _) in ROWS) {
+            for (uuid in listOf(UUID_CTL, UUID_STATE, UUID_TEMPS) + ROWS.map { it.first })
                 svc.getCharacteristic(uuid)?.let { c ->
                     enqueue { try { g.readCharacteristic(c) } catch (_: SecurityException) { opDone() } }
                 }
-            }
-            startLayer2Poll()
-            // Rồi mới bật notify — từng cái một, qua hàng đợi.
-            for (uuid in listOf(UUID_STATE, UUID_TEMPS, UUID_AI, UUID_DIAG)) {
+
+            for (uuid in listOf(UUID_STATE, UUID_TEMPS, UUID_AI, UUID_DIAG, UUID_CTL)) {
                 val c = svc.getCharacteristic(uuid) ?: continue
                 enqueue {
                     try {
                         g.setCharacteristicNotification(c, true)
                         val d = c.getDescriptor(CCCD)
-                        if (d == null) { opDone() } else {
-                            @Suppress("DEPRECATION")
-                            d.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
-                            @Suppress("DEPRECATION")
-                            if (!g.writeDescriptor(d)) opDone()
+                        if (d == null) opDone() else {
+                            @Suppress("DEPRECATION") d.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+                            @Suppress("DEPRECATION") if (!g.writeDescriptor(d)) opDone()
                         }
                     } catch (_: SecurityException) { opDone() }
                 }
             }
+            startLayer2Poll()
         }
 
         @Suppress("DEPRECATION")
         override fun onCharacteristicRead(g: BluetoothGatt, c: BluetoothGattCharacteristic, status: Int) {
-            show(c.uuid, c.value)
-            opDone()
+            show(c.uuid, c.value); opDone()
         }
 
         @Suppress("DEPRECATION")
         override fun onCharacteristicChanged(g: BluetoothGatt, c: BluetoothGattCharacteristic) {
-            show(c.uuid, c.value)   // notify KHÔNG đi qua hàng đợi, đừng gọi opDone()
+            show(c.uuid, c.value)    // notify KHÔNG qua hàng đợi, đừng gọi opDone()
         }
 
-        override fun onDescriptorWrite(g: BluetoothGatt, d: BluetoothGattDescriptor, status: Int) {
-            opDone()
-        }
+        override fun onDescriptorWrite(g: BluetoothGatt, d: BluetoothGattDescriptor, status: Int) = opDone()
 
         @Suppress("DEPRECATION")
         override fun onCharacteristicWrite(g: BluetoothGatt, c: BluetoothGattCharacteristic, status: Int) {
             runOnUiThread {
                 when (status) {
-                    BluetoothGatt.GATT_SUCCESS ->
-                        toast("Đã gửi lệnh")
-                    /* 5 và 15 = chưa xác thực / chưa mã hoá. KHÔNG phải lỗi:
-                       đó đúng là firmware đang đòi ghép đôi (QĐ-042). Android
-                       sẽ hiện hộp nhập PIN; bấm lại lần nữa là xong. */
+                    /* KHÔNG báo "đã tắt còi" ở đây — mới chỉ biết gói tin đi tới
+                       nơi. Trạng thái thật đến từ đặc tính 000A do chip gửi về,
+                       và hai nút chỉ đổi theo nó. */
+                    BluetoothGatt.GATT_SUCCESS -> toast(L["sent"])
                     BluetoothGatt.GATT_INSUFFICIENT_AUTHENTICATION,
-                    BluetoothGatt.GATT_INSUFFICIENT_ENCRYPTION ->
-                        toast("Cần ghép đôi: nhập PIN rồi bấm lại")
-                    /* 3 = WRITE_NOT_PERMITTED. KHÔNG phải thiếu quyền — là ghi
-                       vào một handle không cho ghi, tức bảng GATT trong điện
-                       thoại đã cũ so với firmware. Nói thẳng cách sửa, vì
-                       "mã 3" không giúp được ai đứng cạnh pack. */
-                    3 -> toast("Điện thoại đang dùng bảng cũ của thiết bị. " +
-                               "Quên ghép đôi HuTieu-BMS trong Cài đặt rồi nối lại.")
-                    else -> toast("Gửi lệnh thất bại (mã $status)")
+                    BluetoothGatt.GATT_INSUFFICIENT_ENCRYPTION -> toast(L["needPin"])
+                    3 -> toast(L["staleGatt"])   // WRITE_NOT_PERMITTED, xem refreshGattCache
+                    else -> toast(L["sendFail"].format(status))
                 }
             }
             opDone()
         }
     }
 
-    // --------------------------------------------------------------- lệnh
+    // ------------------------------------------------------------------ lệnh
     private fun sendCmd(cmd: String) {
         val g = gatt ?: return
         val c = g.getService(UUID_SVC)?.getCharacteristic(UUID_CMD) ?: return
         enqueue {
             try {
-                @Suppress("DEPRECATION")
-                c.value = cmd.toByteArray(Charsets.UTF_8)
+                @Suppress("DEPRECATION") c.value = cmd.toByteArray(Charsets.UTF_8)
                 c.writeType = BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
-                @Suppress("DEPRECATION")
-                if (!g.writeCharacteristic(c)) opDone()
+                @Suppress("DEPRECATION") if (!g.writeCharacteristic(c)) opDone()
             } catch (_: SecurityException) { opDone() }
         }
     }
 
-    // ------------------------------------------------------------ hiển thị
+    // --------------------------------------------------------------- hiển thị
     private fun show(uuid: UUID, raw: ByteArray?) {
         val text = raw?.toString(Charsets.UTF_8) ?: return
         lastPacketAt = System.currentTimeMillis()
         runOnUiThread {
-            views[uuid]?.text = text
-            if (uuid == UUID_STATE) {
-                val up = text.uppercase()
-                val color = when {
-                    up.contains("NGUY HIỂM") || up.contains("NGUY HIEM") -> "#8b1a1a"
-                    up.contains("BÁO ĐỘNG")  || up.contains("BAO DONG")  -> "#b3541e"
-                    up.contains("THEO DÕI")  || up.contains("THEO DOI")  -> "#8a6d1f"
-                    else -> "#1e5c3a"
-                }
-                setBanner(text, color)
+            when (uuid) {
+                UUID_CTL   -> { parseCtl(text); renderBanner(); renderButtons() }
+                UUID_TEMPS -> showTemps(text)
+                UUID_STATE -> { }   // băng trên cùng dựng từ 000A, không dò chữ
+                else       -> views[uuid]?.text = L.translateFromChip(text)
             }
         }
+    }
+
+    /* "mute=1 quiet=0 lvl=2 ttl=95" — dạng khoá=giá trị, cố ý không phải chữ
+       tiếng Việt: firmware đổi một từ trong câu hiển thị cũng không làm hai nút
+       này hiểu sai trạng thái còi. */
+    private fun parseCtl(s: String) {
+        for (kv in s.trim().split(" ")) {
+            val p = kv.split("=")
+            if (p.size != 2) continue
+            val v = p[1].toIntOrNull() ?: continue
+            when (p[0]) {
+                "mute" -> stMuted = v == 1
+                "quiet" -> stQuiet = v == 1
+                "lvl" -> stLevel = v
+                "ttl" -> stTtl = v
+            }
+        }
+    }
+
+    private fun showTemps(s: String) {
+        /* Chip gửi "1:27.2 2:27.0 ...", cảm biến hỏng thì "3:--". Giữ nguyên
+           quy ước đó: ô trống rõ ràng hơn một số cũ trông như số mới. */
+        val map = HashMap<Int, String>()
+        for (tok in s.trim().split(Regex("\\s+"))) {
+            val p = tok.split(":")
+            if (p.size == 2) p[0].toIntOrNull()?.let { map[it] = p[1] }
+        }
+        for (i in 1..6) {
+            val v = map[i] ?: "--"
+            cellTiles[i - 1].first.text = v
+            val t = v.toFloatOrNull()
+            cellTiles[i - 1].first.setTextColor(Color.parseColor(
+                if (t == null) C_LABEL else if (t >= 60f) "#ff8a8a"
+                else if (t >= 45f) "#ffd08a" else C_TEXT))
+        }
+    }
+
+    private fun renderBanner() {
+        if (!connected) { setBanner(L["notConnected"], C_IDLE); subBanner.text = ""; return }
+        banner.text = L.level(stLevel)
+        val color = when (stLevel) { 0 -> C_OK; 1 -> C_WATCH; 2 -> C_ALARM; else -> C_CRIT }
+        (banner.parent as LinearLayout).background = round(color)
+        subBanner.text = if (stMuted) "🔇 " + L["buzzOff"] else ""
+    }
+
+    private fun renderButtons() {
+        muteBtn.text = when {
+            !stMuted -> L["buzzOn"]
+            stTtl > 0 -> "🔇 %s — %s %d:%02d".format(L["buzzOff"], L["buzzBack"], stTtl / 60, stTtl % 60)
+            else -> "🔇 %s — %s".format(L["buzzOff"], L["tapUnmute"])
+        }
+        quietBtn.text = if (stQuiet) L["quietOn"] else L["quietOff"]
     }
 
     private fun setBanner(text: String, color: String) {
         runOnUiThread {
             banner.text = text
-            banner.setBackgroundColor(Color.parseColor(color))
+            (banner.parent as LinearLayout).background = round(color)
         }
     }
 
-    /* Nếu 15 s không có gói nào mà app vẫn tưởng đang kết nối thì phải NÓI RA.
-       Màn hình đứng im với số cũ nguy hiểm hơn màn hình báo mất kết nối: người
-       thợ sẽ tin là pack đang bình thường. */
-    private fun startStaleWatch() {
+    /* Đếm lùi tại chỗ giữa hai lần notify. Chip chỉ gửi `ttl` lúc trạng thái
+       đổi — notify mỗi giây chỉ để một con số nhích xuống là phí pin cả hai đầu. */
+    private fun startTtlTick() {
         ui.postDelayed(object : Runnable {
             override fun run() {
-                if (connected && lastPacketAt > 0 &&
-                    System.currentTimeMillis() - lastPacketAt > 15000) {
-                    setBanner("Không nhận được dữ liệu — số đang hiện đã cũ", "#b3541e")
-                }
-                ui.postDelayed(this, 5000)
+                if (stTtl > 0) { stTtl--; renderButtons() }
+                ui.postDelayed(this, 1000)
             }
-        }, 5000)
+        }, 1000)
     }
 
-    /* Lớp 2 KHÔNG có notify — firmware chỉ cập nhật nó mỗi chu kỳ sạc (vài
-       tiếng), gửi thông báo liên tục cho một con số đứng yên là phí pin cả hai
-       đầu. Nhưng chỉ đọc đúng một lần lúc kết nối thì nếu lúc đó chip chưa tính
-       xong chu kỳ đầu, ô này sẽ trống VĨNH VIỄN — đúng cái đã thấy trên máy
-       thật ngày 22/09. Nên đọc lại theo nhịp thưa. */
+    /* Lớp 2 KHÔNG có notify — chip chỉ cập nhật mỗi chu kỳ sạc (vài tiếng). Nhưng
+       đọc đúng một lần lúc kết nối thì nếu lúc đó chip chưa tính xong chu kỳ đầu,
+       ô này sẽ trống VĨNH VIỄN — đúng cái đã thấy trên máy thật ngày 22/09. */
     private fun startLayer2Poll() {
         ui.postDelayed(object : Runnable {
             override fun run() {
                 if (!connected) return
                 val g = gatt
                 val c = g?.getService(UUID_SVC)?.getCharacteristic(UUID_L2)
-                if (g != null && c != null) {
+                if (g != null && c != null)
                     enqueue { try { g.readCharacteristic(c) } catch (_: SecurityException) { opDone() } }
-                }
                 ui.postDelayed(this, 30000)
             }
         }, 30000)
     }
 
+    /* 15 s không có gói nào mà vẫn tưởng đang kết nối thì phải NÓI RA. Màn hình
+       đứng im với số cũ nguy hiểm hơn màn hình báo mất kết nối: người thợ sẽ tin
+       là pack đang bình thường. */
+    private fun startStaleWatch() {
+        ui.postDelayed(object : Runnable {
+            override fun run() {
+                if (connected && lastPacketAt > 0 &&
+                    System.currentTimeMillis() - lastPacketAt > 15000)
+                    setBanner(L["stale"], C_ALARM)
+                ui.postDelayed(this, 5000)
+            }
+        }, 5000)
+    }
+
     private fun toast(s: String) = Toast.makeText(this, s, Toast.LENGTH_LONG).show()
 
-    override fun onDestroy() {
-        super.onDestroy()
-        disconnect()
-    }
+    override fun onDestroy() { super.onDestroy(); disconnect() }
 }
-
-/* Dùng android.app.Activity trần, không AndroidX — xem chú thích cuối
-   app/build.gradle.kts để biết vì sao không kéo thư viện ngoài vào. */
-typealias Activity_ = android.app.Activity

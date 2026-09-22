@@ -27,7 +27,7 @@
         android:label="Pack pin Hủ Tiếu"
         android:icon="@android:drawable/ic_dialog_info"
         android:supportsRtl="true"
-        android:theme="@android:style/Theme.Material">
+        android:theme="@android:style/Theme.Material.NoActionBar">
         <activity
             android:name=".MainActivity"
             android:exported="true"

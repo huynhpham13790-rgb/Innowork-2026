@@ -1567,3 +1567,54 @@ một màn hình đọc số.
 diện) — Waydroid **không có Bluetooth thật**, nên đường BLE và nút tắt còi
 CHƯA chạy thử lần nào trên Android. Phải làm trên điện thoại thật trước
 26/09. Phần firmware thì đã kiểm đạt bằng `test/ble_check.py`.
+
+## QĐ-045 — Cho tắt tiếng cả ở mức NGUY KỊCH, kèm hạn 2 phút (22/09/2026)
+
+**Đảo lại thiết kế cũ.** Trước đây tắt tiếng KHÔNG có hiệu lực ở mức NGUY KỊCH,
+với lý do "không ai được bịt miệng lớp bảo vệ cuối cùng". Chủ dự án quyết định
+ngược lại.
+
+**Lập luận cũ bỏ sót gì.** Còi 100 dB kêu liên tục ngay cạnh người đang xử lý sự
+cố thì thứ bị tắt sẽ là **cả hệ thống** — người ta rút phích, và lúc đó mất luôn
+giám sát lẫn ghi dữ liệu. Tắt được có kiểm soát an toàn hơn bị rút phích.
+
+**Ba thứ giữ cho nó không thành lỗ hổng:**
+1. `AL_CRIT_MUTE_TTL_MS = 2 phút` — tự bật lại, **bất kể tắt bằng đường nào**.
+   Đường BLE vốn đã có hạn 5 phút; chốt mới lo nốt đường NÚT BẤM, vốn không có
+   hạn nào cả. Chỗ này AI viết chú thích sai trước rồi mới phát hiện: bản đầu
+   ghi "tự bật lại sau 5 phút" trong khi nút bấm im vĩnh viễn.
+2. Nâng mức là xoá tắt tiếng — sự cố xấu đi thì còi kêu lại ngay.
+3. Đèn đỏ và dữ liệu lên cloud **không** bị tắt. Chỉ tiếng bị tắt.
+
+Muốn quay lại: đổi `const bool mute_gate = !muted_;` trong `alarm.cpp` thành
+`!muted_ || lvl_ >= AL_CRITICAL`. Không sửa chỗ khác.
+
+⚠️ **CHƯA thử ở mức NGUY KỊCH thật** — cần một cell vượt 60 °C, chưa làm được
+an toàn trên bàn. Mới kiểm ở mức BÌNH THƯỜNG.
+
+## QĐ-046 — Song ngữ Việt/Anh, và một đặc tính BLE cho MÁY đọc (22/09/2026)
+
+**Hai việc, cùng một gốc: chữ hiển thị đang trộn lẫn hai vai.**
+
+**(a) Đặc tính `000A` — trạng thái còi dạng `khoá=giá trị`.** App trước chỉ báo
+"đã gửi lệnh" rồi thôi: người dùng không biết lệnh có ăn không, mà đây là nút
+quyết định còi báo cháy có kêu hay không. Nay chip gửi
+`mute=1 quiet=0 lvl=2 ttl=95` và hai nút đổi theo **trạng thái chip báo về**,
+không theo việc gói tin đã gửi đi. Có cả đồng hồ đếm lùi.
+
+Vì sao không dò chuỗi "[COI DANG TAT TIENG]" có sẵn: sửa một chữ ở firmware là
+app hiểu sai trạng thái còi mà không báo lỗi gì.
+
+**(b) Song ngữ.** Dashboard dựng câu TỪ SỐ nên dịch **trọn vẹn**, nhớ lựa chọn
+trong `localStorage`. App BLE thì chỉ dịch được **một phần**: vài ô là chữ do
+firmware gửi, app thay bằng từ điển cụm từ (`Strings.kt`).
+
+⚠️ **Hạn chế phải biết:** firmware đổi một chữ trong câu là bản dịch ngừng khớp
+và người dùng thấy tiếng Việt lẫn trong bản tiếng Anh. KHÔNG gây lỗi, chỉ xấu.
+Làm cho đúng nghĩa là firmware gửi dữ liệu SỐ và mỗi client tự dựng câu — đáng
+làm, nhưng đụng `ble_view.cpp` + app + bản web + dashboard cùng lúc, không phải
+thứ nên làm bốn ngày trước Bán kết. Riêng **băng trạng thái** thì đã miễn nhiễm:
+nó dựng từ `lvl` trong `000A`.
+
+**Grafana CHƯA song ngữ** — tiêu đề panel do `make_dashboard.py` sinh, vẫn tiếng
+Việt. Đó là màn cho quản lý đội xe, không phải màn đưa cho giám khảo cầm.

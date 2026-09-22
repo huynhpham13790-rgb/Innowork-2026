@@ -119,6 +119,18 @@ enum AlarmLevel : uint8_t {
  * không còn biết pin thế nào". Hai thứ đó đòi hỏi hành động khác nhau, nên
  * báo bằng màu khác (xanh dương nháy) chứ không trộn vào mức đỏ. */
 
+/* Tắt tiếng ở mức NGUY KỊCH TỰ HẾT HẠN sau 2 phút, bất kể tắt bằng đường nào.
+ *
+ * Vì sao cần, sau khi QĐ-045 cho phép tắt cả mức NGUY KỊCH: đường BLE vốn đã
+ * có hẹn giờ 5 phút, nhưng NÚT BẤM thì không — nhấn một cái là im VĨNH VIỄN.
+ * Ở mức NGUY KỊCH (vượt ngưỡng cứng 60 °C) thì im vĩnh viễn là đúng cái kịch
+ * bản tệ nhất: pack đang cháy, còi đã bị tắt, không còn gì nhắc.
+ *
+ * 2 phút, ngắn hơn 5 phút của BLE: đủ để người xử lý sự cố nghe rõ nhau, chưa
+ * đủ để quên mất là mình đã tắt nó.
+ */
+#define AL_CRIT_MUTE_TTL_MS  120000UL
+
 class Alarm {
  public:
   void begin();
@@ -142,6 +154,9 @@ class Alarm {
 
   AlarmLevel level() const { return lvl_; }
   bool  muted() const { return muted_; }
+  /* Giây còn lại trước khi tắt tiếng TỰ HẾT HẠN ở mức NGUY KỊCH; 0 = không
+     có hẹn giờ nào đang chạy. Dùng để hiện đồng hồ đếm lùi cho người dùng. */
+  uint32_t muteLeftS() const;
   bool  quiet() const { return quiet_; }
 
   /* Tắt tiếng / bật lại từ XA (nút trên dashboard). Đi qua đúng cờ mà nút bấm
@@ -180,4 +195,5 @@ class Alarm {
   uint32_t t_begin_      = 0;      // mốc begin(), để khoá nút lúc mới khởi động
   bool     mute_seen_up_ = false;  // đã từng thấy nút ở trạng thái NHẢ chưa
   uint32_t t_mute_down_  = 0;      // lúc bắt đầu giữ nút; 0 = đang nhả
+  uint32_t t_muted_at_   = 0;      // lúc bắt đầu tắt tiếng; 0 = đang kêu
 };

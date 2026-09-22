@@ -1125,7 +1125,8 @@ void loop() {
                 pmv.valid, pmv.voltage, pmv.current,
                 pmv.valid ? crudeSocFromVoltage(pmv.cell_v) : 0.0f,  // đã là 0..100
                 gTempOk ? gTemp.status().n_healthy : 0,
-                WiFi.status() == WL_CONNECTED, mqtt.connected());
+                WiFi.status() == WL_CONNECTED, mqtt.connected(),
+                gAlarm.muteLeftS());
   }
 
   // Lớp 2: mô phỏng một chu kỳ sạc theo nhịp, chỉ khi đã có mạng để gửi

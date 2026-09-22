@@ -96,7 +96,8 @@ class BleView {
   void update(const float* temps, const CellAIResult& ai, AlarmLevel lvl,
               bool muted, bool quiet,
               bool meter_ok, float pack_v, float pack_a, float soc_pct,
-              int n_healthy, bool wifi_ok, bool cloud_ok);
+              int n_healthy, bool wifi_ok, bool cloud_ok,
+              uint32_t crit_mute_left_s = 0);
 
   /* Lớp 2 tính trên chip. Tách khỏi update() vì nó chỉ đổi MỘT LẦN mỗi chu kỳ
      sạc — gọi kèm nhịp 1 Hz là ghi lại cùng một chuỗi vài nghìn lần vô ích. */

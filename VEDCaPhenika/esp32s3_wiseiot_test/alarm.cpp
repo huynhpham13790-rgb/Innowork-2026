@@ -130,6 +130,7 @@ void Alarm::pollMute() {
   }
 
   muted_ = !muted_;
+  t_muted_at_ = muted_ ? millis() : 0;
   Serial.printf("[ALRM] %s coi (giu nut %lu ms)\n",
                 muted_ ? "TAT TIENG" : "BAT LAI TIENG", (unsigned long)held);
 }
@@ -137,7 +138,16 @@ void Alarm::pollMute() {
 void Alarm::setMuted(bool m) {
   if (muted_ == m) return;
   muted_ = m;
+  t_muted_at_ = m ? millis() : 0;
   Serial.printf("[ALRM] %s coi (lenh tu xa)\n", m ? "TAT TIENG" : "BAT LAI TIENG");
+}
+
+/* Giây còn lại của tắt tiếng ở mức NGUY KỊCH. Ở mức thấp hơn trả 0 vì không
+   có hẹn giờ nào — tắt tiếng cảnh báo AI thì được phép kéo dài. */
+uint32_t Alarm::muteLeftS() const {
+  if (!muted_ || lvl_ < AL_CRITICAL || !t_muted_at_) return 0;
+  const uint32_t el = millis() - t_muted_at_;
+  return el >= AL_CRIT_MUTE_TTL_MS ? 0 : (AL_CRIT_MUTE_TTL_MS - el) / 1000UL;
 }
 
 void Alarm::setQuiet(bool q) {
@@ -148,6 +158,16 @@ void Alarm::setQuiet(bool q) {
 
 void Alarm::update(bool ai_alarm, bool ai_watch, float t_max, bool sensor_bad) {
   pollMute();
+
+  /* Ép hết hạn tắt tiếng ở mức NGUY KỊCH (QĐ-045). Đặt TRƯỚC phần tính mức để
+     nếu vừa hết hạn thì còi kêu lại ngay trong chính vòng này.
+     Đường BLE đã có hẹn giờ riêng 5 phút; chốt này lo nốt đường NÚT BẤM, vốn
+     không có hạn nào cả. */
+  if (muted_ && lvl_ >= AL_CRITICAL && t_muted_at_ &&
+      millis() - t_muted_at_ >= AL_CRIT_MUTE_TTL_MS) {
+    muted_ = false; t_muted_at_ = 0;
+    Serial.println("[ALRM] het han tat tieng o muc NGUY KICH - coi bat lai");
+  }
 
   /* --- Đường ngưỡng cứng: KHÔNG phụ thuộc AI, xử lý trước mọi thứ khác ---
      Nếu cell_ai.cpp có lỗi và không bao giờ báo động, nhánh này vẫn chạy.
@@ -172,7 +192,7 @@ void Alarm::update(bool ai_alarm, bool ai_watch, float t_max, bool sensor_bad) {
     // Leo thang huỷ CẢ tắt tiếng lẫn bíp thưa. Người dùng chấp nhận nghe ít
     // hơn khi AI nghi ngờ, không có nghĩa là họ chấp nhận nghe ít hơn khi pin
     // đã vượt 60 °C.
-    if (lvl_ > prev) { muted_ = false; quiet_ = false; }
+    if (lvl_ > prev) { muted_ = false; quiet_ = false; t_muted_at_ = 0; }
     if (lvl_ >= AL_ALARM && prev < AL_ALARM) n_events_++;
     Serial.printf("[ALRM] %s -> %s%s\n",
                   prev == AL_OK ? "OK" : (prev == AL_WATCH ? "THEO DOI" :
@@ -214,14 +234,24 @@ void Alarm::update(bool ai_alarm, bool ai_watch, float t_max, bool sensor_bad) {
      (3) ở alarm.h đóng lại. */
   const bool quiet_gate = (!quiet_ || lvl_ >= AL_CRITICAL ||
                            (t - t_blink_) < AL_QUIET_BEEP_MS);
-  /* Tắt tiếng KHÔNG có hiệu lực ở mức NGUY KỊCH.
-     "bíp thưa" đã bị chặn ở đây từ trước (xem ngay trên), nhưng "tắt tiếng"
-     thì chưa — tức là vẫn còn một đường bịt miệng hoàn toàn ngưỡng cứng 60 °C,
-     đúng cánh cửa mà quyết định (3) trong alarm.h đóng lại. Lỗ này chỉ lộ ra
-     khi mở đường tắt tiếng qua BLE (QĐ-042): trước đó muốn tắt tiếng phải đứng
-     tại chỗ bấm nút, giờ thì làm được từ xa.
-     Lớp bảo vệ cuối cùng thì không ai được bịt miệng, kể cả chủ máy. */
-  const bool mute_gate = !muted_ || lvl_ >= AL_CRITICAL;
+  /* Tắt tiếng CÓ hiệu lực ở cả mức NGUY KỊCH (QĐ-045 — chủ dự án quyết định,
+     đảo lại thiết kế cũ).
+
+     Lập luận cũ: không ai được bịt miệng lớp bảo vệ cuối cùng. Lập luận ấy bỏ
+     qua một điều: còi 100 dB kêu liên tục ngay cạnh người đang xử lý sự cố thì
+     thứ bị tắt sẽ là CẢ HỆ THỐNG — người ta rút phích, và lúc đó mất luôn cả
+     giám sát lẫn ghi dữ liệu. Tắt được 5 phút có kiểm soát an toàn hơn bị rút
+     phích vĩnh viễn.
+
+     Ba thứ giữ cho quyết định này không thành lỗ hổng:
+       1. TỰ BẬT LẠI sau BLE_MUTE_TTL_MS (5 phút) — im lặng luôn có hạn.
+       2. Nâng mức là XOÁ tắt tiếng (xem chỗ `lvl_ > prev` phía trên), nên sự
+          cố diễn biến xấu đi thì còi kêu lại ngay, không cần ai làm gì.
+       3. Đèn đỏ và dữ liệu lên cloud KHÔNG bị tắt — chỉ tiếng bị tắt.
+
+     Nếu sau này muốn quay lại thiết kế cũ thì đổi đúng dòng dưới thành
+     `!muted_ || lvl_ >= AL_CRITICAL`. Đừng sửa chỗ khác. */
+  const bool mute_gate = !muted_;
   setBuzzer(lvl_ >= AL_ALARM && mute_gate && blink_ && quiet_gate);
 }
 

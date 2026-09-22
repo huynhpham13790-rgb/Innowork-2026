@@ -4,7 +4,7 @@
 /* Biên dịch rỗng: không kéo Bluedroid vào, firmware y hệt bản chưa có BLE. */
 bool BleView::begin(const char*) { return false; }
 void BleView::update(const float*, const CellAIResult&, AlarmLevel, bool, bool,
-                     bool, float, float, float, int, bool, bool) {}
+                     bool, float, float, float, int, bool, bool, uint32_t) {}
 bool BleView::connected() const { return false; }
 int  BleView::clientCount() const { return 0; }
 void BleView::onCommand(void (*)(bool), void (*)(bool)) {}
@@ -31,8 +31,9 @@ void BleView::tick() {}
 #define UUID_DIAG  "48555449-4555-4d53-0007-000000000000"
 #define UUID_CMD   "48555449-4555-4d53-0008-000000000000"
 #define UUID_L2    "48555449-4555-4d53-0009-000000000000"
+#define UUID_CTL   "48555449-4555-4d53-000a-000000000000"
 
-static const int N_CHAR = 7;
+static const int N_CHAR = 8;
 static BLEServer         *sServer = nullptr;
 static BLECharacteristic *sCh[N_CHAR] = {nullptr};
 static String             sLast[N_CHAR];
@@ -130,6 +131,13 @@ bool BleView::begin(const char* device_id) {
   sCh[4] = mkChar(svc, UUID_SYS,   "Tinh trang he thong");
   sCh[5] = mkChar(svc, UUID_DIAG,  "So do da dung de chan doan");
   sCh[6] = mkChar(svc, UUID_L2,    "Lop 2 - suc khoe va tuoi tho pack");
+  /* Đặc tính MÁY ĐỌC, không phải người đọc. Ô "Trang thai" đã có chữ
+     "[COI DANG TAT TIENG]", nhưng app mà phải dò chuỗi tiếng Việt để biết
+     nút đang bật hay tắt thì chỉ cần sửa một chữ ở firmware là app hỏng im
+     lặng. Tách ra một ô khoá=giá trị để hai bên đổi độc lập được.
+     `ttl` là giây còn lại TẠI LÚC GỬI — app tự đếm lùi, nên không phải
+     notify mỗi giây chỉ để một con số nhích xuống. */
+  sCh[7] = mkChar(svc, UUID_CTL,   "Trang thai coi (may doc)");
 
   /* Đặc tính DUY NHẤT ghi được, và nó đòi liên kết đã mã hoá + xác thực. Điện
      thoại chưa ghép đôi ghi vào sẽ bị từ chối ngay ở tầng GATT, không tới được
@@ -229,7 +237,8 @@ static const char* levelText(AlarmLevel l) {
 void BleView::update(const float* temps, const CellAIResult& ai, AlarmLevel lvl,
                      bool muted, bool quiet,
                      bool meter_ok, float pack_v, float pack_a, float soc_pct,
-                     int n_healthy, bool wifi_ok, bool cloud_ok) {
+                     int n_healthy, bool wifi_ok, bool cloud_ok,
+                     uint32_t crit_mute_left_s) {
   if (!ready_) return;
   char b[256];
 
@@ -287,6 +296,25 @@ void BleView::update(const float* temps, const CellAIResult& ai, AlarmLevel lvl,
   snprintf(b, sizeof(b), "lech %+.2f degC | nhanh hon pack %+.2f degC/phut | "
            "dot ngot %+.2f degC", ai.dev, ai.dt_diff, ai.shock);
   put(5, ai.valid ? b : "chua co so (AI dang khoi dong)");
+
+  /* Trạng thái còi cho máy đọc. Gửi cả `lvl` để app biết có đang báo động
+     thật không mà đổi màu nút cho đúng. */
+  {
+    /* Hai hẹn giờ chạy song song và chúng KHÔNG thay nhau được: đường BLE hết
+       hạn sau 5 phút, còn mức NGUY KỊCH thì hết hạn sau 2 phút bất kể tắt bằng
+       đường nào (QĐ-045). Lấy cái SẮP HẾT TRƯỚC, vì đó mới là lúc còi kêu lại
+       — hiện số lớn hơn là hứa với người dùng một sự im lặng không có thật. */
+    const int32_t ble_ms = sMuteUntil ? (int32_t)(sMuteUntil - millis()) : 0;
+    const uint32_t ble_s = ble_ms > 0 ? (uint32_t)(ble_ms / 1000) : 0;
+    uint32_t left_s;
+    if (ble_s && crit_mute_left_s) left_s = ble_s < crit_mute_left_s ? ble_s : crit_mute_left_s;
+    else                           left_s = ble_s ? ble_s : crit_mute_left_s;
+
+    char c[96];
+    snprintf(c, sizeof(c), "mute=%d quiet=%d lvl=%d ttl=%lu",
+             muted ? 1 : 0, quiet ? 1 : 0, (int)lvl, (unsigned long)left_s);
+    put(7, c);
+  }
 
   snprintf(b, sizeof(b), "cam bien %d/%d  wifi %s  cloud %s  chay %lu phut",
            n_healthy, AI_N_CELLS, wifi_ok ? "OK" : "mat",
