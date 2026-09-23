@@ -1769,3 +1769,7 @@ THẬT?" (chỉ hiện chữ "ĐO THẬT") được thay bằng **điện áp v�
 tắc tự khai giữ nguyên: chip gửi -99 khi không đọc được mạch đo, và ô hiện "chưa đo".
 Biểu đồ nhiệt độ lọc bỏ -99 (Ambient_Temp khi không có cảm biến môi trường), không còn
 đường nằm ở −100 °C. Xem trên Chrome: 12,53 V · 0,000 A.
+
+**Bổ sung 23/09 chiều:** mô phỏng sạc già 0,5 s/chu kỳ vẫn làm RUL tụt ~12 chu kỳ mỗi
+giờ (một chu kỳ ảo mỗi 45 s) — biểu đồ 30 ngày có vách dựng đứng ở cuối. Hạ xuống
+**0,05 s/chu kỳ** (~1,3 chu kỳ/giờ). Seed lại sau khi nạp: SOH 91,5 %, RUL cuối ~44.

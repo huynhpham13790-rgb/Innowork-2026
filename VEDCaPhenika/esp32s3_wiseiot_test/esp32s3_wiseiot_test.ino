@@ -803,8 +803,10 @@ void simulateChargeCycle() {
      nên chỉ ~15 phút là tau vượt 1573, RUL về 0, SOH 55 % và "ngoại suy" —
      đúng thứ dashboard hiện suốt buổi demo (đo 23/09). Giờ bắt đầu từ ~chu kỳ
      60 của pin NASA B0005 (t_cv ≈ 2760 s), khớp chỗ seed_layer2.py dừng, và
-     già 0,5 s/chu kỳ: ~7 tiếng chạy liền mới ra khỏi dải huấn luyện. */
-  const float tau_cv = 1370.0f + 0.5f * gSimCycle;
+     già 0,05 s/chu kỳ. Bản 0,5 làm RUL tụt ~12 chu kỳ mỗi GIỜ (một chu kỳ ảo
+     mỗi 45 s, nhanh hơn đời thật ~2000 lần) — biểu đồ 30 ngày có một vách dựng
+     đứng ở cuối. 0,05: ~1,3 chu kỳ/giờ, cả ngày chạy vẫn trong dải. */
+  const float tau_cv = 1370.0f + 0.05f * gSimCycle;
   const float I0 = 1.5f;
 
   for (int t = 0; t < 20000; t++) {
