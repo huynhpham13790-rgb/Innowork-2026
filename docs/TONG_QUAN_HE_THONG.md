@@ -154,9 +154,14 @@ Xem QĐ-033.
 ### Điểm yếu — phải nói thẳng
 
 - **Chỉ biết "khác thường", không biết "vì sao".** Xem mục 7.
-- **Trượt bài kiểm chuyển giao.** Mang mô hình học từ NASA sang pack McMaster
-  có lỗi cố ý → **KHÔNG chạy** (QĐ-032, mục 6.8b). Phải hiệu chỉnh lại cho từng
-  loại pack.
+- **Chuyển giao sang pack lạ: qua được, nhưng chưa trọn vẹn.** Bản đầu (16 đặc
+  trưng, QĐ-032) mang từ NASA sang pack McMaster thì **trượt** — báo oan cả file
+  bình thường. Bản hiện tại (11 đặc trưng thuần tương đối, QĐ-033) **không cần
+  train lại**: file lỗi 0,36–1,26 % thời gian, file bình thường tệ nhất 0,065 %,
+  tách biệt ~19 lần. Vẫn **bỏ sót 1 ca** (`UDDS_Blocked_25C` — độ rộng nhiệt chỉ
+  tăng 1 °C). Muốn chắc hơn thì hiệu chỉnh NGƯỠNG tại chỗ bằng vài giờ chạy trên
+  pack đã biết là tốt — không cần nhãn, không phải train lại mạng.
+  Xem `BANG_CHUNG_AE_TUONG_DOI_2026-09-15.md`.
 - **Cần ít nhất 3–4 cell** để có "phần còn lại" mà so sánh. Pack 1–2 cell thì
   phương pháp này vô nghĩa.
 - **Một cell hỏng từ đầu** sẽ bị coi là "bình thường" nếu nó hỏng ngay từ lúc
@@ -418,7 +423,7 @@ Phần này quan trọng với mục *"khả năng phản biện"*. Nói trướ
 |---|---|
 | **Kiểm chứng Lớp 2 trên pack của đội** | Cần một pack **đã già đi** để đối chiếu — mất nhiều tháng. Tiền không rút ngắn được |
 | **Đo dòng sạc thật** | Shunt INA226 chỉ tới 0,819 A; sạc 2 A vượt thang |
-| **Lớp 1 chuyển giao sang pack lạ** | Đã kiểm trên McMaster: **TRƯỢT**. Phải hiệu chỉnh cho từng loại pack |
+| **Lớp 1 chuyển giao sang pack lạ** | Bản QĐ-033 qua được trên McMaster (tách biệt ~19×) nhưng bỏ sót 1/3 file lỗi (`UDDS_Blocked_25C`). Chưa kiểm trên pack thứ ba |
 | Đo nội trở trực tiếp | Cần bước nhảy dòng có điều khiển |
 | Giảm dòng sạc theo nhiệt độ (JEITA) | Cần điều khiển bộ sạc |
 | Ước lượng thời gian sạc đầy | Cần dòng đo được |
@@ -491,7 +496,7 @@ hệ thống sẵn có của khách.
 | Mức NGUY KỊCH: tắt được và tự kêu lại sau 2 phút | `BANG_CHUNG_NGUY_KICH_2026-09-22.md` |
 | Tắt tiếng Lớp 1 giữ qua dao động mức *(0 lần kêu lại trong 212 s)* | `BANG_CHUNG_TAT_COI_LOP1_2026-09-22.md` |
 | Store-and-forward: ngắt 60 s, 83 điểm, 0 lỗ hổng | `BANG_CHUNG_KIEM_THU_2026-09-06.md` |
-| Lớp 1 **TRƯỢT** bài chuyển giao sang pack lạ | `BANG_CHUNG_KIEM_CHUNG_LOP1_THAT_2026-09-15.md` |
+| Lớp 1 bản đầu **TRƯỢT** chuyển giao; bản thuần tương đối qua nhưng **bỏ sót** `UDDS_Blocked_25C` | `BANG_CHUNG_KIEM_CHUNG_LOP1_THAT_2026-09-15.md`, `BANG_CHUNG_AE_TUONG_DOI_2026-09-15.md` |
 
 Dòng cuối cùng cố ý nằm trong bảng. **Một bảng bằng chứng chỉ toàn ✅ là một
 bảng chưa ai kiểm nghiêm túc.**

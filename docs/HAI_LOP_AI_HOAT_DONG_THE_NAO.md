@@ -58,6 +58,21 @@ biệt hai nguyên nhân bằng cách **đổi vị trí cell**: nếu điểm n
 thì là cell; nếu ở lại theo vị trí thì là tản nhiệt. Nếu là cell thì đánh dấu
 để thay khi tân trang (thay bằng cell **khớp độ chai**, xem QĐ-027).
 
+**Cell sát hai cực chính của pack (thêm 23/09 — CHƯA KIỂM trên pack đội):**
+cell đầu và cell cuối chuỗi nối với dây ra tải/sạc. Toàn bộ dòng đi qua mối nối
+đó, nên điện trở tiếp xúc ở cực chính (P = I²R) có thể làm hai cell này **ấm hơn**
+lúc tải nặng. Ngược lại, lúc nghỉ chúng thường **mát hơn** vì nằm ở rìa, tản nhiệt
+tốt hơn cell giữa. Với Lớp 1 thì đây là một **độ lệch theo vị trí**, không phải lỗi:
+- Nếu nhỏ và đều (cỡ 1–2 °C) thì nó là một phần của "bình thường" — nhãn có thể
+  là TH-2 nhưng điểm không vượt ngưỡng, không báo động.
+- Nếu lớn và **tăng theo dòng** thì dễ bị gọi TH-2, thậm chí TH-1 khi dòng tăng
+  đột ngột. Cách chữa đúng: hiệu chỉnh ngưỡng tại chỗ trên pack đã biết là tốt
+  (QĐ-033), dán đầu dò lên thân cell cách xa tab cực, và siết/kiểm mối nối cực chính.
+- Một cực chính nóng DẦN theo thời gian thì là mối nối đang lỏng — đó là lỗi thật,
+  chính là thứ TH-1/TH-2 muốn bắt.
+Cách kiểm: chạy pack ở dòng cao nhất đo được (INA226 tới 0,819 A) 20–30 phút, xem
+cell 1 và cell 6 có lệch theo dòng không.
+
 **Diễn TH-2 (23/09, QĐ-049):** nút "TH-2 · Ấm ổn định" trên trang 1880. Lúc đầu
 cell đang được đẩy lên nên hiện TH-1 — đúng, vì nó đang nóng lên thật. Sau ~4
 phút cell đứng ở ~+3,9 °C và nhãn chuyển TH-2. Giữ quá ~8 phút thì báo động tự
