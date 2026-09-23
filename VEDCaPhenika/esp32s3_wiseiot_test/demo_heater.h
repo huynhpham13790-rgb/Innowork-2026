@@ -25,6 +25,9 @@
  *     khi thân điện trở đã bỏng tay, và thứ dừng thí nghiệm là BÀN TAY NGƯỜI.
  *     DH_MAX_ON_MS đếm thời gian, không đọc cảm biến: nó vẫn cắt khi đầu dò
  *     tuột, dán sai chỗ, hoặc tiếp xúc kém.
+ *     23/09: nới từ 180 s lên 20 phút (cắt giữa chừng khi có keo tản nhiệt),
+ *     và thêm DH_NORESP_* — "bật 4 phút mà cell không nóng thêm 0,5 °C thì
+ *     chốt" — để bắt đúng ca đầu dò tuột mà không cắt một lần chạy bình thường.
  *
  *  VÌ SAO TRẦN 50 °C CHỨ KHÔNG PHẢI 60:
  *  AL_T_CRIT = 60 °C là lớp bảo vệ CUỐI CÙNG. Nếu demo chạy tới 60 thì lớp cuối
@@ -43,7 +46,14 @@
 #define DH_MAX_DELTA_C    6.0f      // dừng khi cell nóng nhất vượt trung vị pack bấy nhiêu
 #define DH_RESUME_DELTA_C 4.5f      // bật lại khi tụt xuống dưới mức này (trễ, chống nhấp nháy)
 #define DH_ABS_MAX_C      50.0f     // trần tuyệt đối — CỐ Ý thấp hơn AL_T_CRIT 60
-#define DH_MAX_ON_MS      180000UL  // hạn mức thời gian; KHÔNG đọc cảm biến
+/* Hạn mức thời gian — ĐỔI 23/09 theo yêu cầu người phụ trách. 180 s cũ cắt giữa
+   chừng: có keo tản nhiệt + Kapton thì nhiệt vào cell chậm, đo được cell vẫn
+   đang lên khi bị cắt (lệch +1,2 °C lúc cắt, lên tới +2,0 °C sau đó). Mục đích
+   của nó — bắt đầu dò TUỘT — giờ do DH_NORESP_* làm, và làm đúng hơn: nó đọc
+   xem nhiệt có THẬT SỰ vào cell không, thay vì đoán bằng đồng hồ. */
+#define DH_MAX_ON_MS      1200000UL // chốt cuối 20 phút bật — KHÔNG đọc cảm biến
+#define DH_NORESP_MS      240000UL  // sau 4 phút bật mà...
+#define DH_NORESP_RISE_C  0.5f      // ...cell nóng nhất lệch thêm chưa tới 0,5 °C => đầu dò tuột
 #define DH_DEADMAN_MS     15000UL   // lệnh xin hết hiệu lực sau bấy nhiêu
 
 /* HAI KỊCH BẢN (23/09). Chế độ NHANH bật hết cỡ tới +6 °C rồi bật/tắt quanh
@@ -107,4 +117,6 @@ class DemoHeater {
   uint32_t deadman_until_ = 0;
   uint32_t t_on_ = 0;          // lúc bật lần gần nhất
   uint32_t on_accum_ = 0;      // tổng thời gian đã bật trong phiên xin này
+  float    delta0_ = 0;        // chênh lệch lúc bắt đầu phiên — để đo nhiệt có vào cell không
+  bool     delta0_set_ = false;
 };

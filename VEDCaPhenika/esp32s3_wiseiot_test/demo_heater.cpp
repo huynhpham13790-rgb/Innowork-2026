@@ -31,7 +31,7 @@ void DemoHeater::request(uint32_t hold_ms, DhMode mode) {
   if (hold_ms > DH_DEADMAN_MS) hold_ms = DH_DEADMAN_MS;   // cloud không nới được
   deadman_until_ = millis() + hold_ms;
   mode_ = mode;
-  if (st_ == DH_OFF) { on_accum_ = 0; }                   // phiên mới, đếm lại
+  if (st_ == DH_OFF) { on_accum_ = 0; delta0_set_ = false; }  // phiên mới, đếm lại
 }
 
 void DemoHeater::stop() {
@@ -71,7 +71,7 @@ void DemoHeater::update(const float* temps, int n, bool sensor_ok) {
 
   /* --- hạn mức 3: thời gian. KHÔNG đọc cảm biến, nên vẫn cắt khi đầu dò tuột,
      dán sai chỗ, hay tiếp xúc kém. Xem chú thích đầu demo_heater.h. --- */
-  if (on_accum_ > DH_MAX_ON_MS) { block("qua han muc thoi gian"); return; }
+  if (on_accum_ > DH_MAX_ON_MS) { block("qua han muc thoi gian 20 phut"); return; }
 
   /* --- mất cảm biến = coi như quá nhiệt. Không đọc được nghĩa là không biết,
      mà không biết thì phải giả định điều xấu nhất — nếu không, cách dễ nhất để
@@ -91,6 +91,14 @@ void DemoHeater::update(const float* temps, int n, bool sensor_ok) {
   for (int i = 1; i < m; i++) { float x=v[i]; int j=i-1; while (j>=0 && v[j]>x) { v[j+1]=v[j]; j--; } v[j+1]=x; }
   const float med = (m % 2) ? v[m/2] : 0.5f*(v[m/2-1]+v[m/2]);
   delta_ = tmax - med;
+  if (!delta0_set_) { delta0_ = delta_; delta0_set_ = true; }
+
+  /* --- hạn mức 4: sưởi mà cell không nóng lên = đầu dò không nằm trên chỗ nóng
+     (tuột, dán nhầm cell). Đúng sự cố 21/09: đầu dò báo bình thường trong khi
+     điện trở bỏng tay. Không chốt thì sưởi chạy mãi vì không bao giờ tới +6. --- */
+  if (on_accum_ > DH_NORESP_MS && delta_ - delta0_ < DH_NORESP_RISE_C) {
+    block("suoi ma cell khong nong - kiem dau do"); return;
+  }
 
   // --- hạn mức 1: trần tuyệt đối, cố ý thấp hơn AL_T_CRIT ---
   if (tmax >= DH_ABS_MAX_C) { block("cham tran tuyet doi 50 degC"); return; }

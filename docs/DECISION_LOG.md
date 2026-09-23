@@ -1773,3 +1773,21 @@ Biểu đồ nhiệt độ lọc bỏ -99 (Ambient_Temp khi không có cảm bi�
 **Bổ sung 23/09 chiều:** mô phỏng sạc già 0,5 s/chu kỳ vẫn làm RUL tụt ~12 chu kỳ mỗi
 giờ (một chu kỳ ảo mỗi 45 s) — biểu đồ 30 ngày có vách dựng đứng ở cuối. Hạ xuống
 **0,05 s/chu kỳ** (~1,3 chu kỳ/giờ). Seed lại sau khi nạp: SOH 91,5 %, RUL cuối ~44.
+
+## QĐ-051 — Bỏ tự cắt sưởi sau 180 s; chốt "sưởi mà cell không nóng" thay vào (23/09/2026)
+
+**Người phụ trách yêu cầu** sưởi chạy tới khi chính họ bấm dừng. Đo trên pack thật
+(đã dán keo tản nhiệt + Kapton): cắt ở 180 s thì cell 3 mới lệch +1,2 °C và vẫn còn
+lên tiếp tới +2,0 °C sau khi cắt — nhiệt vào cell chậm, mốc 180 s cắt đúng lúc sắp có
+kết quả. Điện trở lúc đó ~70 °C trong khi cell 28 °C (tiếp xúc nhiệt kém).
+
+**Đổi:** `DH_MAX_ON_MS` 180 s → **20 phút** (chốt cuối). Thêm `DH_NORESP_*`: bật 4 phút
+mà cell nóng nhất lệch thêm chưa tới 0,5 °C → chốt "đầu dò không nằm trên chỗ nóng".
+Đây mới là mục đích thật của mốc 180 s (sự cố 21/09), nay bắt bằng số đo thay vì đồng hồ.
+**Giữ nguyên:** trần 50 °C, mất cảm biến → chốt, deadman 15 s (đóng trang = tắt), giữ
+quanh +6 °C ở chế độ nhanh. Trang 1880 thêm nút **DỪNG SƯỞI** đỏ và dòng trạng thái
+(điện trở nóng/tắt, lệch, thời gian chạy, lý do bị khoá).
+
+**Bài học từ lượt chạy:** script theo dõi của AI đọc nhầm cổng Serial sau khi rút cắm
+lại chip (ACM0 → ACM1), nên ngưỡng dừng 47 °C của nó không hoạt động suốt một lượt —
+chỉ còn chốt trên chip. Đã sửa: script tự tìm cổng có `[DATA]`, mất dữ liệu >10 s là dừng sưởi.
