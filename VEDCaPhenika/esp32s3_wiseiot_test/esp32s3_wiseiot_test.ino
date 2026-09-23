@@ -692,7 +692,11 @@ void publishCycleSummary(const ChargeSummary& s) {
   for (int i = 0; i < CC_N_FEATURES; i++) {
     char name[24];
     snprintf(name, sizeof(name), "CYC_%s", CC_FEATURE_NAMES[i]);
-    dev[name] = round(s.f[i] * 10000) / 10000.0;
+    /* KHÔNG làm tròn. Bản cũ làm tròn 4 chữ số thập phân: dvdt_cc chỉ cỡ
+       0,0001 V/s nên bị xoá gần hết, cloud tính SOH lệch chip 3,45 điểm trên
+       CÙNG một chu kỳ (91,36 vs 87,91 — đo 23/09). ArduinoJson tự in đủ số
+       chữ số có nghĩa của float. */
+    dev[name] = s.f[i];
   }
   dev["CYC_duration_s"] = (double)s.duration_s;
 
@@ -795,7 +799,12 @@ void simulateChargeCycle() {
   const float t_b = 2074.0f;      // 3,90 -> 4,15 V  (NASA: t_v_interval TB 2074s)
   const float t_c = 379.0f;       // 4,15 -> 4,20 V
   const float t_cc = t_a + t_b + t_c;
-  const float tau_cv = 1224.0f + 18.0f * gSimCycle;     // CV dài dần khi pin già
+  /* CV dài dần khi pin già. Bản cũ +18 s/chu kỳ từ 1224: cứ 45 s một chu kỳ
+     nên chỉ ~15 phút là tau vượt 1573, RUL về 0, SOH 55 % và "ngoại suy" —
+     đúng thứ dashboard hiện suốt buổi demo (đo 23/09). Giờ bắt đầu từ ~chu kỳ
+     60 của pin NASA B0005 (t_cv ≈ 2760 s), khớp chỗ seed_layer2.py dừng, và
+     già 0,5 s/chu kỳ: ~7 tiếng chạy liền mới ra khỏi dải huấn luyện. */
+  const float tau_cv = 1370.0f + 0.5f * gSimCycle;
   const float I0 = 1.5f;
 
   for (int t = 0; t < 20000; t++) {

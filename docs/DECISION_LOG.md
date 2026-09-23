@@ -1736,3 +1736,30 @@ dù nhãn vẫn TH-2. Diễn TH-2 thì bấm, chờ ~4 phút, có ~6 phút để
 **Kèm theo (không phải kiến trúc):** Grafana có link đổi VI↔EN ở góc trên;
 app Android dựng lại chữ Lớp 1/Lớp 2 từ số (`ChipText.kt`), hết sót tiếng Việt
 trong bản tiếng Anh.
+
+## QĐ-050 — Seed lịch sử Lớp 2 bằng pin NASA phát lại, và ba lỗi Lớp 2 lộ ra khi làm (23/09/2026)
+
+**Bối cảnh:** chưa có INA228 nên chưa có chu kỳ sạc thật. Người phụ trách yêu cầu
+seed dữ liệu để giám khảo thấy được xu hướng SOH/RUL.
+
+**Quyết định — seed KHÔNG bịa kết quả:** `planb_cloud/seed_layer2.py` gửi 9 đặc
+trưng ĐO THẬT của pin NASA B0005 (chu kỳ 1–60) qua đúng topic MQTT, đúng định
+dạng chip gửi, rồi để Node-RED chạy đúng mô hình tính ra SOH/RUL. Chỉ có thời
+điểm là dàn dựng (trải 30 ngày). Gói seed mang `SEED_NASA_Cycle` để luôn lọc
+được. Bỏ chu kỳ 0 (ngoài dải huấn luyện), dừng ở 60 (SOH ~89 %, RUL ~44).
+**Phải nói với giám khảo** rằng 30 ngày lịch sử là dữ liệu NASA phát lại.
+
+**Ba lỗi thật tìm thấy trong lúc seed — cả ba đã có từ trước và làm Lớp 2 hỏng
+suốt các buổi chạy thử mà không ai thấy:**
+1. **Ba panel Lớp 2 trên Grafana chưa bao giờ có số.** Chúng truy vấn measurement
+   `cell`, nhưng `rul_predict.js` ghi vào `rul`.
+2. **Mô phỏng sạc trên chip già quá nhanh:** +18 s CV mỗi 45 s → sau ~15 phút ra
+   khỏi dải, dashboard hiện SOH 55 %, RUL 0, "ngoại suy". Giờ `tau_cv = 1370 + 0,5·n`
+   (nối tiếp chỗ seed dừng, ~7 tiếng mới ra khỏi dải).
+3. **Cloud và chip lệch SOH 3,45 điểm trên CÙNG một chu kỳ** (87,91 vs 91,36):
+   chip làm tròn đặc trưng 4 chữ số thập phân, mà `dvdt_cc` ≈ 0,0001. Bỏ làm
+   tròn → lệch còn 0,07 (sai số float).
+
+**Giới hạn:** lịch sử trên chip (`rulHist`, lưu flash) vẫn giữ 634 chu kỳ mô
+phỏng cũ, nên ô "xu hướng" trên app sai trong ~20 chu kỳ đầu (~15 phút) sau
+khi bật máy lần đầu với firmware này.

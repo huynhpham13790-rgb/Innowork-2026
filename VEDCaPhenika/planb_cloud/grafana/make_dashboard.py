@@ -46,17 +46,17 @@ def q(flux):
     return [{"datasource": DS, "query": flux, "refId": "A"}]
 
 
-def last(tag, rng="-6h"):
+def last(tag, rng="-6h", meas="cell"):
     return q(f'''from(bucket: "{BUCKET}")
   |> range(start: {rng})
-  |> filter(fn: (r) => r._measurement == "cell" and r._field == "value" and r.tag == "{tag}")
+  |> filter(fn: (r) => r._measurement == "{meas}" and r._field == "value" and r.tag == "{tag}")
   |> last()''')
 
 
-def series(regex, rng="v.timeRangeStart"):
+def series(regex, rng="v.timeRangeStart", meas="cell"):
     return q(f'''from(bucket: "{BUCKET}")
   |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
-  |> filter(fn: (r) => r._measurement == "cell" and r._field == "value" and r.tag =~ {regex})
+  |> filter(fn: (r) => r._measurement == "{meas}" and r._field == "value" and r.tag =~ {regex})
   |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)
   |> keep(columns: ["_time","_value","tag"])''')
 
@@ -251,7 +251,7 @@ def main(lang="vi"):
 
     # ===================== HÀNG 4 — Lớp 2 ====================================
     P.append(panel(nxt(), "gauge", "Lớp 2 — SOH (sức khoẻ pack)", 0, 20, 6, 7,
-        last("SOH_Percent"),
+        last("SOH_Percent", rng="-45d", meas="rul"),   # "rul": do rul_predict.js ghi, KHÔNG phải "cell"
         {"reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": False},
          "showThresholdLabels": False, "showThresholdMarkers": True},
         {"defaults": {"unit": "percent", "min": 60, "max": 100, "decimals": 1,
@@ -264,16 +264,21 @@ def main(lang="vi"):
         "cell yếu nhất (QĐ-027). 80 % là mốc thường dùng để coi là hết đời xe."))
 
     P.append(panel(nxt(), "timeseries", "Lớp 2 — RUL: số chu kỳ còn lại", 6, 20, 12, 7,
-        series("/^RUL_Cycles$/"),
+        series("/^RUL_Cycles$/", meas="rul"),
         {"legend": {"showLegend": False}, "tooltip": {"mode": "single"}},
         {"defaults": {"unit": "none", "decimals": 0,
                       "custom": {"lineWidth": 2, "fillOpacity": 10}},
          "overrides": []},
         "Hồi quy tuyến tính trên t_cv (thời gian ở giai đoạn điện áp không đổi). "
-        "Nội trở tăng => vào CV sớm hơn => t_cv dài ra."))
+        "Nội trở tăng => vào CV sớm hơn => t_cv dài ra. "
+        "Chưa có INA228: 60 chu kỳ đầu là pin NASA B0005 phát lại qua đúng đường "
+        "truyền (seed_layer2.py), phần sau là chip mô phỏng."))
+    # Xu hướng nhiều tuần mới là thứ Lớp 2 muốn nói; khung 30 phút chung của
+    # dashboard chỉ thấy vài điểm mô phỏng.
+    P[-1]["timeFrom"] = "30d"
 
     P.append(panel(nxt(), "stat", "Mô hình có đang NGOẠI SUY?", 18, 20, 6, 7,
-        last("Extrapolating"), stat_opts(24),
+        last("Extrapolating", rng="-45d", meas="rul"), stat_opts(24),
         {"defaults": {
             "mappings": [{"type": "value", "options": {
                 "0": {"text": "TRONG VÙNG\nĐÃ HUẤN LUYỆN", "color": "green", "index": 0},

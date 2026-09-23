@@ -99,6 +99,7 @@ có `arduino-cli` trên PATH; bản đi kèm nằm trong AppImage của Arduino 
 | `mosquitto/passwd` | Sinh bằng `mosquitto_passwd`, **không commit** | Đổi mật khẩu MQTT |
 | `nodered/flow_wisepaas_to_influx.json` | Flow chạy thật, import qua UI | Đổi luồng xử lý |
 | `nodered/flow_demo_control.json` | **Màn hình người dùng cuối** — `http://127.0.0.1:1880/hutieu`. Trạng thái, 6 cell, chẩn đoán TH-1/2/3, nút tắt còi; phần sưởi nằm dưới mục "chỉ dùng khi trình diễn", **hai nút: TH-1 nóng vọt / TH-2 ấm ổn định** (gửi `{"cmd":"heat","mode":"fast\|steady"}`, QĐ-049) | Đổi giao diện. Chỉ dùng node LÕI, không cần cài palette. **Flow đang chạy có id `1c36b21664cab788`**, khác tên file — sửa xong phải đồng bộ hai chiều |
+| `seed_layer2.py` | Seed lịch sử Lớp 2: phát lại 60 chu kỳ pin NASA B0005 qua MQTT thật, để Node-RED tự tính SOH/RUL (QĐ-050). `--clear` xoá kết quả Lớp 2 mô phỏng 45 ngày qua | Trước buổi demo; đổi đoạn chu kỳ phát lại |
 | `nodered/convert.js` | Bản đọc được của node "WISE-PaaS → line protocol" | Đổi cách map payload → DB |
 | `nodered/check_influx_response.js` | Bản đọc được của node "Kiểm tra kết quả ghi" | Đổi cách báo lỗi ghi |
 

@@ -56,8 +56,8 @@ DESC = {
    "The raw numbers sit next to the advice so a human can still CHECK it.",
  "SOH ở mức PACK, không phải từng cell — pack nối tiếp sống chết theo cell yếu nhất (QĐ-027). 80 % là mốc thường dùng để coi là hết đời xe.":
    "SOH at PACK level, not per cell — a series pack lives or dies by its weakest cell (QĐ-027). 80 % is the usual end-of-automotive-life mark.",
- "Hồi quy tuyến tính trên t_cv (thời gian ở giai đoạn điện áp không đổi). Nội trở tăng => vào CV sớm hơn => t_cv dài ra.":
-   "Linear regression on t_cv (time spent in the constant-voltage phase). Rising internal resistance => CV starts earlier => t_cv grows.",
+ "Hồi quy tuyến tính trên t_cv (thời gian ở giai đoạn điện áp không đổi). Nội trở tăng => vào CV sớm hơn => t_cv dài ra. Chưa có INA228: 60 chu kỳ đầu là pin NASA B0005 phát lại qua đúng đường truyền (seed_layer2.py), phần sau là chip mô phỏng.":
+   "Linear regression on t_cv (time spent in the constant-voltage phase). Rising internal resistance => CV starts earlier => t_cv grows. No INA228 yet: the first 60 cycles are NASA battery B0005 replayed through the real pipeline (seed_layer2.py); the rest is simulated on the chip.",
  "Mô hình tuyến tính ngoài vùng dữ liệu huấn luyện thì con số RUL vô nghĩa. Thà nói ra còn hơn im lặng đưa số đẹp.":
    "Outside its training range a linear model's RUL figure is meaningless. Better to say so than to quietly serve a tidy number.",
  "Gồm cả Ambient_Temp (cảm biến thứ 9, đo môi trường — KHÔNG dán lên cell).":
