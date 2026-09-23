@@ -41,8 +41,11 @@ Serial sau khi nạp: `[RUL ] tren chip: RUL 44.5 chu ky (tho 44.5), SOH 91.4%`,
 
 ## Chỗ AI làm sai / thiếu
 
-- Chưa chụp được màn hình Grafana: Chrome headless bị trang đăng nhập chặn. Đã kiểm
-  bằng API thay thế — **người phụ trách phải tự mở dashboard xem**.
+- Lần đầu chụp Grafana thất bại (Chrome headless bị trang đăng nhập chặn; sau đó
+  mở `127.0.0.1` thay vì `localhost` nên không dùng được phiên đăng nhập). Đã xem
+  lại bằng Chrome của người phụ trách ở `localhost:3000`: SOH 91,4 %, RUL 30 ngày
+  100 → ~44, "TRONG VÙNG ĐÃ HUẤN LUYỆN", link VI↔EN chạy cả hai chiều.
+  Ảnh: `docs/anh/grafana_lop2_seed_2026-09-23.jpg`.
 - Điểm nối seed → chip: SOH nhảy từ ~88,9 (seed cuối) lên ~91,4 (chip). RUL thì liền
   mạch (43,7 → 44,5). Do đặc trưng mô phỏng trên chip không giống hệt pin B0005.
 - Ô "xu hướng" trên app sai ~15 phút đầu (lịch sử cũ trên flash, QĐ-050).
