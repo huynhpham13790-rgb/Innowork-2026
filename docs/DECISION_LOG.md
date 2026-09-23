@@ -1763,3 +1763,9 @@ suốt các buổi chạy thử mà không ai thấy:**
 **Giới hạn:** lịch sử trên chip (`rulHist`, lưu flash) vẫn giữ 634 chu kỳ mô
 phỏng cũ, nên ô "xu hướng" trên app sai trong ~20 chu kỳ đầu (~15 phút) sau
 khi bật máy lần đầu với firmware này.
+
+**Bổ sung 23/09 (dashboard):** pack đã đo bằng **INA226** thật, nên ô "Dòng/áp: số
+THẬT?" (chỉ hiện chữ "ĐO THẬT") được thay bằng **điện áp và dòng pack** thật. Nguyên
+tắc tự khai giữ nguyên: chip gửi -99 khi không đọc được mạch đo, và ô hiện "chưa đo".
+Biểu đồ nhiệt độ lọc bỏ -99 (Ambient_Temp khi không có cảm biến môi trường), không còn
+đường nằm ở −100 °C. Xem trên Chrome: 12,53 V · 0,000 A.

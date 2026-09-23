@@ -18,7 +18,7 @@ TITLE = {
  "Cell đang nghi":                        "Suspect cell",
  "Cell nóng nhất":                        "Hottest cell",
  "Cảm biến khoẻ":                         "Healthy sensors",
- "Dòng/áp: số THẬT?":                     "Current/voltage: REAL?",
+ "Điện áp · Dòng pack":                   "Pack voltage · current",
  "Lớp 1 — Nhiệt độ từng cell ngay lúc này":
      "Layer 1 — Per-cell temperature right now",
  "Lớp 1 — Điểm bất thường từng cell":     "Layer 1 — Per-cell anomaly score",
@@ -42,8 +42,8 @@ DESC = {
    "Red from 60.0 °C — a hard limit, entirely independent of the AI.",
  "Trên tổng 6 (QĐ-036). Dưới 6 nghĩa là số liệu KHÔNG đầy đủ — xem docs/HAI_LOP_AI.":
    "Out of 6 (QĐ-036). Fewer than 6 means the data is INCOMPLETE — see docs/HAI_LOP_AI.",
- "0 = chưa có INA228, dòng và SOC là hằng số giả định. Đừng tin đồ thị Lớp 2.":
-   "0 = no INA228 yet; current and SoC are assumed constants. Do not trust the Layer 2 charts.",
+ "Đo bằng INA226. Dòng âm = đang xả, dương = đang sạc. \"chưa đo\" = chip không đọc được mạch đo (gửi -99).":
+   "Measured by an INA226. Negative current = discharging, positive = charging. \"not measured\" = the chip cannot read the meter (sends -99).",
  "So sánh KHÔNG GIAN giữa 6 cell tại một thời điểm — cell nào khác phần còn lại thì thấy ngay, không phải đọc 6 đường chồng nhau.":
    "A SPATIAL comparison across the 6 cells at one instant — the odd cell stands out immediately, instead of reading 6 overlapping lines.",
  "Đường đỏ = ngưỡng 1.0707. Vượt ngưỡng phải GIỮ LIÊN TỤC 60 giây mới thành báo động — chống báo động giả do nhiễu.":
@@ -78,8 +78,9 @@ VALUE = {
  "NGUY KỊCH":                    "CRITICAL",
  "MẤT KẾT NỐI":                  "LINK LOST",
  "BÁO ĐỘNG":                     "ALARM",
- "ĐO THẬT":                      "REAL MEASUREMENT",
- "CÒN GIẢ ĐỊNH":                 "STILL ASSUMED",
+ "chưa đo":                      "not measured",
+ "Điện áp":                      "Voltage",
+ "Dòng":                         "Current",
  "Chưa rõ dạng":                 "Pattern unclear",
  "NÓNG LÊN NHANH (TH-1)":        "HEATING FAST (TH-1)",
  "Nóng hơn, ổn định (TH-2)":     "Hotter but steady (TH-2)",

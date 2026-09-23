@@ -16,7 +16,7 @@ NGUYÊN TẮC THIẾT KẾ — đối tượng là GIÁM KHẢO trong 5 PHÚT, k
     xem làm việc của máy.
 
  2. CÓ HÀNG RIÊNG CHO "SỐ NÀY CÓ THẬT KHÔNG".
-    `Meter_IsReal`, `Ambient_IsReal`, `Sensor_Healthy` — đây là thứ phân biệt hệ
+    `Ambient_IsReal`, `Sensor_Healthy`, "chưa đo" ở ô điện áp — thứ phân biệt hệ
     này với một bản demo tô vẽ. Giấu chúng đi là vứt bỏ đúng điểm mạnh nhất.
     Số giả định phải TỰ KHAI là giả định, ngay trên màn hình.
 
@@ -54,9 +54,12 @@ def last(tag, rng="-6h", meas="cell"):
 
 
 def series(regex, rng="v.timeRangeStart", meas="cell"):
+    # Bỏ -99: chip gửi -99 thay cho "không đọc được" (Ambient_Temp, Pack_*).
+    # Không lọc thì biểu đồ nhiệt độ có một đường nằm ở -100 °C.
     return q(f'''from(bucket: "{BUCKET}")
   |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
   |> filter(fn: (r) => r._measurement == "{meas}" and r._field == "value" and r.tag =~ {regex})
+  |> filter(fn: (r) => r._value > -90.0)
   |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)
   |> keep(columns: ["_time","_value","tag"])''')
 
@@ -141,17 +144,33 @@ def main(lang="vi"):
          "overrides": []},
         "Trên tổng 6 (QĐ-036). Dưới 6 nghĩa là số liệu KHÔNG đầy đủ — xem docs/HAI_LOP_AI."))
 
-    # Panel này là đặc sản của dự án: số nào đang là GIẢ ĐỊNH thì tự khai.
-    P.append(panel(nxt(), "stat", "Dòng/áp: số THẬT?", 19, 0, 5, 5,
-        last("Meter_IsReal"), stat_opts(28),
+    # Điện áp và dòng pack đo bằng INA226 (23/09). Trước đây ô này chỉ hiện
+    # "ĐO THẬT / CÒN GIẢ ĐỊNH" — hữu ích lúc chưa có mạch đo, nhưng khi đã đo
+    # thật thì một chữ "ĐO THẬT" chiếm cả ô là phí chỗ. Giờ hiện luôn con số.
+    # Nguyên tắc tự khai vẫn giữ: chip gửi -99 khi không đọc được mạch đo, và
+    # -99 hiện thành "chưa đo" chứ không thành một con số trông như thật.
+    vi_tgt = []
+    for ref, tag in [("A", "Pack_Voltage"), ("B", "Pack_Current")]:
+        t = last(tag)[0]; t["refId"] = ref; vi_tgt.append(t)
+    P.append(panel(nxt(), "stat", "Điện áp · Dòng pack", 19, 0, 5, 5,
+        vi_tgt, stat_opts(26, "value_and_name"),
         {"defaults": {
-            "mappings": [{"type": "value", "options": {
-                "1": {"text": "ĐO THẬT",       "color": "green", "index": 0},
-                "0": {"text": "CÒN GIẢ ĐỊNH",  "color": "red",   "index": 1}}}],
-            "noValue": "CÒN GIẢ ĐỊNH",
+            "decimals": 2,
+            "mappings": [{"type": "range", "options": {"from": -1000, "to": -90,
+                          "result": {"text": "chưa đo", "color": "red", "index": 0}}}],
+            "noValue": "chưa đo",
+            "color": {"mode": "fixed", "fixedColor": "#2b5f8a"},
             "thresholds": thresholds([{"color": "text", "value": None}])},
-         "overrides": []},
-        "0 = chưa có INA228, dòng và SOC là hằng số giả định. Đừng tin đồ thị Lớp 2."))
+         "overrides": [
+             {"matcher": {"id": "byFrameRefID", "options": "A"},
+              "properties": [{"id": "unit", "value": "volt"},
+                             {"id": "displayName", "value": "Điện áp"}]},
+             {"matcher": {"id": "byFrameRefID", "options": "B"},
+              "properties": [{"id": "unit", "value": "amp"},
+                             {"id": "decimals", "value": 3},
+                             {"id": "displayName", "value": "Dòng"}]}]},
+        "Đo bằng INA226. Dòng âm = đang xả, dương = đang sạc. "
+        "\"chưa đo\" = chip không đọc được mạch đo (gửi -99)."))
 
     # ===================== HÀNG 2 — Lớp 1 ====================================
     P.append(panel(nxt(), "bargauge", "Lớp 1 — Nhiệt độ từng cell ngay lúc này", 0, 5, 10, 9,

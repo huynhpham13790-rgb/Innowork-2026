@@ -296,7 +296,7 @@
     {
       "id": 5,
       "type": "stat",
-      "title": "Current/voltage: REAL?",
+      "title": "Pack voltage · current",
       "datasource": {
         "type": "influxdb",
         "uid": "cfxg34mlaudxce"
@@ -313,8 +313,16 @@
             "type": "influxdb",
             "uid": "cfxg34mlaudxce"
           },
-          "query": "from(bucket: \"battery\")\n  |> range(start: -6h)\n  |> filter(fn: (r) => r._measurement == \"cell\" and r._field == \"value\" and r.tag == \"Meter_IsReal\")\n  |> last()",
+          "query": "from(bucket: \"battery\")\n  |> range(start: -6h)\n  |> filter(fn: (r) => r._measurement == \"cell\" and r._field == \"value\" and r.tag == \"Pack_Voltage\")\n  |> last()",
           "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "cfxg34mlaudxce"
+          },
+          "query": "from(bucket: \"battery\")\n  |> range(start: -6h)\n  |> filter(fn: (r) => r._measurement == \"cell\" and r._field == \"value\" and r.tag == \"Pack_Current\")\n  |> last()",
+          "refId": "B"
         }
       ],
       "options": {
@@ -325,34 +333,36 @@
           "fields": "",
           "values": false
         },
-        "textMode": "value",
+        "textMode": "value_and_name",
         "colorMode": "background",
         "graphMode": "none",
         "justifyMode": "center",
         "text": {
-          "valueSize": 28
+          "valueSize": 26
         }
       },
       "fieldConfig": {
         "defaults": {
+          "decimals": 2,
           "mappings": [
             {
-              "type": "value",
+              "type": "range",
               "options": {
-                "1": {
-                  "text": "REAL MEASUREMENT",
-                  "color": "green",
-                  "index": 0
-                },
-                "0": {
-                  "text": "STILL ASSUMED",
+                "from": -1000,
+                "to": -90,
+                "result": {
+                  "text": "not measured",
                   "color": "red",
-                  "index": 1
+                  "index": 0
                 }
               }
             }
           ],
-          "noValue": "STILL ASSUMED",
+          "noValue": "not measured",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#2b5f8a"
+          },
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -363,9 +373,46 @@
             ]
           }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "A"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "volt"
+              },
+              {
+                "id": "displayName",
+                "value": "Voltage"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "amp"
+              },
+              {
+                "id": "decimals",
+                "value": 3
+              },
+              {
+                "id": "displayName",
+                "value": "Current"
+              }
+            ]
+          }
+        ]
       },
-      "description": "0 = no INA228 yet; current and SoC are assumed constants. Do not trust the Layer 2 charts."
+      "description": "Measured by an INA226. Negative current = discharging, positive = charging. \"not measured\" = the chip cannot read the meter (sends -99)."
     },
     {
       "id": 6,
@@ -457,7 +504,7 @@
             "type": "influxdb",
             "uid": "cfxg34mlaudxce"
           },
-          "query": "from(bucket: \"battery\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"cell\" and r._field == \"value\" and r.tag =~ /^AI_Score0[1-6]$/)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> keep(columns: [\"_time\",\"_value\",\"tag\"])",
+          "query": "from(bucket: \"battery\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"cell\" and r._field == \"value\" and r.tag =~ /^AI_Score0[1-6]$/)\n  |> filter(fn: (r) => r._value > -90.0)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> keep(columns: [\"_time\",\"_value\",\"tag\"])",
           "refId": "A"
         }
       ],
@@ -860,7 +907,7 @@
             "type": "influxdb",
             "uid": "cfxg34mlaudxce"
           },
-          "query": "from(bucket: \"battery\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"rul\" and r._field == \"value\" and r.tag =~ /^RUL_Cycles$/)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> keep(columns: [\"_time\",\"_value\",\"tag\"])",
+          "query": "from(bucket: \"battery\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"rul\" and r._field == \"value\" and r.tag =~ /^RUL_Cycles$/)\n  |> filter(fn: (r) => r._value > -90.0)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> keep(columns: [\"_time\",\"_value\",\"tag\"])",
           "refId": "A"
         }
       ],
@@ -980,7 +1027,7 @@
             "type": "influxdb",
             "uid": "cfxg34mlaudxce"
           },
-          "query": "from(bucket: \"battery\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"cell\" and r._field == \"value\" and r.tag =~ /_Temp$/)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> keep(columns: [\"_time\",\"_value\",\"tag\"])",
+          "query": "from(bucket: \"battery\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"cell\" and r._field == \"value\" and r.tag =~ /_Temp$/)\n  |> filter(fn: (r) => r._value > -90.0)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> keep(columns: [\"_time\",\"_value\",\"tag\"])",
           "refId": "A"
         }
       ],
@@ -1044,7 +1091,7 @@
             "type": "influxdb",
             "uid": "cfxg34mlaudxce"
           },
-          "query": "from(bucket: \"battery\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"cell\" and r._field == \"value\" and r.tag =~ /^Sensor_ErrPct$/)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> keep(columns: [\"_time\",\"_value\",\"tag\"])",
+          "query": "from(bucket: \"battery\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"cell\" and r._field == \"value\" and r.tag =~ /^Sensor_ErrPct$/)\n  |> filter(fn: (r) => r._value > -90.0)\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> keep(columns: [\"_time\",\"_value\",\"tag\"])",
           "refId": "A"
         }
       ],
