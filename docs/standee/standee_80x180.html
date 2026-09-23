@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Standee Hủ Tiếu 80×180</title>
+<!--
+  Standee 80 × 180 cm — file in. Xuất PDF: docs/standee/xuat_pdf.sh
+  Khổ trang = 806 × 1806 mm: đã gồm BLEED 3 mm mỗi cạnh (nền tràn ra tới mép).
+  Chữ và hình quan trọng nằm trong LỀ AN TOÀN cách mép cắt 20 mm.
+  Tiêu đề đặt ở ~25–55 cm tính từ đỉnh — đúng tầm mắt người đứng (~1,55 m).
+  150 mm dưới cùng thường bị chân đế cuốn che: chỉ để tên trường, không để số liệu.
+  Số liệu trên standee lấy từ docs/DECISION_LOG.md (QĐ-033) và rul_predict.js —
+  đổi số ở đó thì phải sửa ở đây.
+-->
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+@page { size: 806mm 1806mm; margin: 0; }
+:root{
+  --navy:#0b1628; --navy2:#12233d; --ink:#eaf0f8; --dim:#9fb0c8;
+  --heat:#ff5a2c; --warm:#ffb020; --ok:#2bd48a; --line:#28406a;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:806mm;height:1805mm;overflow:hidden;background:var(--navy);
+  -webkit-print-color-adjust:exact;print-color-adjust:exact}
+body{font-family:"Be Vietnam Pro",system-ui,sans-serif;color:var(--ink);position:relative;overflow:hidden}
+
+/* nền: vệt nhiệt loang từ cell nóng xuống */
+.bg{position:absolute;inset:0;
+  background:
+    radial-gradient(420mm 420mm at 70% 38%, rgba(255,90,44,.28), transparent 70%),
+    radial-gradient(500mm 500mm at 10% 90%, rgba(43,212,138,.10), transparent 70%),
+    linear-gradient(180deg,#0e1c33 0%, #0b1628 45%, #081120 100%);}
+.safe{position:absolute;left:23mm;right:23mm;top:23mm;bottom:23mm;display:flex;flex-direction:column}
+
+/* 1 — băng logo */
+.top{display:flex;align-items:center;gap:14mm;height:70mm}
+.logo{height:62mm;min-width:62mm;border:1.2mm dashed var(--line);border-radius:6mm;
+  display:flex;align-items:center;justify-content:center;color:var(--dim);font-size:9mm;text-align:center;padding:0 6mm}
+.top .ev{margin-left:auto;text-align:right}
+.ev b{display:block;font-size:19mm;font-weight:800;letter-spacing:.4mm}
+.ev span{font-size:11mm;color:var(--dim)}
+
+/* 2 — tiêu đề ở tầm mắt */
+.kicker{margin-top:48mm;font-size:15mm;font-weight:700;color:var(--warm);letter-spacing:1.5mm;text-transform:uppercase}
+h1{margin-top:8mm;font-size:74mm;line-height:.98;font-weight:900;letter-spacing:-1mm}
+h1 em{font-style:normal;color:var(--heat)}
+.sub{margin-top:14mm;font-size:21mm;line-height:1.28;color:#d5deeb;max-width:720mm}
+
+/* 3 — hình chính: 6 cell, một cell nóng */
+.hero{margin-top:24mm;display:grid;grid-template-columns:1.05fr 1fr;gap:14mm;height:430mm}
+.pack{background:rgba(255,255,255,.04);border:1mm solid var(--line);border-radius:10mm;padding:18mm 16mm;
+  display:flex;flex-direction:column;justify-content:space-between}
+.pack h3{font-size:13mm;color:var(--dim);font-weight:600}
+.cells{display:flex;gap:6mm;align-items:flex-end;height:250mm;margin-top:14mm}
+.cell{flex:1;height:100%;border-radius:8mm;background:linear-gradient(180deg,#2d4f7e,#1a3252);
+  position:relative;display:flex;align-items:flex-end;justify-content:center;padding-bottom:10mm;
+  font-size:13mm;font-weight:700;color:#cfe0f5}
+.cell::before{content:"";position:absolute;top:-7mm;left:28%;right:28%;height:9mm;border-radius:2mm;background:#7c90ad}
+.cell.hot{background:linear-gradient(180deg,#ff7a2c,#d8341c);color:#fff;box-shadow:0 0 40mm rgba(255,90,44,.65)}
+.cell .t{position:absolute;top:16mm;left:0;right:0;text-align:center;font-size:12mm;font-weight:600}
+.pack .cap{font-size:14mm;line-height:1.3}
+.pack .cap b{color:var(--heat)}
+.photo{border:1.4mm dashed var(--warm);border-radius:10mm;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;text-align:center;color:var(--warm);gap:6mm;padding:10mm;
+  background:repeating-linear-gradient(45deg,rgba(255,176,32,.05) 0 12mm,transparent 12mm 24mm)}
+.photo b{font-size:20mm} .photo span{font-size:11mm;color:var(--dim)}
+
+/* 4 — ba ý chính */
+.feats{margin-top:24mm;display:flex;flex-direction:column;gap:12mm}
+.feat{display:grid;grid-template-columns:52mm 1fr;gap:12mm;align-items:center;
+  background:rgba(255,255,255,.045);border-left:3mm solid var(--c,#2bd48a);border-radius:6mm;padding:13mm 16mm}
+.feat .n{width:52mm;height:52mm;border-radius:50%;background:var(--c);color:var(--navy);
+  display:flex;align-items:center;justify-content:center;font-size:24mm;font-weight:900}
+.feat h4{font-size:21mm;font-weight:800;line-height:1.1}
+.feat p{margin-top:4mm;font-size:13.5mm;line-height:1.3;color:#cad6e6}
+
+/* 5 — đường đi của dữ liệu */
+.flow{margin-top:22mm;display:flex;align-items:center;justify-content:space-between;gap:4mm}
+.node{flex:1;text-align:center;background:var(--navy2);border:.8mm solid var(--line);border-radius:6mm;padding:9mm 4mm}
+.node b{display:block;font-size:13mm;font-weight:800}
+.node span{display:block;margin-top:2mm;font-size:9.5mm;color:var(--dim)}
+.arr{font-size:18mm;color:var(--warm);font-weight:900}
+
+/* 6 — con số */
+.nums{margin-top:22mm;display:grid;grid-template-columns:1fr 1fr;gap:10mm}
+.num{background:rgba(255,255,255,.05);border-radius:8mm;padding:13mm 14mm}
+.num b{display:block;font-size:40mm;font-weight:900;line-height:1;color:var(--ok)}
+.num.w b{color:var(--warm)}
+.num span{display:block;margin-top:5mm;font-size:12.5mm;line-height:1.25;color:#cad6e6}
+
+/* 7 — chân: đội + QR, trên vùng bị chân đế che */
+.foot{margin-top:auto;display:flex;gap:14mm;align-items:center;padding-top:20mm;padding-bottom:120mm}
+.qr{width:120mm;height:120mm;flex:none;border:1.2mm dashed var(--line);border-radius:6mm;background:#fff1;
+  display:flex;align-items:center;justify-content:center;text-align:center;color:var(--dim);font-size:10mm;padding:6mm}
+.team b{display:block;font-size:22mm;font-weight:800}
+.team p{margin-top:4mm;font-size:12mm;line-height:1.35;color:#cad6e6}
+.base{position:absolute;left:23mm;right:23mm;bottom:40mm;text-align:center;font-size:12mm;color:var(--dim)}
+</style>
+</head>
+<body>
+<div class="bg"></div>
+<div class="safe">
+
+  <div class="top">
+    <div class="logo">LOGO<br>ICTU</div>
+    <div class="logo">LOGO<br>InnoWorks</div>
+    <div class="ev"><b>AIoT InnoWorks 2026</b><span>Đội Hủ Tiếu · ICTU</span></div>
+  </div>
+
+  <div class="kicker">Giám sát an toàn pin xe điện</div>
+  <h1>Bắt cell pin<br>hỏng <em>trước</em><br>khi nó cháy</h1>
+  <p class="sub">Đám cháy pin nào cũng bắt đầu từ <b>một cell</b> nóng hơn phần còn lại.
+    Chúng tôi đo từng cell, và AI ngay trên chip nhận ra cell đó khi nó mới lệch vài độ — còn rất xa ngưỡng 60 °C.</p>
+
+  <div class="hero">
+    <div class="pack">
+      <h3>6 cell · đo từng cell · 1 lần/giây</h3>
+      <div class="cells">
+        <div class="cell"><span class="t">30,1°</span>1</div>
+        <div class="cell"><span class="t">30,0°</span>2</div>
+        <div class="cell hot"><span class="t">35,2°</span>3</div>
+        <div class="cell"><span class="t">30,2°</span>4</div>
+        <div class="cell"><span class="t">29,9°</span>5</div>
+        <div class="cell"><span class="t">30,1°</span>6</div>
+      </div>
+      <p class="cap">Trung bình cả pack: 30,9 °C — "bình thường".<br>
+        Nhưng <b>cell 3 lệch +5 °C</b>. AI thấy ngay.</p>
+    </div>
+    <div class="photo">
+      <b>ẢNH PHẦN CỨNG</b>
+      <span>Dán ảnh hộp in 3D + mạch<br>~370 × 430 mm<br>≥ 150 dpi → ≥ 2200 × 2550 px</span>
+    </div>
+  </div>
+
+  <div class="feats">
+    <div class="feat" style="--c:#ff5a2c"><div class="n">1</div><div>
+      <h4>AI Lớp 1 — ngay trên chip</h4>
+      <p>So mỗi cell với phần còn lại của pack. Phân biệt <b>nóng vọt</b> (cách ly ngay),
+        <b>ấm ổn định</b> (theo dõi) và <b>lạnh bất thường</b> (hở mối nối). Mất mạng vẫn chạy.</p></div></div>
+    <div class="feat" style="--c:#ffb020"><div class="n">2</div><div>
+      <h4>AI Lớp 2 — dự báo tuổi thọ</h4>
+      <p>Từ mỗi lần sạc, ước lượng sức khoẻ pin (SOH) và số chu kỳ còn lại (RUL) —
+        và tự báo khi dữ liệu nằm ngoài vùng nó đã học.</p></div></div>
+    <div class="feat" style="--c:#2bd48a"><div class="n">3</div><div>
+      <h4>Báo tới đúng người</h4>
+      <p>Còi + đèn cho người đứng cạnh. App điện thoại qua Bluetooth cho thợ.
+        Dashboard cloud cho người quản lý đội xe.</p></div></div>
+  </div>
+
+  <div class="flow">
+    <div class="node"><b>Cảm biến</b><span>6 cell + dòng/áp</span></div><div class="arr">›</div>
+    <div class="node"><b>ESP32-S3</b><span>AI on-device</span></div><div class="arr">›</div>
+    <div class="node"><b>MQTT</b><span>WISE-PaaS</span></div><div class="arr">›</div>
+    <div class="node"><b>Cloud</b><span>dashboard · app</span></div>
+  </div>
+
+  <div class="nums">
+    <div class="num"><b>0</b><span>báo động giả trên 6,1 triệu mẫu-cell kiểm thử</span></div>
+    <div class="num"><b>+2 °C</b><span>cell lệch chừng này là bắt được — 100 % ca thử mô phỏng</span></div>
+    <div class="num w"><b>60 °C</b><span>ngưỡng cứng chạy song song, độc lập với AI</span></div>
+    <div class="num w"><b>±12</b><span>chu kỳ — sai số dự báo tuổi thọ trên pin NASA</span></div>
+  </div>
+
+  <div class="foot">
+    <div class="qr">MÃ QR<br>demo / video</div>
+    <div class="team">
+      <b>Đội Hủ Tiếu</b>
+      <p>Phạm Văn Huynh · Phạm Minh Tú · Đàm Đức Đôn<br>
+         Hoàng Văn Huy · Nguyễn Hoàng Anh Tuấn<br>
+         GVHD: Đào Thị Hằng</p>
+    </div>
+  </div>
+</div>
+<div class="base">Trường ĐH Công nghệ Thông tin và Truyền thông — ĐH Thái Nguyên · Khoa CNTT</div>
+</body>
+</html>
