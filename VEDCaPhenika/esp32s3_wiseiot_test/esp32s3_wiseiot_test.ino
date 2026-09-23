@@ -468,7 +468,10 @@ void onMqttMessage(char* topic, byte* payload, unsigned int len) {
   const char* cmd = d["cmd"] | "";
 
   if (!strcmp(cmd, "heat")) {
-    gHeater.request();
+    // "mode":"steady" = diễn TH-2. Thiếu hoặc lạ thì về NHANH như cũ, để trang
+    // cũ chưa biết trường này vẫn chạy đúng.
+    const char* md = d["mode"] | "fast";
+    gHeater.request(DH_DEADMAN_MS, strcmp(md, "steady") ? DH_MODE_FAST : DH_MODE_STEADY);
     publishAck(cmd, gHeater.state() == DH_BLOCKED ? "bi chan" : "da nhan");
   } else if (!strcmp(cmd, "heat_stop")) {
     gHeater.stop();
@@ -492,6 +495,7 @@ void publishAck(const char* cmd, const char* result) {
   // Trạng thái THẬT của thiết bị sau khi xử lý lệnh
   d["heater"]  = gHeater.on() ? 1 : 0;
   d["state"]   = (int)gHeater.state();
+  d["mode"]    = (int)gHeater.mode();
   d["reason"]  = gHeater.reason();
   d["delta"]   = round(gHeater.delta() * 100) / 100.0;
   d["left_s"]  = gHeater.secondsLeft();
@@ -1141,7 +1145,11 @@ void loop() {
   // đường tắt nào khác vào gHeater.
   if (Serial.available()) {
     const int c = Serial.read();
-    if (c == 'h' || c == 'H') {
+    if (c == 'w' || c == 'W') {          // w = warm: giữ ấm ổn định (TH-2)
+      gHeater.request(DH_DEADMAN_MS, DH_MODE_STEADY);
+      Serial.printf("[HEAT] xin giu am on dinh %lu s (goi lai de gia han)\n",
+                    (unsigned long)(DH_DEADMAN_MS / 1000));
+    } else if (c == 'h' || c == 'H') {
       gHeater.request();
       Serial.printf("[HEAT] xin bat %lu s (goi lai de gia han)\n",
                     (unsigned long)(DH_DEADMAN_MS / 1000));

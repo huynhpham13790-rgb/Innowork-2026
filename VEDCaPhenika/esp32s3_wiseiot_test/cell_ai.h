@@ -71,6 +71,11 @@ enum AiPattern : uint8_t {
    sót hay báo oan. */
 #define AIP_FAST_DTDIFF   1.0f   // °C/phút nhanh hơn pack thì coi là đang vọt
 #define AIP_FAST_SHOCK    1.5f   // °C lệch đột ngột so với nền chậm
+/* `shock` chỉ tính là "đang vọt" khi cell CÒN đang nóng lên nhanh hơn pack.
+   Đo trên chip 23/09: nền dev_ema có τ = 300 s nên sau khi cell đã đứng yên
+   vài phút, shock vẫn ≥ 1,5 và 82 mẫu bị gọi TH-1 ("cách ly pack") trong khi
+   cell không còn tăng — đúng cái lỗi hạ/nâng cấp sai mà bảng tra phải tránh. */
+#define AIP_FAST_SHOCK_RISE 0.3f // °C/phút — dt_diff tối thiểu để shock được tính
 #define AIP_WARM_DEV      1.5f   // °C nóng hơn trung bình pack một cách ổn định
 #define AIP_COLD_DEV     -2.0f   // °C lạnh hơn trung bình pack
 

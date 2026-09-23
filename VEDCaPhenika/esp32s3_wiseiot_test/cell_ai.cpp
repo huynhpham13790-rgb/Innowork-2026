@@ -208,7 +208,8 @@ CellAIResult CellAI::update(const float* temps, float ambient,
     if (!res.valid)                                    res.pattern = AIP_NONE;
     else if (res.dev <= AIP_COLD_DEV)                  res.pattern = AIP_COLD;
     else if (res.dt_diff >= AIP_FAST_DTDIFF ||
-             res.shock   >= AIP_FAST_SHOCK)            res.pattern = AIP_FAST;
+             (res.shock  >= AIP_FAST_SHOCK &&
+              res.dt_diff >= AIP_FAST_SHOCK_RISE))     res.pattern = AIP_FAST;
     else if (res.dev >= AIP_WARM_DEV)                  res.pattern = AIP_WARM;
     else                                               res.pattern = AIP_NONE;
   }

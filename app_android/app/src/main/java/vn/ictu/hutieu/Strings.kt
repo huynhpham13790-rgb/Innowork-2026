@@ -98,6 +98,15 @@ object L {
        NGẮN: "chu ky sac" phải được thay trước "chu ky", không thì còn lại một
        mảnh cụt. */
     private val CHIP = listOf(
+        // Dự phòng khi ChipText không khớp mẫu — tên dạng Lớp 1 từng lọt nguyên văn.
+        "NONG LEN NHANH (TH-1)" to "HEATING FAST (case 1)",
+        "nong hon nhung on dinh (TH-2)" to "warmer but stable (case 2)",
+        "LANH bat thuong (TH-3)" to "abnormally COLD (case 3)",
+        "chua ro dang"   to "pattern unclear",
+        "NGAT SAC, ngat tai, CACH LY PACK ra cho thoang" to "STOP CHARGING, cut load, ISOLATE the pack in open air",
+        "chua khan. Ghi so, kiem o lan bao duong" to "not urgent. Log it, check at next service",
+        "kiem moi noi cua cell va xem cam bien con dan chat" to "check the cell connection and the sensor attachment",
+        "theo doi tiep"  to "keep watching",
         "NGOAI DAI HUAN LUYEN" to "OUTSIDE TRAINING RANGE",
         "dac trung"      to "features",
         "khong co cell bat thuong" to "no abnormal cell",

@@ -23,13 +23,14 @@ void DemoHeater::block(const char* why) {
   Serial.printf("[HEAT] CHAN: %s — nhan RESET de nha\n", why);
 }
 
-void DemoHeater::request(uint32_t hold_ms) {
+void DemoHeater::request(uint32_t hold_ms, DhMode mode) {
   if (st_ == DH_BLOCKED) {            // đã chốt thì không lệnh nào mở lại được
     Serial.println("[HEAT] bo qua lenh xin: dang bi chan, nhan RESET");
     return;
   }
   if (hold_ms > DH_DEADMAN_MS) hold_ms = DH_DEADMAN_MS;   // cloud không nới được
   deadman_until_ = millis() + hold_ms;
+  mode_ = mode;
   if (st_ == DH_OFF) { on_accum_ = 0; }                   // phiên mới, đếm lại
 }
 
@@ -106,6 +107,18 @@ void DemoHeater::update(const float* temps, int n, bool sensor_ok) {
      nhấp nháy quanh đúng ngưỡng — cùng bài học với AL_T_CRIT_CLEAR. --- */
   if (delta_ >= DH_MAX_DELTA_C) {
     setPin(false); st_ = DH_HOLDING; reason_ = "da du chenh lech, dang giu";
+  } else if (mode_ == DH_MODE_STEADY) {
+    /* Băm xung theo thời gian: bật `duty` phần của mỗi cửa sổ 10 s. Chỉ tỉ lệ
+       (không tích phân) nên sẽ đứng hơi dưới đích — chấp nhận, vì khâu tích
+       phân là thứ có thể tự dồn công suất lên lúc cảm biến tuột, đúng tình
+       huống ngày 21/09. */
+    float duty = DH_STEADY_KP * (DH_STEADY_DELTA_C - delta_);
+    if (duty < 0) duty = 0;
+    if (duty > DH_STEADY_DUTY_MAX) duty = DH_STEADY_DUTY_MAX;
+    const bool on = (now % DH_STEADY_WIN_MS) < (uint32_t)(duty * DH_STEADY_WIN_MS);
+    setPin(on);
+    st_ = on ? DH_HEATING : DH_HOLDING;
+    reason_ = "giu am on dinh (TH-2)";
   } else if (delta_ < DH_RESUME_DELTA_C || st_ == DH_HEATING) {
     setPin(true);  st_ = DH_HEATING; reason_ = "dang bom nhiet";
   }

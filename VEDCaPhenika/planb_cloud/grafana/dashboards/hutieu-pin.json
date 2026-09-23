@@ -1147,5 +1147,16 @@
       },
       "description": "Cách duy nhất biết đêm qua có chuyện gì xảy ra mà không ai ở đó nghe còi."
     }
+  ],
+  "links": [
+    {
+      "type": "link",
+      "icon": "external link",
+      "targetBlank": false,
+      "keepTime": true,
+      "includeVars": true,
+      "title": "🇬🇧 English",
+      "url": "/d/hutieu-pin-en"
+    }
   ]
 }

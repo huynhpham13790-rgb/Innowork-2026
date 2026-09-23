@@ -329,6 +329,15 @@ def main(lang="vi"):
         "refresh": "5s",
         "time": {"from": "now-30m", "to": "now"},
         "panels": P,
+        # Nút đổi ngôn ngữ ở góc trên. Hai bản là hai dashboard riêng (xem dưới),
+        # nên "đổi ngôn ngữ" thực chất là nhảy sang uid kia — keepTime để người
+        # đang soi một đoạn sự cố không bị bật về 30 phút gần nhất.
+        "links": [{
+            "type": "link", "icon": "external link", "targetBlank": False,
+            "keepTime": True, "includeVars": True,
+            "title": "🇬🇧 English" if lang == "vi" else "🇻🇳 Tiếng Việt",
+            "url": "/d/hutieu-pin-en" if lang == "vi" else "/d/hutieu-pin",
+        }],
     }
 
     # --- Bản tiếng Anh: CÙNG bố cục, CÙNG truy vấn, chỉ khác chữ (QĐ-046).

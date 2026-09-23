@@ -98,7 +98,7 @@ có `arduino-cli` trên PATH; bản đi kèm nằm trong AppImage của Arduino 
 | `mosquitto/mosquitto.conf` | Bắt buộc đăng nhập MQTT | Bật ẩn danh chỉ khi chạy LAN nhà |
 | `mosquitto/passwd` | Sinh bằng `mosquitto_passwd`, **không commit** | Đổi mật khẩu MQTT |
 | `nodered/flow_wisepaas_to_influx.json` | Flow chạy thật, import qua UI | Đổi luồng xử lý |
-| `nodered/flow_demo_control.json` | **Màn hình người dùng cuối** — `http://127.0.0.1:1880/hutieu`. Trạng thái, 6 cell, chẩn đoán TH-1/2/3, nút tắt còi; phần sưởi nằm dưới mục "chỉ dùng khi trình diễn" | Đổi giao diện. Chỉ dùng node LÕI, không cần cài palette. **Flow đang chạy có id `1c36b21664cab788`**, khác tên file — sửa xong phải đồng bộ hai chiều |
+| `nodered/flow_demo_control.json` | **Màn hình người dùng cuối** — `http://127.0.0.1:1880/hutieu`. Trạng thái, 6 cell, chẩn đoán TH-1/2/3, nút tắt còi; phần sưởi nằm dưới mục "chỉ dùng khi trình diễn", **hai nút: TH-1 nóng vọt / TH-2 ấm ổn định** (gửi `{"cmd":"heat","mode":"fast\|steady"}`, QĐ-049) | Đổi giao diện. Chỉ dùng node LÕI, không cần cài palette. **Flow đang chạy có id `1c36b21664cab788`**, khác tên file — sửa xong phải đồng bộ hai chiều |
 | `nodered/convert.js` | Bản đọc được của node "WISE-PaaS → line protocol" | Đổi cách map payload → DB |
 | `nodered/check_influx_response.js` | Bản đọc được của node "Kiểm tra kết quả ghi" | Đổi cách báo lỗi ghi |
 
@@ -122,3 +122,17 @@ có `arduino-cli` trên PATH; bản đi kèm nằm trong AppImage của Arduino 
 
 Grafana là dashboard đồ thị nên **không gửi lệnh xuống thiết bị được** — mọi nút
 bấm bắt buộc nằm ở trang Node-RED. Đó là lý do có hai trang web chứ không một.
+
+## App Android — `app_android/app/src/main/java/vn/ictu/hutieu/`
+
+| File | Vai trò | Sửa khi nào |
+|---|---|---|
+| `MainActivity.kt` | Kết nối BLE, hàng đợi GATT, vẽ màn hình | Đổi bố cục, đổi luồng kết nối |
+| `Strings.kt` | Chữ của app hai thứ tiếng + từ điển dự phòng cho chữ chip | Thêm nhãn/nút |
+| `ChipText.kt` | Bóc SỐ khỏi chuỗi chip gửi (`ble_view.cpp`) rồi tự viết câu có dấu, song ngữ (QĐ-049) | **Mỗi lần đổi định dạng `snprintf` trong `ble_view.cpp`** — không khớp mẫu thì app rơi về chữ không dấu, không mất số |
+
+## Sưởi demo — `demo_heater.*`
+
+Hai chế độ (QĐ-049): `DH_MODE_FAST` bật hết cỡ tới +6 °C (diễn TH-1), `DH_MODE_STEADY`
+băm xung tỉ lệ, trần 30 % công suất, giữ cell ấm ổn định (diễn TH-2). Serial: `h` = nhanh,
+`w` = ổn định, `s` = dừng. Mọi hạn mức an toàn dùng chung, chế độ không nới cái nào.

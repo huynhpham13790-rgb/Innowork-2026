@@ -206,7 +206,8 @@ class MainActivity : android.app.Activity() {
             val value = TextView(this).apply {
                 text = "—"; textSize = 15f
                 setTextColor(Color.parseColor(C_TEXT))
-                setPadding(0, dp(3), 0, 0)
+                setPadding(0, dp(6), 0, 0)
+                setLineSpacing(dp(3).toFloat(), 1f)   // các ô giờ nhiều dòng, dính nhau thì khó dò
             }
             val card = LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
@@ -256,7 +257,9 @@ class MainActivity : android.app.Activity() {
     }
 
     private fun label() = TextView(this).apply {
-        textSize = 11f
+        textSize = 12f
+        setTypeface(null, Typeface.BOLD)
+        letterSpacing = 0.04f
         setTextColor(Color.parseColor(C_LABEL))
     }
 
@@ -282,6 +285,7 @@ class MainActivity : android.app.Activity() {
         noteView.text = L["note"] + "\n\n" + L["noteCrit"]
         renderBanner()
         renderButtons()
+        for ((uuid, raw) in lastRaw) views[uuid]?.text = pretty(uuid, raw)
         // Đọc lại để các ô chữ do chip gửi được dịch theo ngôn ngữ mới.
         val g = gatt ?: return
         val svc = g.getService(UUID_SVC) ?: return
@@ -498,9 +502,22 @@ class MainActivity : android.app.Activity() {
                 UUID_CTL   -> { parseCtl(text); renderBanner(); renderButtons() }
                 UUID_TEMPS -> showTemps(text)
                 UUID_STATE -> { }   // băng trên cùng dựng từ 000A, không dò chữ
-                else       -> views[uuid]?.text = L.translateFromChip(text)
+                else       -> { lastRaw[uuid] = text; views[uuid]?.text = pretty(uuid, text) }
             }
         }
+    }
+
+    /* Chuỗi gốc cuối cùng của từng ô — giữ lại để đổi ngôn ngữ thì dựng lại chữ
+       NGAY, không phải chờ đọc lại qua BLE (lúc mất kết nối thì không đọc được). */
+    private val lastRaw = HashMap<UUID, String>()
+
+    private fun pretty(uuid: UUID, raw: String): CharSequence = when (uuid) {
+        UUID_AI   -> ChipText.ai(raw)
+        UUID_DIAG -> ChipText.diag(raw)
+        UUID_PACK -> ChipText.pack(raw)
+        UUID_SYS  -> ChipText.sys(raw)
+        UUID_L2   -> ChipText.l2(raw)
+        else      -> L.translateFromChip(raw)
     }
 
     /* "mute=1 quiet=0 lvl=2 ttl=95" — dạng khoá=giá trị, cố ý không phải chữ

@@ -1706,3 +1706,33 @@ nào — lúc đo đang giữ 215 KB.
 
 ⚠️ **CHƯA chứng kiến nấc tự cứu chạy thật.** Lỗi xuất hiện ngẫu nhiên và nạp lại
 firmware đã vô tình chữa nó. Nếu tái hiện thì log có dòng `[NET ]`.
+
+## QĐ-049 — Diễn được TH-2: sưởi giữ ấm tỉ lệ, và `shock` chỉ tính khi cell còn đang lên (23/09/2026)
+
+**Vấn đề đo trên chip 23/09** (`BANG_CHUNG_TH2_TREN_CHIP_2026-09-23.md`): sưởi
+kiểu bật/tắt quanh +6 °C làm cell vọt lên mỗi lần bật lại, và nền `dev_ema`
+(τ = 300 s) giữ `shock` ≥ 1,5 nhiều phút sau khi cell đã đứng yên. Kết quả: trong
+lúc "giữ nhiệt", 132/160 mẫu bị gọi TH-1 ("ngắt sạc, cách ly pack"), trong đó
+82 mẫu **chỉ** vì `shock`. Không diễn được TH-2, và bảng tra khuyên sai mức.
+
+**Quyết định:**
+1. `demo_heater` thêm `DH_MODE_STEADY`: băm xung cửa sổ 10 s, công suất =
+   0,4 × (5 °C − lệch), trần 30 %. Chỉ khâu tỉ lệ, **không** tích phân — khâu
+   tích phân tự dồn công suất khi đầu dò tuột, đúng kiểu sự cố 21/09. Mọi hạn
+   mức cũ (50 °C, +6 °C, 180 s bật, deadman 15 s, mất cảm biến) áp nguyên.
+2. Bảng tra: `shock ≥ 1,5` chỉ tính là TH-1 khi `dt_diff ≥ 0,3 °C/phút`. Không
+   đụng tới quyết định báo động.
+3. Trang 1880 có hai nút TH-1 / TH-2. Lệnh `heat` thêm trường `mode` tuỳ chọn;
+   thiếu hoặc lạ → NHANH như cũ.
+
+**Kết quả trên chip:** sau khi ổn định, 162/179 mẫu là TH-2, lệch 3,66–3,96 °C,
+báo động 178/179 mẫu. Lên tới đích mất ~4 phút (lúc lên là TH-1 — đúng, cell
+đang nóng lên thật).
+
+**Giới hạn đã biết:** đứng ở ~+3,9 chứ không +5 (sai số tĩnh của khâu tỉ lệ).
+Giữ quá ~8 phút thì nền EMA quen dần, điểm tụt dưới ngưỡng và báo động tự tắt
+dù nhãn vẫn TH-2. Diễn TH-2 thì bấm, chờ ~4 phút, có ~6 phút để trình bày.
+
+**Kèm theo (không phải kiến trúc):** Grafana có link đổi VI↔EN ở góc trên;
+app Android dựng lại chữ Lớp 1/Lớp 2 từ số (`ChipText.kt`), hết sót tiếng Việt
+trong bản tiếng Anh.

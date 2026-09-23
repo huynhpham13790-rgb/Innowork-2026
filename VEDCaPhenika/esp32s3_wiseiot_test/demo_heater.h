@@ -46,6 +46,25 @@
 #define DH_MAX_ON_MS      180000UL  // hạn mức thời gian; KHÔNG đọc cảm biến
 #define DH_DEADMAN_MS     15000UL   // lệnh xin hết hiệu lực sau bấy nhiêu
 
+/* HAI KỊCH BẢN (23/09). Chế độ NHANH bật hết cỡ tới +6 °C rồi bật/tắt quanh
+   đó — mỗi lần bật lại là một đợt vọt thật, nên Lớp 1 thấy TH-1 gần như suốt
+   (đo trên chip 23/09: 132/160 mẫu). Muốn diễn TH-2 thì cell phải NÓNG MÀ
+   KHÔNG CÒN TĂNG, nên chế độ ỔN ĐỊNH điều khiển TỈ LỆ: công suất giảm dần khi
+   tới gần đích, trần công suất thấp để tốc độ nóng không vượt ngưỡng "vọt"
+   1 °C/phút của bảng tra. Hai chế độ dùng CHUNG mọi hạn mức an toàn ở trên —
+   ổn định chỉ đổi cách bật/tắt BÊN DƯỚI các hạn mức đó, không nới cái nào. */
+enum DhMode : uint8_t {
+  DH_MODE_FAST   = 0,   // TH-1: bơm hết cỡ, cell vọt lên
+  DH_MODE_STEADY = 1,   // TH-2: giữ ấm ổn định quanh DH_STEADY_DELTA_C
+};
+/* +5 chứ không +3: mô phỏng với trọng số thật cho thấy lệch ỔN ĐỊNH dưới
+   ~+5 °C thì autoencoder chưa vượt ngưỡng (TH-2 chỉ hiện dạng, không báo
+   động). +5 để khán giả thấy cả báo động lẫn nhãn TH-2; vẫn dưới trần +6. */
+#define DH_STEADY_DELTA_C  5.0f
+#define DH_STEADY_KP       0.4f      // tỉ lệ công suất cho mỗi °C còn thiếu
+#define DH_STEADY_DUTY_MAX 0.30f     // ~1 °C/phút lúc xa đích — không thành "vọt"
+#define DH_STEADY_WIN_MS   10000UL   // chu kỳ băm xung; nhiệt cell lọc mịn bên trong
+
 enum DhState : uint8_t {
   DH_OFF = 0,     // không ai xin
   DH_HEATING,     // đang bơm nhiệt
@@ -59,7 +78,7 @@ class DemoHeater {
 
   /* Xin bật trong `hold_ms` mili giây. Gọi lại để gia hạn. Đây là ĐIỂM VÀO DUY
      NHẤT từ bên ngoài (serial hoặc MQTT) — và nó chỉ XIN, không bật. */
-  void request(uint32_t hold_ms = DH_DEADMAN_MS);
+  void request(uint32_t hold_ms = DH_DEADMAN_MS, DhMode mode = DH_MODE_FAST);
 
   /* Thu hồi lệnh xin ngay lập tức. */
   void stop();
@@ -70,6 +89,7 @@ class DemoHeater {
 
   bool     on() const { return on_; }
   DhState  state() const { return st_; }
+  DhMode   mode() const { return mode_; }
   const char* reason() const { return reason_; }
   /* Chênh lệch cell nóng nhất so với trung vị pack — số mà demo muốn đẩy lên. */
   float    delta() const { return delta_; }
@@ -81,6 +101,7 @@ class DemoHeater {
 
   bool     on_ = false;
   DhState  st_ = DH_OFF;
+  DhMode   mode_ = DH_MODE_FAST;
   const char* reason_ = "chua ai xin";
   float    delta_ = 0;
   uint32_t deadman_until_ = 0;

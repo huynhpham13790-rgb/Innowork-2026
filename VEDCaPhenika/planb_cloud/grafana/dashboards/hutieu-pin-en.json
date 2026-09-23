@@ -1147,5 +1147,16 @@
       },
       "description": "The only way to know something happened overnight with nobody there to hear the buzzer."
     }
+  ],
+  "links": [
+    {
+      "type": "link",
+      "icon": "external link",
+      "targetBlank": false,
+      "keepTime": true,
+      "includeVars": true,
+      "title": "🇻🇳 Tiếng Việt",
+      "url": "/d/hutieu-pin"
+    }
   ]
 }

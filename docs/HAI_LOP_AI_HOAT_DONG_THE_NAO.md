@@ -58,6 +58,12 @@ biệt hai nguyên nhân bằng cách **đổi vị trí cell**: nếu điểm n
 thì là cell; nếu ở lại theo vị trí thì là tản nhiệt. Nếu là cell thì đánh dấu
 để thay khi tân trang (thay bằng cell **khớp độ chai**, xem QĐ-027).
 
+**Diễn TH-2 (23/09, QĐ-049):** nút "TH-2 · Ấm ổn định" trên trang 1880. Lúc đầu
+cell đang được đẩy lên nên hiện TH-1 — đúng, vì nó đang nóng lên thật. Sau ~4
+phút cell đứng ở ~+3,9 °C và nhãn chuyển TH-2. Giữ quá ~8 phút thì báo động tự
+tắt (nền trượt quen với mức mới) dù dạng vẫn là TH-2 — đó cũng chính là lý do
+TH-2 là "theo dõi", không phải "khẩn cấp".
+
 ### TH-3 · Một cell LẠNH bất thường 🟡 DỄ BỎ SÓT
 
 Dấu hiệu: `dev_mean` âm rõ rệt.
